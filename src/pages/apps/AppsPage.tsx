@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { format } from 'date-fns'
+import { Plus, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -23,46 +24,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-
-interface App {
-  id: string
-  portalId: number
-  name: string
-  isActive: boolean
-  createdAt: string
-}
-
-// Mock data for demo
-const mockApps: App[] = [
-  {
-    id: 'ggg-ma-dao',
-    portalId: 12345,
-    name: 'GGG Ma Đạo Campaign',
-    isActive: true,
-    createdAt: '2024-01-15',
-  },
-  {
-    id: 'phuc-long-tet',
-    portalId: 12346,
-    name: 'Phúc Long Tết 2024',
-    isActive: true,
-    createdAt: '2024-01-10',
-  },
-  {
-    id: 'highlands-summer',
-    portalId: 12347,
-    name: 'Highlands Summer Promo',
-    isActive: false,
-    createdAt: '2024-01-05',
-  },
-]
+import { useApps, useUpdateApp } from '@/hooks/useApps'
+import type { App } from '@/schemas/app.schema'
 
 const columns: ColumnDef<App>[] = [
   {
-    accessorKey: 'id',
+    accessorKey: 'appId',
     header: 'App ID',
     cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.getValue('id')}</span>
+      <span className="font-mono text-sm">{row.getValue('appId')}</span>
     ),
   },
   {
@@ -91,14 +61,21 @@ const columns: ColumnDef<App>[] = [
   {
     accessorKey: 'createdAt',
     header: 'Created',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.getValue('createdAt')}</span>
-    ),
+    cell: ({ row }) => {
+      const date = row.getValue('createdAt') as string
+      return (
+        <span className="text-muted-foreground">
+          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+        </span>
+      )
+    },
   },
 ]
 
 export function AppsPage() {
-  const apps = mockApps // Will be replaced with API data
+  const { data: apps = [], isLoading, error } = useApps()
+  const updateApp = useUpdateApp()
+
   const [selectedApp, setSelectedApp] = useState<App | null>(null)
   const [editedApp, setEditedApp] = useState<App | null>(null)
 
@@ -107,11 +84,30 @@ export function AppsPage() {
     setEditedApp({ ...app })
   }
 
-  const handleSave = () => {
-    // Will be replaced with API call
-    console.log('Saving app:', editedApp)
+  const handleSave = async () => {
+    if (!editedApp || !selectedApp) return
+
+    await updateApp.mutateAsync({
+      id: selectedApp.appId,
+      data: {
+        name: editedApp.name,
+        portalId: editedApp.portalId,
+        isActive: editedApp.isActive,
+      },
+    })
+
     setSelectedApp(null)
     setEditedApp(null)
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-destructive">
+          Failed to load apps: {error.message}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -134,7 +130,11 @@ export function AppsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {apps.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : apps.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
               <p>No apps yet. Create your first app.</p>
             </div>
@@ -155,10 +155,10 @@ export function AppsPage() {
           {editedApp && (
             <div className="flex-1 space-y-4 overflow-auto px-4">
               <div className="space-y-2">
-                <Label htmlFor="id">App ID</Label>
+                <Label htmlFor="appId">App ID</Label>
                 <Input
-                  id="id"
-                  value={editedApp.id}
+                  id="appId"
+                  value={editedApp.appId}
                   disabled
                   className="font-mono"
                 />
@@ -190,7 +190,9 @@ export function AppsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Created</Label>
-                <p className="text-sm text-muted-foreground">{editedApp.createdAt}</p>
+                <p className="text-sm text-muted-foreground">
+                  {editedApp.createdAt ? format(new Date(editedApp.createdAt), 'PPP') : '-'}
+                </p>
               </div>
             </div>
           )}
@@ -198,7 +200,10 @@ export function AppsPage() {
             <Button variant="outline" onClick={() => setSelectedApp(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save changes</Button>
+            <Button onClick={handleSave} disabled={updateApp.isPending}>
+              {updateApp.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save changes
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

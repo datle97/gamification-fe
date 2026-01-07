@@ -1,24 +1,16 @@
 import ky from 'ky'
 
+// TODO: Replace with proper auth flow
+const DEV_TOKEN = 'q7YVQIHsOVWkbqJwzuy7tuNlbdHrrRkcH9hbdeJdpj1eP6051J'
+
 export const api = ky.create({
-  prefixUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  prefixUrl: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
   timeout: 30000,
   hooks: {
     beforeRequest: [
       (request) => {
-        const token = localStorage.getItem('token')
-        if (token) {
-          request.headers.set('Authorization', `Bearer ${token}`)
-        }
-      },
-    ],
-    afterResponse: [
-      async (_request, _options, response) => {
-        if (response.status === 401) {
-          localStorage.removeItem('token')
-          window.location.href = '/login'
-        }
-        return response
+        const token = localStorage.getItem('token') || DEV_TOKEN
+        request.headers.set('Authorization', `Bearer ${token}`)
       },
     ],
   },

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Plus } from 'lucide-react'
-import { Link } from 'react-router'
+import { Plus, Loader2 } from 'lucide-react'
+import { Link as RouterLink } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
@@ -31,8 +31,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { StatusCellSelect } from '@/components/common/status-cell-select'
+import { useLinks, useUpdateLink } from '@/hooks/useLinks'
+import type { Link, LinkStatus } from '@/schemas/link.schema'
 
-const statusOptions = ['active', 'draft', 'paused', 'ended'] as const
+const statusOptions = ['draft', 'active', 'paused', 'ended'] as const
 
 const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
   active: 'default',
@@ -41,54 +43,13 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
   ended: 'secondary',
 }
 
-interface AppGame {
-  appId: string
-  gameCode: string
-  appName: string
-  gameName: string
-  status: string
-  startDate: string
-  endDate: string
-}
-
-// Mock data for demo
-const mockAppGames: AppGame[] = [
+const columns: ColumnDef<Link>[] = [
   {
-    appId: 'ggg-ma-dao',
-    gameCode: 'golden-horse',
-    appName: 'GGG Ma Đạo Campaign',
-    gameName: 'Golden Horse Spin',
-    status: 'active',
-    startDate: '2024-01-15',
-    endDate: '2024-02-15',
-  },
-  {
-    appId: 'phuc-long-tet',
-    gameCode: 'lucky-scratch',
-    appName: 'Phúc Long Tết 2024',
-    gameName: 'Lucky Scratch Card',
-    status: 'draft',
-    startDate: '2024-01-20',
-    endDate: '2024-02-20',
-  },
-  {
-    appId: 'highlands-summer',
-    gameCode: 'trivia-master',
-    appName: 'Highlands Summer Promo',
-    gameName: 'Trivia Master Quiz',
-    status: 'ended',
-    startDate: '2023-06-01',
-    endDate: '2023-08-31',
-  },
-]
-
-const columns: ColumnDef<AppGame>[] = [
-  {
-    accessorKey: 'appName',
+    accessorKey: 'app',
     header: 'App',
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.appName}</div>
+        <div className="font-medium">{row.original.app?.name || '-'}</div>
         <div className="text-xs text-muted-foreground font-mono">
           {row.original.appId}
         </div>
@@ -96,13 +57,13 @@ const columns: ColumnDef<AppGame>[] = [
     ),
   },
   {
-    accessorKey: 'gameName',
+    accessorKey: 'game',
     header: 'Game',
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.gameName}</div>
+        <div className="font-medium">{row.original.game?.name || '-'}</div>
         <div className="text-xs text-muted-foreground font-mono">
-          {row.original.gameCode}
+          {row.original.game?.code || row.original.gameId}
         </div>
       </div>
     ),
@@ -114,7 +75,7 @@ const columns: ColumnDef<AppGame>[] = [
       <StatusCellSelect
         value={row.getValue('status') as string}
         onValueChange={(newStatus: string) => {
-          // Will be replaced with API call
+          // Status change is handled via inline update
           console.log('Changing status to:', newStatus)
         }}
         options={statusOptions}
@@ -123,36 +84,66 @@ const columns: ColumnDef<AppGame>[] = [
     ),
   },
   {
-    accessorKey: 'startDate',
+    accessorKey: 'startAt',
     header: 'Start Date',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.getValue('startDate')}</span>
-    ),
+    cell: ({ row }) => {
+      const date = row.getValue('startAt') as string
+      return (
+        <span className="text-muted-foreground">
+          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+        </span>
+      )
+    },
   },
   {
-    accessorKey: 'endDate',
+    accessorKey: 'endAt',
     header: 'End Date',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.getValue('endDate')}</span>
-    ),
+    cell: ({ row }) => {
+      const date = row.getValue('endAt') as string
+      return (
+        <span className="text-muted-foreground">
+          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+        </span>
+      )
+    },
   },
 ]
 
 export function AppGamesPage() {
-  const appGames = mockAppGames // Will be replaced with API data
-  const [selectedAppGame, setSelectedAppGame] = useState<AppGame | null>(null)
-  const [editedAppGame, setEditedAppGame] = useState<AppGame | null>(null)
+  const { data: links = [], isLoading, error } = useLinks()
+  const updateLink = useUpdateLink()
 
-  const handleRowClick = (appGame: AppGame) => {
-    setSelectedAppGame(appGame)
-    setEditedAppGame({ ...appGame })
+  const [selectedLink, setSelectedLink] = useState<Link | null>(null)
+  const [editedLink, setEditedLink] = useState<Link | null>(null)
+
+  const handleRowClick = (link: Link) => {
+    setSelectedLink(link)
+    setEditedLink({ ...link })
   }
 
-  const handleSave = () => {
-    // Will be replaced with API call
-    console.log('Saving app game:', editedAppGame)
-    setSelectedAppGame(null)
-    setEditedAppGame(null)
+  const handleSave = async () => {
+    if (!editedLink || !selectedLink) return
+
+    await updateLink.mutateAsync({
+      appId: selectedLink.appId,
+      gameId: selectedLink.gameId,
+      status: editedLink.status as LinkStatus,
+      startAt: editedLink.startAt,
+      endAt: editedLink.endAt,
+    })
+
+    setSelectedLink(null)
+    setEditedLink(null)
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-destructive">
+          Failed to load app games: {error.message}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -167,25 +158,29 @@ export function AppGamesPage() {
               </CardDescription>
             </div>
             <Button asChild>
-              <Link to="/app-games/new">
+              <RouterLink to="/app-games/new">
                 <Plus className="h-4 w-4 mr-2" />
                 Link Game
-              </Link>
+              </RouterLink>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {appGames.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : links.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
               <p>No app-game links yet. Link a game to an app to create a campaign.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={appGames} onRowClick={handleRowClick} />
+            <DataTable columns={columns} data={links} onRowClick={handleRowClick} />
           )}
         </CardContent>
       </Card>
 
-      <Sheet open={!!selectedAppGame} onOpenChange={(open) => !open && setSelectedAppGame(null)}>
+      <Sheet open={!!selectedLink} onOpenChange={(open) => !open && setSelectedLink(null)}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Campaign Details</SheetTitle>
@@ -193,23 +188,25 @@ export function AppGamesPage() {
               View and edit app-game link settings
             </SheetDescription>
           </SheetHeader>
-          {editedAppGame && (
+          {editedLink && (
             <div className="flex-1 space-y-4 overflow-auto px-4">
               <div className="space-y-2">
                 <Label>App</Label>
-                <Input value={editedAppGame.appName} disabled />
-                <p className="text-xs text-muted-foreground font-mono">{editedAppGame.appId}</p>
+                <Input value={editedLink.app?.name || ''} disabled />
+                <p className="text-xs text-muted-foreground font-mono">{editedLink.appId}</p>
               </div>
               <div className="space-y-2">
                 <Label>Game</Label>
-                <Input value={editedAppGame.gameName} disabled />
-                <p className="text-xs text-muted-foreground font-mono">{editedAppGame.gameCode}</p>
+                <Input value={editedLink.game?.name || ''} disabled />
+                <p className="text-xs text-muted-foreground font-mono">
+                  {editedLink.game?.code || editedLink.gameId}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  value={editedAppGame.status}
-                  onValueChange={(value) => setEditedAppGame({ ...editedAppGame, status: value })}
+                  value={editedLink.status}
+                  onValueChange={(value) => setEditedLink({ ...editedLink, status: value as LinkStatus })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -227,10 +224,10 @@ export function AppGamesPage() {
                 <div className="space-y-2">
                   <Label>Start Date</Label>
                   <DatePicker
-                    value={editedAppGame.startDate ? parseISO(editedAppGame.startDate) : undefined}
-                    onChange={(date) => setEditedAppGame({
-                      ...editedAppGame,
-                      startDate: date ? format(date, 'yyyy-MM-dd') : ''
+                    value={editedLink.startAt ? parseISO(editedLink.startAt) : undefined}
+                    onChange={(date) => setEditedLink({
+                      ...editedLink,
+                      startAt: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss'Z'") : null
                     })}
                     placeholder="Select start date"
                   />
@@ -238,10 +235,10 @@ export function AppGamesPage() {
                 <div className="space-y-2">
                   <Label>End Date</Label>
                   <DatePicker
-                    value={editedAppGame.endDate ? parseISO(editedAppGame.endDate) : undefined}
-                    onChange={(date) => setEditedAppGame({
-                      ...editedAppGame,
-                      endDate: date ? format(date, 'yyyy-MM-dd') : ''
+                    value={editedLink.endAt ? parseISO(editedLink.endAt) : undefined}
+                    onChange={(date) => setEditedLink({
+                      ...editedLink,
+                      endAt: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss'Z'") : null
                     })}
                     placeholder="Select end date"
                   />
@@ -250,10 +247,13 @@ export function AppGamesPage() {
             </div>
           )}
           <SheetFooter>
-            <Button variant="outline" onClick={() => setSelectedAppGame(null)}>
+            <Button variant="outline" onClick={() => setSelectedLink(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save changes</Button>
+            <Button onClick={handleSave} disabled={updateLink.isPending}>
+              {updateLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save changes
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

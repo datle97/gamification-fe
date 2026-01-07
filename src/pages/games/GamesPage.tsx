@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, ExternalLink } from 'lucide-react'
+import { format } from 'date-fns'
+import { Plus, ExternalLink, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -29,39 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useGames, useUpdateGame } from '@/hooks/useGames'
+import type { Game } from '@/schemas/game.schema'
 
-interface Game {
-  code: string
-  name: string
-  type: string
-  templateUrl: string
-  createdAt: string
-}
-
-// Mock data for demo
-const mockGames: Game[] = [
-  {
-    code: 'golden-horse',
-    name: 'Golden Horse Spin',
-    type: 'spin',
-    templateUrl: 'https://games.example.com/golden-horse',
-    createdAt: '2024-01-15',
-  },
-  {
-    code: 'lucky-scratch',
-    name: 'Lucky Scratch Card',
-    type: 'scratch',
-    templateUrl: 'https://games.example.com/lucky-scratch',
-    createdAt: '2024-01-10',
-  },
-  {
-    code: 'trivia-master',
-    name: 'Trivia Master Quiz',
-    type: 'quiz',
-    templateUrl: 'https://games.example.com/trivia-master',
-    createdAt: '2024-01-05',
-  },
-]
+const gameTypes = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery'] as const
 
 const columns: ColumnDef<Game>[] = [
   {
@@ -81,41 +53,56 @@ const columns: ColumnDef<Game>[] = [
   {
     accessorKey: 'type',
     header: 'Type',
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="capitalize">
-        {row.getValue('type')}
-      </Badge>
-    ),
+    cell: ({ row }) => {
+      const type = row.getValue('type') as string
+      return type ? (
+        <Badge variant="secondary" className="capitalize">
+          {type}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )
+    },
   },
   {
     accessorKey: 'templateUrl',
     header: 'Template',
-    cell: ({ row }) => (
-      <a
-        href={row.getValue('templateUrl')}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <ExternalLink className="h-3 w-3 mr-1" />
-        Open
-      </a>
-    ),
+    cell: ({ row }) => {
+      const url = row.getValue('templateUrl') as string
+      return url ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Open
+        </a>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )
+    },
   },
   {
     accessorKey: 'createdAt',
     header: 'Created',
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">{row.getValue('createdAt')}</span>
-    ),
+    cell: ({ row }) => {
+      const date = row.getValue('createdAt') as string
+      return (
+        <span className="text-muted-foreground">
+          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+        </span>
+      )
+    },
   },
 ]
 
-const gameTypes = ['spin', 'scratch', 'quiz', 'puzzle', 'match'] as const
-
 export function GamesPage() {
-  const games = mockGames // Will be replaced with API data
+  const { data: games = [], isLoading, error } = useGames()
+  const updateGame = useUpdateGame()
+
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
   const [editedGame, setEditedGame] = useState<Game | null>(null)
 
@@ -124,11 +111,30 @@ export function GamesPage() {
     setEditedGame({ ...game })
   }
 
-  const handleSave = () => {
-    // Will be replaced with API call
-    console.log('Saving game:', editedGame)
+  const handleSave = async () => {
+    if (!editedGame || !selectedGame) return
+
+    await updateGame.mutateAsync({
+      id: selectedGame.gameId,
+      data: {
+        name: editedGame.name,
+        type: editedGame.type,
+        templateUrl: editedGame.templateUrl,
+      },
+    })
+
     setSelectedGame(null)
     setEditedGame(null)
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-destructive">
+          Failed to load games: {error.message}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -151,7 +157,11 @@ export function GamesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {games.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : games.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
               <p>No games yet. Create your first game template.</p>
             </div>
@@ -191,11 +201,11 @@ export function GamesPage() {
               <div className="space-y-2">
                 <Label htmlFor="type">Type</Label>
                 <Select
-                  value={editedGame.type}
-                  onValueChange={(value) => setEditedGame({ ...editedGame, type: value })}
+                  value={editedGame.type || ''}
+                  onValueChange={(value) => setEditedGame({ ...editedGame, type: value as typeof gameTypes[number] })}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     {gameTypes.map((type) => (
@@ -210,13 +220,15 @@ export function GamesPage() {
                 <Label htmlFor="templateUrl">Template URL</Label>
                 <Input
                   id="templateUrl"
-                  value={editedGame.templateUrl}
+                  value={editedGame.templateUrl || ''}
                   onChange={(e) => setEditedGame({ ...editedGame, templateUrl: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Created</Label>
-                <p className="text-sm text-muted-foreground">{editedGame.createdAt}</p>
+                <p className="text-sm text-muted-foreground">
+                  {editedGame.createdAt ? format(new Date(editedGame.createdAt), 'PPP') : '-'}
+                </p>
               </div>
             </div>
           )}
@@ -224,7 +236,10 @@ export function GamesPage() {
             <Button variant="outline" onClick={() => setSelectedGame(null)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>Save changes</Button>
+            <Button onClick={handleSave} disabled={updateGame.isPending}>
+              {updateGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save changes
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
