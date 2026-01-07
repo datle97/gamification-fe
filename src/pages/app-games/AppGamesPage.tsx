@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { format, parseISO } from 'date-fns'
 import { Plus } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -29,6 +30,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { StatusCellSelect } from '@/components/common/status-cell-select'
+
+const statusOptions = ['active', 'draft', 'paused', 'ended'] as const
+
+const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
+  active: 'default',
+  draft: 'outline',
+  paused: 'secondary',
+  ended: 'secondary',
+}
 
 interface AppGame {
   appId: string
@@ -71,15 +82,6 @@ const mockAppGames: AppGame[] = [
   },
 ]
 
-const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
-  active: 'default',
-  draft: 'outline',
-  paused: 'secondary',
-  ended: 'secondary',
-}
-
-const statusOptions = ['active', 'draft', 'paused', 'ended'] as const
-
 const columns: ColumnDef<AppGame>[] = [
   {
     accessorKey: 'appName',
@@ -108,34 +110,17 @@ const columns: ColumnDef<AppGame>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: function StatusCell({ row }) {
-      const status = row.getValue('status') as string
-
-      const handleStatusChange = (newStatus: string) => {
-        // Will be replaced with API call
-        console.log('Changing status to:', newStatus)
-      }
-
-      return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <Select value={status} onValueChange={handleStatusChange}>
-            <SelectTrigger className="h-auto w-auto border-0 bg-background! px-0 py-0 shadow-none hover:bg-transparent focus:ring-0">
-              <span className="sr-only"><SelectValue /></span>
-              <Badge variant={statusVariants[status] || 'secondary'} className="capitalize rounded-sm">
-                {status}
-              </Badge>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {statusOptions.map((opt) => (
-                <SelectItem key={opt} value={opt} className="capitalize">
-                  {opt}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )
-    },
+    cell: ({ row }) => (
+      <StatusCellSelect
+        value={row.getValue('status') as string}
+        onValueChange={(newStatus: string) => {
+          // Will be replaced with API call
+          console.log('Changing status to:', newStatus)
+        }}
+        options={statusOptions}
+        variants={statusVariants}
+      />
+    ),
   },
   {
     accessorKey: 'startDate',
@@ -240,21 +225,25 @@ export function AppGamesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
-                  <Input
-                    id="startDate"
-                    type="date"
-                    value={editedAppGame.startDate}
-                    onChange={(e) => setEditedAppGame({ ...editedAppGame, startDate: e.target.value })}
+                  <Label>Start Date</Label>
+                  <DatePicker
+                    value={editedAppGame.startDate ? parseISO(editedAppGame.startDate) : undefined}
+                    onChange={(date) => setEditedAppGame({
+                      ...editedAppGame,
+                      startDate: date ? format(date, 'yyyy-MM-dd') : ''
+                    })}
+                    placeholder="Select start date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endDate">End Date</Label>
-                  <Input
-                    id="endDate"
-                    type="date"
-                    value={editedAppGame.endDate}
-                    onChange={(e) => setEditedAppGame({ ...editedAppGame, endDate: e.target.value })}
+                  <Label>End Date</Label>
+                  <DatePicker
+                    value={editedAppGame.endDate ? parseISO(editedAppGame.endDate) : undefined}
+                    onChange={(date) => setEditedAppGame({
+                      ...editedAppGame,
+                      endDate: date ? format(date, 'yyyy-MM-dd') : ''
+                    })}
+                    placeholder="Select end date"
                   />
                 </div>
               </div>
