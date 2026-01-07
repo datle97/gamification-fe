@@ -1,8 +1,13 @@
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Card,
   CardContent,
@@ -10,6 +15,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 interface App {
   id: string
@@ -69,15 +82,9 @@ const columns: ColumnDef<App>[] = [
     cell: ({ row }) => {
       const isActive = row.getValue('isActive') as boolean
       return (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            isActive
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
-          }`}
-        >
+        <Badge variant={isActive ? 'default' : 'secondary'}>
           {isActive ? 'Active' : 'Inactive'}
-        </span>
+        </Badge>
       )
     },
   },
@@ -88,26 +95,24 @@ const columns: ColumnDef<App>[] = [
       <span className="text-muted-foreground">{row.getValue('createdAt')}</span>
     ),
   },
-  {
-    id: 'actions',
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => (
-      <div className="flex items-center justify-end gap-1">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to={`/apps/${row.original.id}`}>
-            <Pencil className="h-4 w-4" />
-          </Link>
-        </Button>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-    ),
-  },
 ]
 
 export function AppsPage() {
   const apps = mockApps // Will be replaced with API data
+  const [selectedApp, setSelectedApp] = useState<App | null>(null)
+  const [editedApp, setEditedApp] = useState<App | null>(null)
+
+  const handleRowClick = (app: App) => {
+    setSelectedApp(app)
+    setEditedApp({ ...app })
+  }
+
+  const handleSave = () => {
+    // Will be replaced with API call
+    console.log('Saving app:', editedApp)
+    setSelectedApp(null)
+    setEditedApp(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -134,10 +139,69 @@ export function AppsPage() {
               <p>No apps yet. Create your first app.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={apps} />
+            <DataTable columns={columns} data={apps} onRowClick={handleRowClick} />
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>App Details</SheetTitle>
+            <SheetDescription>
+              View and edit app information
+            </SheetDescription>
+          </SheetHeader>
+          {editedApp && (
+            <div className="flex-1 space-y-4 overflow-auto px-4">
+              <div className="space-y-2">
+                <Label htmlFor="id">App ID</Label>
+                <Input
+                  id="id"
+                  value={editedApp.id}
+                  disabled
+                  className="font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={editedApp.name}
+                  onChange={(e) => setEditedApp({ ...editedApp, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="portalId">Portal ID</Label>
+                <Input
+                  id="portalId"
+                  type="number"
+                  value={editedApp.portalId}
+                  onChange={(e) => setEditedApp({ ...editedApp, portalId: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isActive"
+                  checked={editedApp.isActive}
+                  onCheckedChange={(checked) => setEditedApp({ ...editedApp, isActive: !!checked })}
+                />
+                <Label htmlFor="isActive" className="cursor-pointer">Active</Label>
+              </div>
+              <div className="space-y-2">
+                <Label>Created</Label>
+                <p className="text-sm text-muted-foreground">{editedApp.createdAt}</p>
+              </div>
+            </div>
+          )}
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSelectedApp(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>Save changes</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

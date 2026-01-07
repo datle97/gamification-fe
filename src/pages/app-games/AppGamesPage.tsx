@@ -1,8 +1,12 @@
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -10,6 +14,21 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface AppGame {
   appId: string
@@ -52,12 +71,14 @@ const mockAppGames: AppGame[] = [
   },
 ]
 
-const statusColors: Record<string, string> = {
-  draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  paused: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-  ended: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
+  active: 'default',
+  draft: 'outline',
+  paused: 'secondary',
+  ended: 'secondary',
 }
+
+const statusOptions = ['active', 'draft', 'paused', 'ended'] as const
 
 const columns: ColumnDef<AppGame>[] = [
   {
@@ -87,16 +108,32 @@ const columns: ColumnDef<AppGame>[] = [
   {
     accessorKey: 'status',
     header: 'Status',
-    cell: ({ row }) => {
+    cell: function StatusCell({ row }) {
       const status = row.getValue('status') as string
+
+      const handleStatusChange = (newStatus: string) => {
+        // Will be replaced with API call
+        console.log('Changing status to:', newStatus)
+      }
+
       return (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-            statusColors[status] || statusColors.draft
-          }`}
-        >
-          {status}
-        </span>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select value={status} onValueChange={handleStatusChange}>
+            <SelectTrigger className="h-auto w-auto border-0 bg-background! px-0 py-0 shadow-none hover:bg-transparent focus:ring-0">
+              <span className="sr-only"><SelectValue /></span>
+              <Badge variant={statusVariants[status] || 'secondary'} className="capitalize rounded-sm">
+                {status}
+              </Badge>
+            </SelectTrigger>
+            <SelectContent align="start">
+              {statusOptions.map((opt) => (
+                <SelectItem key={opt} value={opt} className="capitalize">
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )
     },
   },
@@ -114,26 +151,24 @@ const columns: ColumnDef<AppGame>[] = [
       <span className="text-muted-foreground">{row.getValue('endDate')}</span>
     ),
   },
-  {
-    id: 'actions',
-    header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => (
-      <div className="flex items-center justify-end gap-1">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to={`/app-games/${row.original.appId}/${row.original.gameCode}`}>
-            <Pencil className="h-4 w-4" />
-          </Link>
-        </Button>
-        <Button variant="ghost" size="icon">
-          <Trash2 className="h-4 w-4 text-destructive" />
-        </Button>
-      </div>
-    ),
-  },
 ]
 
 export function AppGamesPage() {
   const appGames = mockAppGames // Will be replaced with API data
+  const [selectedAppGame, setSelectedAppGame] = useState<AppGame | null>(null)
+  const [editedAppGame, setEditedAppGame] = useState<AppGame | null>(null)
+
+  const handleRowClick = (appGame: AppGame) => {
+    setSelectedAppGame(appGame)
+    setEditedAppGame({ ...appGame })
+  }
+
+  const handleSave = () => {
+    // Will be replaced with API call
+    console.log('Saving app game:', editedAppGame)
+    setSelectedAppGame(null)
+    setEditedAppGame(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -160,10 +195,79 @@ export function AppGamesPage() {
               <p>No app-game links yet. Link a game to an app to create a campaign.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={appGames} />
+            <DataTable columns={columns} data={appGames} onRowClick={handleRowClick} />
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={!!selectedAppGame} onOpenChange={(open) => !open && setSelectedAppGame(null)}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Campaign Details</SheetTitle>
+            <SheetDescription>
+              View and edit app-game link settings
+            </SheetDescription>
+          </SheetHeader>
+          {editedAppGame && (
+            <div className="flex-1 space-y-4 overflow-auto px-4">
+              <div className="space-y-2">
+                <Label>App</Label>
+                <Input value={editedAppGame.appName} disabled />
+                <p className="text-xs text-muted-foreground font-mono">{editedAppGame.appId}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Game</Label>
+                <Input value={editedAppGame.gameName} disabled />
+                <p className="text-xs text-muted-foreground font-mono">{editedAppGame.gameCode}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={editedAppGame.status}
+                  onValueChange={(value) => setEditedAppGame({ ...editedAppGame, status: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status} className="capitalize">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={editedAppGame.startDate}
+                    onChange={(e) => setEditedAppGame({ ...editedAppGame, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">End Date</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={editedAppGame.endDate}
+                    onChange={(e) => setEditedAppGame({ ...editedAppGame, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSelectedAppGame(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave}>Save changes</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

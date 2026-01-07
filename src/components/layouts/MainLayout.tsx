@@ -57,12 +57,12 @@ export function MainLayout() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="bg-background">
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
+    <SidebarProvider className="bg-sidebar">
+      <AppSidebar className="border-none" />
+      <SidebarInset className="bg-background rounded-xl overflow-hidden my-2 mr-2">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="text-muted-foreground h-7 w-7" />
+          <Separator orientation="vertical" className="!h-4 data-[orientation=vertical]:w-px" />
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumbs.map((crumb, index) => (
@@ -71,18 +71,18 @@ export function MainLayout() {
                   {crumb.href ? (
                     <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
                   ) : (
-                    <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    <BreadcrumbPage className="font-medium">{crumb.label}</BreadcrumbPage>
                   )}
                 </BreadcrumbItem>
               ))}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto">
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <div className="ml-auto flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
               {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
+                <Sun className="h-4 w-4" />
               ) : (
-                <Moon className="h-5 w-5" />
+                <Moon className="h-4 w-4" />
               )}
               <span className="sr-only">Toggle theme</span>
             </Button>
