@@ -229,7 +229,9 @@ export function AppGamesPage() {
           {isCreate ? (
             <div className="flex-1 space-y-4 overflow-auto px-4">
               <div className="space-y-2">
-                <Label htmlFor="app">App</Label>
+                <Label htmlFor="app">
+                  App <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={selectedAppId}
                   onValueChange={setSelectedAppId}
@@ -252,7 +254,9 @@ export function AppGamesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="game">Game</Label>
+                <Label htmlFor="game">
+                  Game <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={selectedGameId}
                   onValueChange={setSelectedGameId}

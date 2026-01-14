@@ -262,7 +262,9 @@ export function GamesPage() {
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
             <div className="space-y-2">
-              <Label htmlFor="code">Code</Label>
+              <Label htmlFor="code">
+                Code <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="code"
                 placeholder="e.g., golden-horse"
@@ -278,7 +280,9 @@ export function GamesPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">
+                Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="name"
                 placeholder="Game name"

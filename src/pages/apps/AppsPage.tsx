@@ -185,7 +185,9 @@ export function AppsPage() {
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
             <div className="space-y-2">
-              <Label htmlFor="appId">App ID</Label>
+              <Label htmlFor="appId">
+                App ID <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="appId"
                 placeholder="e.g., my-app-001"
@@ -199,7 +201,9 @@ export function AppsPage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">
+                Name <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="name"
                 placeholder="App name"
