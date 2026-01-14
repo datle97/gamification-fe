@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { format } from 'date-fns'
+import dayjs from 'dayjs'
 import { Plus, ExternalLink, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -31,9 +32,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useGames, useUpdateGame } from '@/hooks/useGames'
-import type { Game } from '@/schemas/game.schema'
+import type { Game, GameStatus, GameType } from '@/schemas/game.schema'
 
-const gameTypes = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery'] as const
+const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
+const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
+
+const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  active: 'default',
+  draft: 'outline',
+  paused: 'secondary',
+  ended: 'destructive',
+}
 
 const columns: ColumnDef<Game>[] = [
   {
@@ -65,6 +74,38 @@ const columns: ColumnDef<Game>[] = [
     },
   },
   {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.getValue('status') as GameStatus
+      return status ? (
+        <Badge variant={statusVariants[status]} className="capitalize">
+          {status}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )
+    },
+  },
+  {
+    id: 'schedule',
+    header: 'Schedule',
+    cell: ({ row }) => {
+      const startAt = row.original.startAt
+      const endAt = row.original.endAt
+      if (!startAt && !endAt) {
+        return <span className="text-muted-foreground">-</span>
+      }
+      return (
+        <div className="text-sm text-muted-foreground">
+          {startAt ? dayjs(startAt).format('YYYY-MM-DD') : '∞'}
+          {' → '}
+          {endAt ? dayjs(endAt).format('YYYY-MM-DD') : '∞'}
+        </div>
+      )
+    },
+  },
+  {
     accessorKey: 'templateUrl',
     header: 'Template',
     cell: ({ row }) => {
@@ -82,18 +123,6 @@ const columns: ColumnDef<Game>[] = [
         </a>
       ) : (
         <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-  {
-    accessorKey: 'createdAt',
-    header: 'Created',
-    cell: ({ row }) => {
-      const date = row.getValue('createdAt') as string
-      return (
-        <span className="text-muted-foreground">
-          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
-        </span>
       )
     },
   },
@@ -120,6 +149,10 @@ export function GamesPage() {
         name: editedGame.name,
         type: editedGame.type,
         templateUrl: editedGame.templateUrl,
+        status: editedGame.status,
+        startAt: editedGame.startAt,
+        endAt: editedGame.endAt,
+        timezone: editedGame.timezone,
       },
     })
 
@@ -145,7 +178,7 @@ export function GamesPage() {
             <div>
               <CardTitle>Games</CardTitle>
               <CardDescription>
-                Manage game templates that can be linked to apps
+                Manage game templates with status and schedule settings
               </CardDescription>
             </div>
             <Button asChild>
@@ -176,7 +209,7 @@ export function GamesPage() {
           <SheetHeader>
             <SheetTitle>Game Details</SheetTitle>
             <SheetDescription>
-              View and edit game template information
+              View and edit game template settings
             </SheetDescription>
           </SheetHeader>
           {editedGame && (
@@ -202,7 +235,7 @@ export function GamesPage() {
                 <Label htmlFor="type">Type</Label>
                 <Select
                   value={editedGame.type || ''}
-                  onValueChange={(value) => setEditedGame({ ...editedGame, type: value as typeof gameTypes[number] })}
+                  onValueChange={(value) => setEditedGame({ ...editedGame, type: value as GameType })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select type" />
@@ -217,6 +250,48 @@ export function GamesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={editedGame.status || 'draft'}
+                  onValueChange={(value) => setEditedGame({ ...editedGame, status: value as GameStatus })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {gameStatuses.map((status) => (
+                      <SelectItem key={status} value={status} className="capitalize">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <DatePicker
+                    value={editedGame.startAt ? dayjs(editedGame.startAt).toDate() : undefined}
+                    onChange={(date) => setEditedGame({
+                      ...editedGame,
+                      startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
+                    })}
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <DatePicker
+                    value={editedGame.endAt ? dayjs(editedGame.endAt).toDate() : undefined}
+                    onChange={(date) => setEditedGame({
+                      ...editedGame,
+                      endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
+                    })}
+                    placeholder="Select end date"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="templateUrl">Template URL</Label>
                 <Input
                   id="templateUrl"
@@ -227,7 +302,7 @@ export function GamesPage() {
               <div className="space-y-2">
                 <Label>Created</Label>
                 <p className="text-sm text-muted-foreground">
-                  {editedGame.createdAt ? format(new Date(editedGame.createdAt), 'PPP') : '-'}
+                  {editedGame.createdAt ? dayjs(editedGame.createdAt).format('MMMM D, YYYY') : '-'}
                 </p>
               </div>
             </div>

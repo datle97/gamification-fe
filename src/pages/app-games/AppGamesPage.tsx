@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
-import { Plus, Loader2 } from 'lucide-react'
+import dayjs from 'dayjs'
+import { Plus, Loader2, Trash2, ExternalLink } from 'lucide-react'
 import { Link as RouterLink } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import { DatePicker } from '@/components/ui/date-picker'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -24,23 +22,24 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { StatusCellSelect } from '@/components/common/status-cell-select'
-import { useLinks, useUpdateLink } from '@/hooks/useLinks'
-import type { Link, LinkStatus } from '@/schemas/link.schema'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useLinks, useDeleteLink } from '@/hooks/useLinks'
+import type { Link } from '@/schemas/link.schema'
+import type { GameStatus } from '@/schemas/game.schema'
 
-const statusOptions = ['draft', 'active', 'paused', 'ended'] as const
-
-const statusVariants: Record<string, 'default' | 'secondary' | 'outline'> = {
+const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   active: 'default',
   draft: 'outline',
   paused: 'secondary',
-  ended: 'secondary',
+  ended: 'destructive',
 }
 
 const columns: ColumnDef<Link>[] = [
@@ -69,40 +68,44 @@ const columns: ColumnDef<Link>[] = [
     ),
   },
   {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => (
-      <StatusCellSelect
-        value={row.getValue('status') as string}
-        onValueChange={(newStatus: string) => {
-          // Status change is handled via inline update
-          console.log('Changing status to:', newStatus)
-        }}
-        options={statusOptions}
-        variants={statusVariants}
-      />
-    ),
-  },
-  {
-    accessorKey: 'startAt',
-    header: 'Start Date',
+    id: 'gameStatus',
+    header: 'Game Status',
     cell: ({ row }) => {
-      const date = row.getValue('startAt') as string
-      return (
-        <span className="text-muted-foreground">
-          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
-        </span>
+      const status = row.original.game?.status as GameStatus | undefined
+      return status ? (
+        <Badge variant={statusVariants[status]} className="capitalize">
+          {status}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground">-</span>
       )
     },
   },
   {
-    accessorKey: 'endAt',
-    header: 'End Date',
+    id: 'gameSchedule',
+    header: 'Schedule',
     cell: ({ row }) => {
-      const date = row.getValue('endAt') as string
+      const game = row.original.game
+      if (!game?.startAt && !game?.endAt) {
+        return <span className="text-muted-foreground">-</span>
+      }
+      return (
+        <div className="text-sm text-muted-foreground">
+          {game.startAt ? dayjs(game.startAt).format('YYYY-MM-DD') : '∞'}
+          {' → '}
+          {game.endAt ? dayjs(game.endAt).format('YYYY-MM-DD') : '∞'}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'createdAt',
+    header: 'Linked At',
+    cell: ({ row }) => {
+      const date = row.getValue('createdAt') as string
       return (
         <span className="text-muted-foreground">
-          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+          {date ? dayjs(date).format('YYYY-MM-DD') : '-'}
         </span>
       )
     },
@@ -111,29 +114,25 @@ const columns: ColumnDef<Link>[] = [
 
 export function AppGamesPage() {
   const { data: links = [], isLoading, error } = useLinks()
-  const updateLink = useUpdateLink()
+  const deleteLink = useDeleteLink()
 
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
-  const [editedLink, setEditedLink] = useState<Link | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const handleRowClick = (link: Link) => {
     setSelectedLink(link)
-    setEditedLink({ ...link })
   }
 
-  const handleSave = async () => {
-    if (!editedLink || !selectedLink) return
+  const handleDelete = async () => {
+    if (!selectedLink) return
 
-    await updateLink.mutateAsync({
+    await deleteLink.mutateAsync({
       appId: selectedLink.appId,
       gameId: selectedLink.gameId,
-      status: editedLink.status as LinkStatus,
-      startAt: editedLink.startAt,
-      endAt: editedLink.endAt,
     })
 
+    setShowDeleteDialog(false)
     setSelectedLink(null)
-    setEditedLink(null)
   }
 
   if (error) {
@@ -154,7 +153,7 @@ export function AppGamesPage() {
             <div>
               <CardTitle>App Games</CardTitle>
               <CardDescription>
-                Link games to apps and manage campaign settings
+                Link games to apps. Game settings (status, schedule) are managed in the Games page.
               </CardDescription>
             </div>
             <Button asChild>
@@ -183,80 +182,97 @@ export function AppGamesPage() {
       <Sheet open={!!selectedLink} onOpenChange={(open) => !open && setSelectedLink(null)}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Campaign Details</SheetTitle>
+            <SheetTitle>Link Details</SheetTitle>
             <SheetDescription>
-              View and edit app-game link settings
+              View app-game link. Edit game settings in the Games page.
             </SheetDescription>
           </SheetHeader>
-          {editedLink && (
+          {selectedLink && (
             <div className="flex-1 space-y-4 overflow-auto px-4">
-              <div className="space-y-2">
-                <Label>App</Label>
-                <Input value={editedLink.app?.name || ''} disabled />
-                <p className="text-xs text-muted-foreground font-mono">{editedLink.appId}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">App</p>
+                <p className="font-medium">{selectedLink.app?.name || '-'}</p>
+                <p className="text-xs text-muted-foreground font-mono">{selectedLink.appId}</p>
               </div>
-              <div className="space-y-2">
-                <Label>Game</Label>
-                <Input value={editedLink.game?.name || ''} disabled />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Game</p>
+                <p className="font-medium">{selectedLink.game?.name || '-'}</p>
                 <p className="text-xs text-muted-foreground font-mono">
-                  {editedLink.game?.code || editedLink.gameId}
+                  {selectedLink.game?.code || selectedLink.gameId}
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={editedLink.status}
-                  onValueChange={(value) => setEditedLink({ ...editedLink, status: value as LinkStatus })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status} className="capitalize">
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {selectedLink.game && (
+                <>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Game Status</p>
+                    <Badge variant={statusVariants[selectedLink.game.status as GameStatus]} className="capitalize">
+                      {selectedLink.game.status}
+                    </Badge>
+                  </div>
+                  {(selectedLink.game.startAt || selectedLink.game.endAt) && (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-muted-foreground">Schedule</p>
+                      <p className="text-sm">
+                        {selectedLink.game.startAt ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY') : 'No start'}
+                        {' → '}
+                        {selectedLink.game.endAt ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY') : 'No end'}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Linked At</p>
+                <p className="text-sm">
+                  {selectedLink.createdAt ? dayjs(selectedLink.createdAt).format('MMMM D, YYYY') : '-'}
+                </p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <DatePicker
-                    value={editedLink.startAt ? parseISO(editedLink.startAt) : undefined}
-                    onChange={(date) => setEditedLink({
-                      ...editedLink,
-                      startAt: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss'Z'") : null
-                    })}
-                    placeholder="Select start date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <DatePicker
-                    value={editedLink.endAt ? parseISO(editedLink.endAt) : undefined}
-                    onChange={(date) => setEditedLink({
-                      ...editedLink,
-                      endAt: date ? format(date, "yyyy-MM-dd'T'HH:mm:ss'Z'") : null
-                    })}
-                    placeholder="Select end date"
-                  />
-                </div>
+              <div className="pt-4">
+                <Button variant="outline" asChild className="w-full">
+                  <RouterLink to={`/games?id=${selectedLink.gameId}`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Edit Game Settings
+                  </RouterLink>
+                </Button>
               </div>
             </div>
           )}
           <SheetFooter>
             <Button variant="outline" onClick={() => setSelectedLink(null)}>
-              Cancel
+              Close
             </Button>
-            <Button onClick={handleSave} disabled={updateLink.isPending}>
-              {updateLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save changes
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Unlink
             </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlink Game from App?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the link between "{selectedLink?.app?.name}" and "{selectedLink?.game?.name}".
+              The game itself will not be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Unlink
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

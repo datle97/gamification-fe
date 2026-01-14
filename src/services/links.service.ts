@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { Link, CreateLinkInput, UpdateLinkInput } from '@/schemas/link.schema'
+import type { Link, CreateLinkInput } from '@/schemas/link.schema'
 
 interface ApiResponse<T> {
   data: T
@@ -20,11 +20,6 @@ export const linksService = {
 
   create: (data: CreateLinkInput) =>
     api.post('internal/gamification/links', { json: data })
-      .json<ApiResponse<Link>>()
-      .then(res => res.data),
-
-  update: (data: UpdateLinkInput) =>
-    api.put('internal/gamification/links/update', { json: data })
       .json<ApiResponse<Link>>()
       .then(res => res.data),
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format } from 'date-fns'
+import dayjs from 'dayjs'
 import { Plus, Loader2 } from 'lucide-react'
 import { Link } from 'react-router'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -65,7 +65,7 @@ const columns: ColumnDef<App>[] = [
       const date = row.getValue('createdAt') as string
       return (
         <span className="text-muted-foreground">
-          {date ? format(new Date(date), 'yyyy-MM-dd') : '-'}
+          {date ? dayjs(date).format('YYYY-MM-DD') : '-'}
         </span>
       )
     },
@@ -191,7 +191,7 @@ export function AppsPage() {
               <div className="space-y-2">
                 <Label>Created</Label>
                 <p className="text-sm text-muted-foreground">
-                  {editedApp.createdAt ? format(new Date(editedApp.createdAt), 'PPP') : '-'}
+                  {editedApp.createdAt ? dayjs(editedApp.createdAt).format('MMMM D, YYYY') : '-'}
                 </p>
               </div>
             </div>

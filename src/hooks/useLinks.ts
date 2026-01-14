@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { linksService } from '@/services/links.service'
-import type { CreateLinkInput, UpdateLinkInput } from '@/schemas/link.schema'
+import type { CreateLinkInput } from '@/schemas/link.schema'
 
 export const linksKeys = {
   all: ['links'] as const,
@@ -20,17 +20,6 @@ export function useCreateLink() {
 
   return useMutation({
     mutationFn: (data: CreateLinkInput) => linksService.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: linksKeys.all })
-    },
-  })
-}
-
-export function useUpdateLink() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: UpdateLinkInput) => linksService.update(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: linksKeys.all })
     },
