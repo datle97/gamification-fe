@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { Plus, Loader2, Trash2, ExternalLink } from 'lucide-react'
-import { Link as RouterLink } from 'react-router'
+import { Plus, Loader2, Trash2 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
@@ -16,6 +16,13 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -25,7 +32,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useLinks, useDeleteLink } from '@/hooks/useLinks'
+import { useApps } from '@/hooks/useApps'
+import { useGames } from '@/hooks/useGames'
+import { useLinks, useCreateLink, useDeleteLink } from '@/hooks/useLinks'
 import type { Link } from '@/schemas/link.schema'
 import type { GameStatus } from '@/schemas/game.schema'
 
@@ -104,15 +113,49 @@ const columns: ColumnDef<Link>[] = [
   },
 ]
 
+type SheetMode = 'closed' | 'create' | 'view'
+
 export function AppGamesPage() {
   const { data: links = [], isLoading, error } = useLinks()
+  const { data: apps = [], isLoading: appsLoading } = useApps()
+  const { data: games = [], isLoading: gamesLoading } = useGames()
+  const createLink = useCreateLink()
   const deleteLink = useDeleteLink()
 
+  const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)
+  const [selectedAppId, setSelectedAppId] = useState<string>('')
+  const [selectedGameId, setSelectedGameId] = useState<string>('')
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
+  const handleOpenCreate = () => {
+    setSheetMode('create')
+    setSelectedLink(null)
+    setSelectedAppId('')
+    setSelectedGameId('')
+  }
+
   const handleRowClick = (link: Link) => {
+    setSheetMode('view')
     setSelectedLink(link)
+  }
+
+  const handleClose = () => {
+    setSheetMode('closed')
+    setSelectedLink(null)
+    setSelectedAppId('')
+    setSelectedGameId('')
+  }
+
+  const handleCreate = async () => {
+    if (!selectedAppId || !selectedGameId) return
+
+    await createLink.mutateAsync({
+      appId: selectedAppId,
+      gameId: selectedGameId,
+    })
+
+    handleClose()
   }
 
   const handleDelete = async () => {
@@ -124,8 +167,11 @@ export function AppGamesPage() {
     })
 
     setShowDeleteDialog(false)
-    setSelectedLink(null)
+    handleClose()
   }
+
+  const isCreate = sheetMode === 'create'
+  const selectsLoading = appsLoading || gamesLoading
 
   if (error) {
     return (
@@ -148,11 +194,9 @@ export function AppGamesPage() {
                 Link games to apps. Game settings (status, schedule) are managed in the Games page.
               </CardDescription>
             </div>
-            <Button asChild>
-              <RouterLink to="/app-games/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Link Game
-              </RouterLink>
+            <Button onClick={handleOpenCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Link Game
             </Button>
           </div>
         </CardHeader>
@@ -171,81 +215,139 @@ export function AppGamesPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={!!selectedLink} onOpenChange={(open) => !open && setSelectedLink(null)}>
+      <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Link Details</SheetTitle>
+            <SheetTitle>{isCreate ? 'Link Game to App' : 'Link Details'}</SheetTitle>
             <SheetDescription>
-              View app-game link. Edit game settings in the Games page.
+              {isCreate
+                ? 'Select an app and a game to create a link'
+                : 'View app-game link details'}
             </SheetDescription>
           </SheetHeader>
-          {selectedLink && (
+
+          {isCreate ? (
             <div className="flex-1 space-y-4 overflow-auto px-4">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">App</p>
-                <p className="font-medium">{selectedLink.app?.name || '-'}</p>
-                <p className="text-xs text-muted-foreground font-mono">{selectedLink.appId}</p>
+              <div className="space-y-2">
+                <Label htmlFor="app">App</Label>
+                <Select
+                  value={selectedAppId}
+                  onValueChange={setSelectedAppId}
+                  disabled={selectsLoading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select app" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {apps.map((app) => (
+                      <SelectItem key={app.appId} value={app.appId}>
+                        {app.name}
+                        <span className="ml-2 text-xs text-muted-foreground font-mono">
+                          ({app.appId})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Game</p>
-                <p className="font-medium">{selectedLink.game?.name || '-'}</p>
-                <p className="text-xs text-muted-foreground font-mono">
-                  {selectedLink.game?.code || selectedLink.gameId}
-                </p>
-              </div>
-              {selectedLink.game && (
-                <>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Game Status</p>
-                    <Badge
-                      variant={statusVariants[selectedLink.game.status as GameStatus]}
-                      className="capitalize"
-                    >
-                      {selectedLink.game.status}
-                    </Badge>
-                  </div>
-                  {(selectedLink.game.startAt || selectedLink.game.endAt) && (
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Schedule</p>
-                      <p className="text-sm">
-                        {selectedLink.game.startAt
-                          ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY')
-                          : 'No start'}
-                        {' → '}
-                        {selectedLink.game.endAt
-                          ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY')
-                          : 'No end'}
-                      </p>
-                    </div>
-                  )}
-                </>
-              )}
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Linked At</p>
-                <p className="text-sm">
-                  {selectedLink.createdAt
-                    ? dayjs(selectedLink.createdAt).format('MMMM D, YYYY')
-                    : '-'}
-                </p>
-              </div>
-              <div className="pt-4">
-                <Button variant="outline" asChild className="w-full">
-                  <RouterLink to={`/games?id=${selectedLink.gameId}`}>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Edit Game Settings
-                  </RouterLink>
-                </Button>
+
+              <div className="space-y-2">
+                <Label htmlFor="game">Game</Label>
+                <Select
+                  value={selectedGameId}
+                  onValueChange={setSelectedGameId}
+                  disabled={selectsLoading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select game" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {games.map((game) => (
+                      <SelectItem key={game.gameId} value={game.gameId}>
+                        {game.name}
+                        <span className="ml-2 text-xs text-muted-foreground font-mono">
+                          ({game.code})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          ) : (
+            selectedLink && (
+              <div className="flex-1 space-y-4 overflow-auto px-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">App</Label>
+                  <p className="font-medium">{selectedLink.app?.name || '-'}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{selectedLink.appId}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Game</Label>
+                  <p className="font-medium">{selectedLink.game?.name || '-'}</p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    {selectedLink.game?.code || selectedLink.gameId}
+                  </p>
+                </div>
+                {selectedLink.game && (
+                  <>
+                    <div className="space-y-1">
+                      <Label className="text-muted-foreground">Game Status</Label>
+                      <div>
+                        <Badge
+                          variant={statusVariants[selectedLink.game.status as GameStatus]}
+                          className="capitalize"
+                        >
+                          {selectedLink.game.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    {(selectedLink.game.startAt || selectedLink.game.endAt) && (
+                      <div className="space-y-1">
+                        <Label className="text-muted-foreground">Schedule</Label>
+                        <p className="text-sm">
+                          {selectedLink.game.startAt
+                            ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY')
+                            : 'No start'}
+                          {' → '}
+                          {selectedLink.game.endAt
+                            ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY')
+                            : 'No end'}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Linked At</Label>
+                  <p className="text-sm">
+                    {selectedLink.createdAt
+                      ? dayjs(selectedLink.createdAt).format('MMMM D, YYYY')
+                      : '-'}
+                  </p>
+                </div>
+              </div>
+            )
           )}
+
           <SheetFooter>
-            <Button variant="outline" onClick={() => setSelectedLink(null)}>
-              Close
+            <Button variant="outline" onClick={handleClose}>
+              {isCreate ? 'Cancel' : 'Close'}
             </Button>
-            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Unlink
-            </Button>
+            {isCreate ? (
+              <Button
+                onClick={handleCreate}
+                disabled={!selectedAppId || !selectedGameId || createLink.isPending}
+              >
+                {createLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Link
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Unlink
+              </Button>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>
