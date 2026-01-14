@@ -10,13 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useApps } from '@/hooks/useApps'
 import { useGames } from '@/hooks/useGames'
 import { useCreateLink } from '@/hooks/useLinks'
@@ -62,11 +56,7 @@ export function AppGameFormPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="app">App</Label>
-              <Select
-                value={selectedAppId}
-                onValueChange={setSelectedAppId}
-                disabled={isLoading}
-              >
+              <Select value={selectedAppId} onValueChange={setSelectedAppId} disabled={isLoading}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select app" />
                 </SelectTrigger>
@@ -85,11 +75,7 @@ export function AppGameFormPage() {
 
             <div className="space-y-2">
               <Label htmlFor="game">Game</Label>
-              <Select
-                value={selectedGameId}
-                onValueChange={setSelectedGameId}
-                disabled={isLoading}
-              >
+              <Select value={selectedGameId} onValueChange={setSelectedGameId} disabled={isLoading}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select game" />
                 </SelectTrigger>

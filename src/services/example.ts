@@ -34,7 +34,7 @@ export const useUser = (id: string) => {
 
 export const useCreateUser = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: userService.create,
     onSuccess: () => {

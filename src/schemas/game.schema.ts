@@ -3,7 +3,15 @@ import { z } from 'zod'
 // Enums
 export const gameStatusEnum = z.enum(['draft', 'active', 'paused', 'ended'])
 export const gameTypeEnum = z.enum(['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery'])
-export const periodTypeEnum = z.enum(['daily', 'weekly', 'weekly_mon', 'weekly_sun', 'weekly_fri', 'monthly', 'all_time'])
+export const periodTypeEnum = z.enum([
+  'daily',
+  'weekly',
+  'weekly_mon',
+  'weekly_sun',
+  'weekly_fri',
+  'monthly',
+  'all_time',
+])
 
 export type GameStatus = z.infer<typeof gameStatusEnum>
 export type GameType = z.infer<typeof gameTypeEnum>
@@ -33,9 +41,11 @@ export const attributeUpdateSchema = z.object({
 })
 
 export const hooksConfigSchema = z.object({
-  onPlaySuccess: z.object({
-    updateAttributes: z.union([attributeUpdateSchema, z.array(attributeUpdateSchema)]).optional(),
-  }).optional(),
+  onPlaySuccess: z
+    .object({
+      updateAttributes: z.union([attributeUpdateSchema, z.array(attributeUpdateSchema)]).optional(),
+    })
+    .optional(),
 })
 
 // Game config
@@ -51,7 +61,10 @@ export type GameConfig = z.infer<typeof gameConfigSchema>
 // Game schema
 export const gameSchema = z.object({
   gameId: z.string().uuid(),
-  code: z.string().min(1, 'Code is required').regex(/^[a-z0-9-]+$/, 'Code must be lowercase alphanumeric with dashes'),
+  code: z
+    .string()
+    .min(1, 'Code is required')
+    .regex(/^[a-z0-9-]+$/, 'Code must be lowercase alphanumeric with dashes'),
   name: z.string().min(1, 'Name is required'),
   type: gameTypeEnum.optional(),
   description: z.string().optional(),

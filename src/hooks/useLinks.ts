@@ -5,7 +5,7 @@ import type { CreateLinkInput } from '@/schemas/link.schema'
 export const linksKeys = {
   all: ['links'] as const,
   filtered: (params?: { appId?: string; gameId?: string }) =>
-    params ? ['links', params] as const : ['links'] as const,
+    params ? (['links', params] as const) : (['links'] as const),
 }
 
 export function useLinks(params?: { appId?: string; gameId?: string }) {

@@ -9,13 +9,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
   SheetContent,
@@ -48,16 +42,12 @@ const columns: ColumnDef<Game>[] = [
   {
     accessorKey: 'code',
     header: 'Code',
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.getValue('code')}</span>
-    ),
+    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
   },
   {
     accessorKey: 'name',
     header: 'Name',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue('name')}</span>
-    ),
+    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
   },
   {
     accessorKey: 'type',
@@ -208,20 +198,13 @@ export function GamesPage() {
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Game Details</SheetTitle>
-            <SheetDescription>
-              View and edit game template settings
-            </SheetDescription>
+            <SheetDescription>View and edit game template settings</SheetDescription>
           </SheetHeader>
           {editedGame && (
             <div className="flex-1 space-y-4 overflow-auto px-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Code</Label>
-                <Input
-                  id="code"
-                  value={editedGame.code}
-                  disabled
-                  className="font-mono"
-                />
+                <Input id="code" value={editedGame.code} disabled className="font-mono" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
@@ -235,7 +218,9 @@ export function GamesPage() {
                 <Label htmlFor="type">Type</Label>
                 <Select
                   value={editedGame.type || ''}
-                  onValueChange={(value) => setEditedGame({ ...editedGame, type: value as GameType })}
+                  onValueChange={(value) =>
+                    setEditedGame({ ...editedGame, type: value as GameType })
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select type" />
@@ -253,7 +238,9 @@ export function GamesPage() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={editedGame.status || 'draft'}
-                  onValueChange={(value) => setEditedGame({ ...editedGame, status: value as GameStatus })}
+                  onValueChange={(value) =>
+                    setEditedGame({ ...editedGame, status: value as GameStatus })
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -272,10 +259,12 @@ export function GamesPage() {
                   <Label>Start Date</Label>
                   <DatePicker
                     value={editedGame.startAt ? dayjs(editedGame.startAt).toDate() : undefined}
-                    onChange={(date) => setEditedGame({
-                      ...editedGame,
-                      startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
-                    })}
+                    onChange={(date) =>
+                      setEditedGame({
+                        ...editedGame,
+                        startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                      })
+                    }
                     placeholder="Select start date"
                   />
                 </div>
@@ -283,10 +272,12 @@ export function GamesPage() {
                   <Label>End Date</Label>
                   <DatePicker
                     value={editedGame.endAt ? dayjs(editedGame.endAt).toDate() : undefined}
-                    onChange={(date) => setEditedGame({
-                      ...editedGame,
-                      endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
-                    })}
+                    onChange={(date) =>
+                      setEditedGame({
+                        ...editedGame,
+                        endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                      })
+                    }
                     placeholder="Select end date"
                   />
                 </div>

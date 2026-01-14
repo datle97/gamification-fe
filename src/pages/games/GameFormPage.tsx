@@ -14,13 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useGame, useCreateGame, useUpdateGame } from '@/hooks/useGames'
 import type { GameStatus, GameType, CreateGameInput } from '@/schemas/game.schema'
 
@@ -165,7 +159,9 @@ export function GameFormPage() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status || 'draft'}
-                  onValueChange={(value) => setFormData({ ...formData, status: value as GameStatus })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, status: value as GameStatus })
+                  }
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue />
@@ -186,10 +182,12 @@ export function GameFormPage() {
                 <Label>Start Date</Label>
                 <DatePicker
                   value={formData.startAt ? dayjs(formData.startAt).toDate() : undefined}
-                  onChange={(date) => setFormData({
-                    ...formData,
-                    startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
-                  })}
+                  onChange={(date) =>
+                    setFormData({
+                      ...formData,
+                      startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                    })
+                  }
                   placeholder="Select start date"
                 />
               </div>
@@ -197,10 +195,12 @@ export function GameFormPage() {
                 <Label>End Date</Label>
                 <DatePicker
                   value={formData.endAt ? dayjs(formData.endAt).toDate() : undefined}
-                  onChange={(date) => setFormData({
-                    ...formData,
-                    endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null
-                  })}
+                  onChange={(date) =>
+                    setFormData({
+                      ...formData,
+                      endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                    })
+                  }
                   placeholder="Select end date"
                 />
               </div>
@@ -214,9 +214,7 @@ export function GameFormPage() {
                 value={formData.templateUrl || ''}
                 onChange={(e) => setFormData({ ...formData, templateUrl: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                URL to the game render template
-              </p>
+              <p className="text-xs text-muted-foreground">URL to the game render template</p>
             </div>
 
             <div className="space-y-2">

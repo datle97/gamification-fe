@@ -8,25 +8,28 @@ interface ApiResponse<T> {
 
 export const appsService = {
   getAll: () =>
-    api.get('internal/gamification/apps')
+    api
+      .get('internal/gamification/apps')
       .json<ApiResponse<App[]>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 
   getById: (id: string) =>
-    api.get(`internal/gamification/apps/${id}`)
+    api
+      .get(`internal/gamification/apps/${id}`)
       .json<ApiResponse<App>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 
   create: (data: CreateAppInput) =>
-    api.post('internal/gamification/apps', { json: data })
+    api
+      .post('internal/gamification/apps', { json: data })
       .json<ApiResponse<App>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 
   update: (id: string, data: UpdateAppInput) =>
-    api.put(`internal/gamification/apps/${id}`, { json: data })
+    api
+      .put(`internal/gamification/apps/${id}`, { json: data })
       .json<ApiResponse<App>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 
-  delete: (id: string) =>
-    api.delete(`internal/gamification/apps/${id}`),
+  delete: (id: string) => api.delete(`internal/gamification/apps/${id}`),
 }

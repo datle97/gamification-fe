@@ -26,7 +26,9 @@ export function StatusCellSelect({
     <div onClick={(e) => e.stopPropagation()}>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="h-auto w-auto border-0 bg-background! px-0 py-0 shadow-none hover:bg-transparent focus:ring-0">
-          <span className="sr-only"><SelectValue /></span>
+          <span className="sr-only">
+            <SelectValue />
+          </span>
           <Badge variant={variants?.[value] || 'secondary'} className="capitalize rounded-sm">
             {value}
           </Badge>

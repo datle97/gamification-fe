@@ -6,13 +6,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
   SheetContent,
@@ -49,9 +43,7 @@ const columns: ColumnDef<Link>[] = [
     cell: ({ row }) => (
       <div>
         <div className="font-medium">{row.original.app?.name || '-'}</div>
-        <div className="text-xs text-muted-foreground font-mono">
-          {row.original.appId}
-        </div>
+        <div className="text-xs text-muted-foreground font-mono">{row.original.appId}</div>
       </div>
     ),
   },
@@ -205,7 +197,10 @@ export function AppGamesPage() {
                 <>
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Game Status</p>
-                    <Badge variant={statusVariants[selectedLink.game.status as GameStatus]} className="capitalize">
+                    <Badge
+                      variant={statusVariants[selectedLink.game.status as GameStatus]}
+                      className="capitalize"
+                    >
                       {selectedLink.game.status}
                     </Badge>
                   </div>
@@ -213,9 +208,13 @@ export function AppGamesPage() {
                     <div className="space-y-1">
                       <p className="text-sm font-medium text-muted-foreground">Schedule</p>
                       <p className="text-sm">
-                        {selectedLink.game.startAt ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY') : 'No start'}
+                        {selectedLink.game.startAt
+                          ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY')
+                          : 'No start'}
                         {' → '}
-                        {selectedLink.game.endAt ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY') : 'No end'}
+                        {selectedLink.game.endAt
+                          ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY')
+                          : 'No end'}
                       </p>
                     </div>
                   )}
@@ -224,7 +223,9 @@ export function AppGamesPage() {
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">Linked At</p>
                 <p className="text-sm">
-                  {selectedLink.createdAt ? dayjs(selectedLink.createdAt).format('MMMM D, YYYY') : '-'}
+                  {selectedLink.createdAt
+                    ? dayjs(selectedLink.createdAt).format('MMMM D, YYYY')
+                    : '-'}
                 </p>
               </div>
               <div className="pt-4">
@@ -241,10 +242,7 @@ export function AppGamesPage() {
             <Button variant="outline" onClick={() => setSelectedLink(null)}>
               Close
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteDialog(true)}
-            >
+            <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
               <Trash2 className="h-4 w-4 mr-2" />
               Unlink
             </Button>
@@ -257,8 +255,8 @@ export function AppGamesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Unlink Game from App?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the link between "{selectedLink?.app?.name}" and "{selectedLink?.game?.name}".
-              The game itself will not be deleted.
+              This will remove the link between "{selectedLink?.app?.name}" and "
+              {selectedLink?.game?.name}". The game itself will not be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

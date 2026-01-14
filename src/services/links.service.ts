@@ -13,18 +13,21 @@ export const linksService = {
     if (params?.gameId) searchParams.set('gameId', params.gameId)
 
     const query = searchParams.toString()
-    return api.get(`internal/gamification/links${query ? `?${query}` : ''}`)
+    return api
+      .get(`internal/gamification/links${query ? `?${query}` : ''}`)
       .json<ApiResponse<Link[]>>()
-      .then(res => res.data)
+      .then((res) => res.data)
   },
 
   create: (data: CreateLinkInput) =>
-    api.post('internal/gamification/links', { json: data })
+    api
+      .post('internal/gamification/links', { json: data })
       .json<ApiResponse<Link>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 
   delete: (appId: string, gameId: string) =>
-    api.post('internal/gamification/links/delete', { json: { appId, gameId } })
+    api
+      .post('internal/gamification/links/delete', { json: { appId, gameId } })
       .json<ApiResponse<{ ok: boolean }>>()
-      .then(res => res.data),
+      .then((res) => res.data),
 }

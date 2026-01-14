@@ -1,11 +1,7 @@
 import { Outlet, useLocation } from 'react-router'
 import { Moon, Sun } from 'lucide-react'
 import { AppSidebar } from '@/components/app-sidebar'
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
@@ -79,11 +75,7 @@ export function MainLayout() {
           </Breadcrumb>
           <div className="ml-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               <span className="sr-only">Toggle theme</span>
             </Button>
           </div>

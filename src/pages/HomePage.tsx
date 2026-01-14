@@ -5,9 +5,7 @@ export function HomePage() {
       <p className="mt-4 text-muted-foreground">
         React 19 + Vite + TypeScript + TailwindCSS v4 + shadcn/ui
       </p>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Claude Theme by tweakcn
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">Claude Theme by tweakcn</p>
     </div>
   )
 }

@@ -9,13 +9,7 @@ import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
   SheetContent,
@@ -31,16 +25,12 @@ const columns: ColumnDef<App>[] = [
   {
     accessorKey: 'appId',
     header: 'App ID',
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.getValue('appId')}</span>
-    ),
+    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('appId')}</span>,
   },
   {
     accessorKey: 'name',
     header: 'Name',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue('name')}</span>
-    ),
+    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
   },
   {
     accessorKey: 'portalId',
@@ -117,9 +107,7 @@ export function AppsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Apps</CardTitle>
-              <CardDescription>
-                Manage apps that can have games linked to them
-              </CardDescription>
+              <CardDescription>Manage apps that can have games linked to them</CardDescription>
             </div>
             <Button asChild>
               <Link to="/apps/new">
@@ -148,20 +136,13 @@ export function AppsPage() {
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>App Details</SheetTitle>
-            <SheetDescription>
-              View and edit app information
-            </SheetDescription>
+            <SheetDescription>View and edit app information</SheetDescription>
           </SheetHeader>
           {editedApp && (
             <div className="flex-1 space-y-4 overflow-auto px-4">
               <div className="space-y-2">
                 <Label htmlFor="appId">App ID</Label>
-                <Input
-                  id="appId"
-                  value={editedApp.appId}
-                  disabled
-                  className="font-mono"
-                />
+                <Input id="appId" value={editedApp.appId} disabled className="font-mono" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
@@ -177,7 +158,9 @@ export function AppsPage() {
                   id="portalId"
                   type="number"
                   value={editedApp.portalId}
-                  onChange={(e) => setEditedApp({ ...editedApp, portalId: parseInt(e.target.value) || 0 })}
+                  onChange={(e) =>
+                    setEditedApp({ ...editedApp, portalId: parseInt(e.target.value) || 0 })
+                  }
                 />
               </div>
               <div className="flex items-center space-x-2">
@@ -186,7 +169,9 @@ export function AppsPage() {
                   checked={editedApp.isActive}
                   onCheckedChange={(checked) => setEditedApp({ ...editedApp, isActive: !!checked })}
                 />
-                <Label htmlFor="isActive" className="cursor-pointer">Active</Label>
+                <Label htmlFor="isActive" className="cursor-pointer">
+                  Active
+                </Label>
               </div>
               <div className="space-y-2">
                 <Label>Created</Label>
