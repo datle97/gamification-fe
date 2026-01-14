@@ -90,3 +90,46 @@ export type Reward = z.infer<typeof rewardSchema> & {
 
 export type CreateRewardInput = z.infer<typeof createRewardSchema>
 export type UpdateRewardInput = z.infer<typeof updateRewardSchema>
+
+// Reward Conditions types
+export interface RequiresRewardsCondition {
+  rewardIds?: string[]
+  count?: number
+  mode?: 'all' | 'any'
+  excludeRewards?: string[]
+}
+
+export interface TimeWindowCondition {
+  startDate?: Date | string
+  endDate?: Date | string
+  daysOfWeek?: number[]
+  hours?: [number, number]
+}
+
+export interface UniquenessCondition {
+  maxPerUser?: number
+}
+
+export interface UserSegmentCondition {
+  userIds?: string[]
+  phoneNumbers?: string[]
+  excludeUserIds?: string[]
+  excludePhoneNumbers?: string[]
+}
+
+export interface NumericCondition {
+  op: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte'
+  value: number
+}
+
+export interface RewardConditions {
+  requiresRewards?: RequiresRewardsCondition | RequiresRewardsCondition[]
+  timeWindow?: TimeWindowCondition
+  uniqueness?: UniquenessCondition
+  requiresUserSegment?: UserSegmentCondition
+  requiresLeaderboardScore?: NumericCondition
+  // Complex nested conditions - use Advanced tab
+  requiresUserAttributes?: Record<string, unknown>
+  requiresClientInput?: Record<string, unknown>
+  mode?: 'AND' | 'OR'
+}

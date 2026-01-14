@@ -366,11 +366,18 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
               </TabsContent>
 
               <TabsContent value="conditions" className="mt-0">
-                <ConditionsTab />
+                <ConditionsTab
+                  conditions={formData.conditions}
+                  onChange={(conds) => setFormData({ ...formData, conditions: conds })}
+                  gameId={gameId}
+                />
               </TabsContent>
 
               <TabsContent value="sharing" className="mt-0">
-                <SharingTab />
+                <SharingTab
+                  shareConfig={formData.shareConfig}
+                  onChange={(share) => setFormData({ ...formData, shareConfig: share })}
+                />
               </TabsContent>
 
               <TabsContent value="advanced" className="mt-0">
