@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useGame } from '@/hooks/useGames'
 import { GameInfoTab } from './components/GameInfoTab'
 import { GameMissionsTab } from './components/GameMissionsTab'
+import { GameRewardsTab } from './components/GameRewardsTab'
 
 type TabValue = 'info' | 'missions' | 'rewards'
 
@@ -64,9 +65,7 @@ export function GameDetailPage() {
         <TabsList>
           <TabsTrigger value="info">Info</TabsTrigger>
           <TabsTrigger value="missions">Missions</TabsTrigger>
-          <TabsTrigger value="rewards" disabled>
-            Rewards
-          </TabsTrigger>
+          <TabsTrigger value="rewards">Rewards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-6">
@@ -78,9 +77,7 @@ export function GameDetailPage() {
         </TabsContent>
 
         <TabsContent value="rewards" className="mt-6">
-          <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-            Rewards management coming soon...
-          </div>
+          <GameRewardsTab gameId={game.gameId} />
         </TabsContent>
       </Tabs>
     </div>

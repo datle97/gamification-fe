@@ -1,0 +1,67 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { rewardsService } from '@/services/rewards.service'
+import type { CreateRewardInput, UpdateRewardInput } from '@/schemas/reward.schema'
+
+export const rewardsKeys = {
+  all: ['rewards'] as const,
+  byGame: (gameId: string) => ['rewards', 'game', gameId] as const,
+  detail: (id: string) => ['rewards', id] as const,
+}
+
+export function useRewards() {
+  return useQuery({
+    queryKey: rewardsKeys.all,
+    queryFn: rewardsService.getAll,
+  })
+}
+
+export function useRewardsByGame(gameId: string) {
+  return useQuery({
+    queryKey: rewardsKeys.byGame(gameId),
+    queryFn: () => rewardsService.getByGameId(gameId),
+    enabled: !!gameId,
+  })
+}
+
+export function useReward(id: string) {
+  return useQuery({
+    queryKey: rewardsKeys.detail(id),
+    queryFn: () => rewardsService.getById(id),
+    enabled: !!id,
+  })
+}
+
+export function useCreateReward() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateRewardInput) => rewardsService.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rewards'] })
+    },
+  })
+}
+
+export function useUpdateReward() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateRewardInput }) =>
+      rewardsService.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['rewards'] })
+      queryClient.invalidateQueries({ queryKey: rewardsKeys.detail(id) })
+    },
+  })
+}
+
+export function useDeleteReward() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => rewardsService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rewards'] })
+    },
+  })
+}
