@@ -1,3 +1,8 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
+import dayjs from 'dayjs'
+import type { ColumnDef } from '@tanstack/react-table'
+import { ExternalLink, Loader2, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,12 +26,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateGame, useGames, useUpdateGame } from '@/hooks/useGames'
+import { useCreateGame, useGames } from '@/hooks/useGames'
 import type { CreateGameInput, Game, GameStatus, GameType } from '@/schemas/game.schema'
-import type { ColumnDef } from '@tanstack/react-table'
-import dayjs from 'dayjs'
-import { ExternalLink, Loader2, Plus } from 'lucide-react'
-import { useState } from 'react'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
@@ -118,8 +119,6 @@ const columns: ColumnDef<Game>[] = [
   },
 ]
 
-type SheetMode = 'closed' | 'create' | 'edit'
-
 interface FormData {
   code: string
   name: string
@@ -145,68 +144,32 @@ const initialFormData: FormData = {
 }
 
 export function GamesPage() {
+  const navigate = useNavigate()
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
-  const updateGame = useUpdateGame()
 
-  const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
 
   const handleOpenCreate = () => {
-    setSheetMode('create')
-    setSelectedGame(null)
     setFormData(initialFormData)
+    setSheetOpen(true)
   }
 
   const handleRowClick = (game: Game) => {
-    setSheetMode('edit')
-    setSelectedGame(game)
-    setFormData({
-      code: game.code,
-      name: game.name,
-      type: game.type,
-      description: game.description || '',
-      templateUrl: game.templateUrl || '',
-      status: game.status || 'draft',
-      startAt: game.startAt || null,
-      endAt: game.endAt || null,
-      timezone: game.timezone || 'Asia/Ho_Chi_Minh',
-    })
+    navigate(`/games/${game.gameId}`)
   }
 
   const handleClose = () => {
-    setSheetMode('closed')
-    setSelectedGame(null)
+    setSheetOpen(false)
     setFormData(initialFormData)
   }
 
   const handleSave = async () => {
     if (!formData.code || !formData.name) return
-
-    if (sheetMode === 'create') {
-      await createGame.mutateAsync(formData as CreateGameInput)
-    } else if (sheetMode === 'edit' && selectedGame) {
-      await updateGame.mutateAsync({
-        id: selectedGame.gameId,
-        data: {
-          name: formData.name,
-          type: formData.type,
-          description: formData.description,
-          templateUrl: formData.templateUrl,
-          status: formData.status,
-          startAt: formData.startAt,
-          endAt: formData.endAt,
-          timezone: formData.timezone,
-        },
-      })
-    }
-
+    await createGame.mutateAsync(formData as CreateGameInput)
     handleClose()
   }
-
-  const isPending = createGame.isPending || updateGame.isPending
-  const isCreate = sheetMode === 'create'
 
   if (error) {
     return (
@@ -250,14 +213,12 @@ export function GamesPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
+      <Sheet open={sheetOpen} onOpenChange={(open) => !open && handleClose()}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{isCreate ? 'Create Game' : 'Edit Game'}</SheetTitle>
+            <SheetTitle>Create Game</SheetTitle>
             <SheetDescription>
-              {isCreate
-                ? 'Create a new game template with status and schedule settings'
-                : `Editing: ${selectedGame?.code}`}
+              Create a new game template with status and schedule settings
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
@@ -270,14 +231,11 @@ export function GamesPage() {
                 placeholder="e.g., golden-horse"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                disabled={!isCreate}
                 className="font-mono"
               />
-              {isCreate && (
-                <p className="text-xs text-muted-foreground">
-                  Unique identifier (lowercase, hyphens only)
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Unique identifier (lowercase, hyphens only)
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">
@@ -378,22 +336,17 @@ export function GamesPage() {
                 className="min-h-20"
               />
             </div>
-            {!isCreate && selectedGame?.createdAt && (
-              <div className="space-y-2">
-                <Label>Created</Label>
-                <p className="text-sm text-muted-foreground">
-                  {dayjs(selectedGame.createdAt).format('MMMM D, YYYY')}
-                </p>
-              </div>
-            )}
           </div>
           <SheetFooter>
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!formData.code || !formData.name || isPending}>
-              {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isCreate ? 'Create Game' : 'Save changes'}
+            <Button
+              onClick={handleSave}
+              disabled={!formData.code || !formData.name || createGame.isPending}
+            >
+              {createGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Game
             </Button>
           </SheetFooter>
         </SheetContent>

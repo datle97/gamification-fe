@@ -2,7 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { queryClient } from '@/lib/query-client'
 import { MainLayout } from '@/components/layouts'
-import { GamesPage } from '@/pages/games'
+import { GamesPage, GameDetailPage } from '@/pages/games'
 import { AppsPage } from '@/pages/apps'
 import { AppGamesPage } from '@/pages/app-games'
 
@@ -17,6 +17,7 @@ function App() {
           {/* Main layout wrapper */}
           <Route element={<MainLayout />}>
             <Route path="/games" element={<GamesPage />} />
+            <Route path="/games/:gameId" element={<GameDetailPage />} />
             <Route path="/apps" element={<AppsPage />} />
             <Route path="/app-games" element={<AppGamesPage />} />
           </Route>

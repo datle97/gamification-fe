@@ -1,0 +1,663 @@
+import { useState } from 'react'
+import dayjs from 'dayjs'
+import { Plus, Loader2 } from 'lucide-react'
+import type { ColumnDef } from '@tanstack/react-table'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/ui/data-table'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
+import { DatePicker } from '@/components/ui/date-picker'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useMissions, useCreateMission, useUpdateMission } from '@/hooks/useMissions'
+import { useGames } from '@/hooks/useGames'
+import type {
+  Mission,
+  MissionType,
+  TriggerEvent,
+  MissionPeriod,
+  MissionRewardType,
+  CreateMissionInput,
+} from '@/schemas/mission.schema'
+
+const missionTypes: MissionType[] = ['single', 'count', 'streak', 'cumulative']
+const triggerEvents: TriggerEvent[] = [
+  'user:login',
+  'zma:checkin',
+  'game:play',
+  'game:share',
+  'share:reward',
+  'share:position',
+  'bill:payment',
+  'booking:create',
+  'coupon:redeem',
+  'tier:upgrade',
+  'points:earn',
+]
+const missionPeriods: MissionPeriod[] = [
+  'daily',
+  'weekly',
+  'weekly_mon',
+  'weekly_sun',
+  'weekly_fri',
+  'monthly',
+  'all_time',
+]
+const rewardTypes: MissionRewardType[] = ['turns', 'score']
+
+const triggerEventLabels: Record<TriggerEvent, string> = {
+  'user:login': 'User Login',
+  'zma:checkin': 'ZMA Checkin',
+  'game:play': 'Game Play',
+  'game:share': 'Game Share',
+  'share:reward': 'Share Reward',
+  'share:position': 'Share Position',
+  'bill:payment': 'Bill Payment',
+  'booking:create': 'Booking Create',
+  'coupon:redeem': 'Coupon Redeem',
+  'tier:upgrade': 'Tier Upgrade',
+  'points:earn': 'Points Earn',
+}
+
+const columns: ColumnDef<Mission>[] = [
+  {
+    accessorKey: 'code',
+    header: 'Code',
+    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
+  },
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
+  },
+  {
+    accessorKey: 'game',
+    header: 'Game',
+    cell: ({ row }) => {
+      const game = row.original.game
+      return game ? (
+        <span className="text-sm text-muted-foreground">{game.name}</span>
+      ) : (
+        <span className="text-muted-foreground">-</span>
+      )
+    },
+  },
+  {
+    accessorKey: 'triggerEvent',
+    header: 'Trigger',
+    cell: ({ row }) => {
+      const trigger = row.getValue('triggerEvent') as TriggerEvent
+      return (
+        <Badge variant="outline" className="font-mono text-xs">
+          {trigger}
+        </Badge>
+      )
+    },
+  },
+  {
+    accessorKey: 'missionType',
+    header: 'Type',
+    cell: ({ row }) => {
+      const type = row.getValue('missionType') as string
+      return (
+        <Badge variant="secondary" className="capitalize">
+          {type}
+        </Badge>
+      )
+    },
+  },
+  {
+    id: 'target',
+    header: 'Target',
+    cell: ({ row }) => (
+      <span className="text-sm">
+        {row.original.targetValue}
+        {row.original.maxCompletions && (
+          <span className="text-muted-foreground"> (max {row.original.maxCompletions})</span>
+        )}
+      </span>
+    ),
+  },
+  {
+    id: 'reward',
+    header: 'Reward',
+    cell: ({ row }) => (
+      <span className="text-sm">
+        {row.original.rewardValue} {row.original.rewardType}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'isActive',
+    header: 'Status',
+    cell: ({ row }) => {
+      const isActive = row.getValue('isActive') as boolean
+      return (
+        <Badge variant={isActive ? 'default' : 'secondary'}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      )
+    },
+  },
+]
+
+type SheetMode = 'closed' | 'create' | 'edit'
+
+interface FormData {
+  code: string
+  name: string
+  description: string
+  imageUrl: string
+  gameId: string
+  triggerEvent: TriggerEvent
+  missionType: MissionType
+  missionPeriod: MissionPeriod
+  targetValue: number
+  maxCompletions: number | null
+  rewardType: MissionRewardType
+  rewardValue: number
+  displayOrder: number
+  startDate: string | null
+  endDate: string | null
+  isActive: boolean
+  allowFeTrigger: boolean
+}
+
+const initialFormData: FormData = {
+  code: '',
+  name: '',
+  description: '',
+  imageUrl: '',
+  gameId: '',
+  triggerEvent: 'user:login',
+  missionType: 'single',
+  missionPeriod: 'daily',
+  targetValue: 1,
+  maxCompletions: null,
+  rewardType: 'turns',
+  rewardValue: 1,
+  displayOrder: 0,
+  startDate: null,
+  endDate: null,
+  isActive: true,
+  allowFeTrigger: true,
+}
+
+export function MissionsPage() {
+  const { data: missions = [], isLoading, error } = useMissions()
+  const { data: games = [], isLoading: gamesLoading } = useGames()
+  const createMission = useCreateMission()
+  const updateMission = useUpdateMission()
+
+  const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
+  const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
+  const [formData, setFormData] = useState<FormData>(initialFormData)
+
+  const handleOpenCreate = () => {
+    setSheetMode('create')
+    setSelectedMission(null)
+    setFormData(initialFormData)
+  }
+
+  const handleRowClick = (mission: Mission) => {
+    setSheetMode('edit')
+    setSelectedMission(mission)
+    setFormData({
+      code: mission.code,
+      name: mission.name,
+      description: mission.description || '',
+      imageUrl: mission.imageUrl || '',
+      gameId: mission.gameId,
+      triggerEvent: mission.triggerEvent,
+      missionType: mission.missionType,
+      missionPeriod: mission.missionPeriod,
+      targetValue: mission.targetValue,
+      maxCompletions: mission.maxCompletions ?? null,
+      rewardType: mission.rewardType,
+      rewardValue: mission.rewardValue,
+      displayOrder: mission.displayOrder,
+      startDate: mission.startDate || null,
+      endDate: mission.endDate || null,
+      isActive: mission.isActive ?? true,
+      allowFeTrigger: mission.allowFeTrigger ?? true,
+    })
+  }
+
+  const handleClose = () => {
+    setSheetMode('closed')
+    setSelectedMission(null)
+    setFormData(initialFormData)
+  }
+
+  const handleSave = async () => {
+    if (!formData.code || !formData.name || !formData.gameId) return
+
+    if (sheetMode === 'create') {
+      await createMission.mutateAsync({
+        ...formData,
+        maxCompletions: formData.maxCompletions || undefined,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+      } as CreateMissionInput)
+    } else if (sheetMode === 'edit' && selectedMission) {
+      await updateMission.mutateAsync({
+        id: selectedMission.missionId,
+        data: {
+          name: formData.name,
+          description: formData.description,
+          imageUrl: formData.imageUrl,
+          triggerEvent: formData.triggerEvent,
+          missionType: formData.missionType,
+          missionPeriod: formData.missionPeriod,
+          targetValue: formData.targetValue,
+          maxCompletions: formData.maxCompletions,
+          rewardType: formData.rewardType,
+          rewardValue: formData.rewardValue,
+          displayOrder: formData.displayOrder,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          isActive: formData.isActive,
+          allowFeTrigger: formData.allowFeTrigger,
+        },
+      })
+    }
+
+    handleClose()
+  }
+
+  const isPending = createMission.isPending || updateMission.isPending
+  const isCreate = sheetMode === 'create'
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center text-destructive">
+          Failed to load missions: {error.message}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Missions</CardTitle>
+              <CardDescription>
+                Manage missions with triggers, progress tracking, and rewards
+              </CardDescription>
+            </div>
+            <Button onClick={handleOpenCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Mission
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : missions.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
+              <p>No missions yet. Create your first mission.</p>
+            </div>
+          ) : (
+            <DataTable columns={columns} data={missions} onRowClick={handleRowClick} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
+        <SheetContent className="sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>{isCreate ? 'Create Mission' : 'Edit Mission'}</SheetTitle>
+            <SheetDescription>
+              {isCreate
+                ? 'Create a new mission with triggers and rewards'
+                : `Editing: ${selectedMission?.code}`}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 space-y-4 overflow-auto px-4">
+            {/* Basic Info */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-muted-foreground">Basic Information</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">
+                    Code <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="code"
+                    placeholder="e.g., daily-login"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    disabled={!isCreate}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">
+                    Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="Mission name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gameId">
+                  Game <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.gameId}
+                  onValueChange={(value) => setFormData({ ...formData, gameId: value })}
+                  disabled={gamesLoading || !isCreate}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select game" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {games.map((game) => (
+                      <SelectItem key={game.gameId} value={game.gameId}>
+                        {game.name}
+                        <span className="ml-2 text-xs text-muted-foreground font-mono">
+                          ({game.code})
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Mission description..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="min-h-16"
+                />
+              </div>
+            </div>
+
+            {/* Trigger & Type */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Trigger & Type</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Trigger Event</Label>
+                  <Select
+                    value={formData.triggerEvent}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, triggerEvent: value as TriggerEvent })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {triggerEvents.map((event) => (
+                        <SelectItem key={event} value={event}>
+                          {triggerEventLabels[event]}
+                          <span className="ml-2 text-xs text-muted-foreground font-mono">
+                            ({event})
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Mission Type</Label>
+                  <Select
+                    value={formData.missionType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, missionType: value as MissionType })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {missionTypes.map((type) => (
+                        <SelectItem key={type} value={type} className="capitalize">
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Mission Period</Label>
+                <Select
+                  value={formData.missionPeriod}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, missionPeriod: value as MissionPeriod })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {missionPeriods.map((period) => (
+                      <SelectItem key={period} value={period} className="capitalize">
+                        {period.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Completion */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Completion</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="targetValue">Target Value</Label>
+                  <Input
+                    id="targetValue"
+                    type="number"
+                    min={1}
+                    value={formData.targetValue}
+                    onChange={(e) =>
+                      setFormData({ ...formData, targetValue: parseInt(e.target.value) || 1 })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    How many times to complete the action
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="maxCompletions">Max Completions</Label>
+                  <Input
+                    id="maxCompletions"
+                    type="number"
+                    min={1}
+                    placeholder="Unlimited"
+                    value={formData.maxCompletions || ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        maxCompletions: e.target.value ? parseInt(e.target.value) : null,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">Leave empty for unlimited</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reward */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Reward</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Reward Type</Label>
+                  <Select
+                    value={formData.rewardType}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, rewardType: value as MissionRewardType })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rewardTypes.map((type) => (
+                        <SelectItem key={type} value={type} className="capitalize">
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rewardValue">Reward Value</Label>
+                  <Input
+                    id="rewardValue"
+                    type="number"
+                    min={0}
+                    value={formData.rewardValue}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rewardValue: parseInt(e.target.value) || 0 })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Schedule</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <DatePicker
+                    value={formData.startDate ? dayjs(formData.startDate).toDate() : undefined}
+                    onChange={(date) =>
+                      setFormData({
+                        ...formData,
+                        startDate: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                      })
+                    }
+                    placeholder="Select start date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <DatePicker
+                    value={formData.endDate ? dayjs(formData.endDate).toDate() : undefined}
+                    onChange={(date) =>
+                      setFormData({
+                        ...formData,
+                        endDate: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
+                      })
+                    }
+                    placeholder="Select end date"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Settings */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Settings</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="displayOrder">Display Order</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    value={formData.displayOrder}
+                    onChange={(e) =>
+                      setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Input
+                    id="imageUrl"
+                    placeholder="https://..."
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isActive: !!checked })}
+                  />
+                  <Label htmlFor="isActive" className="cursor-pointer">
+                    Active
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="allowFeTrigger"
+                    checked={formData.allowFeTrigger}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, allowFeTrigger: !!checked })
+                    }
+                  />
+                  <Label htmlFor="allowFeTrigger" className="cursor-pointer">
+                    Allow FE Trigger
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {!isCreate && selectedMission?.createdAt && (
+              <div className="space-y-2 pt-4 border-t">
+                <Label>Created</Label>
+                <p className="text-sm text-muted-foreground">
+                  {dayjs(selectedMission.createdAt).format('MMMM D, YYYY')}
+                </p>
+              </div>
+            )}
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!formData.code || !formData.name || !formData.gameId || isPending}
+            >
+              {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isCreate ? 'Create Mission' : 'Save changes'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
