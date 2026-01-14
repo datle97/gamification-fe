@@ -25,9 +25,10 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
   const { data: rewards = [] } = useRewardsByGame(gameId)
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    requiresRewards: true,
-    timeWindow: false,
+    requiresRewards: false,
     uniqueness: false,
+    timeWindow: false,
+    userSegment: false,
     leaderboardScore: false,
   })
 
