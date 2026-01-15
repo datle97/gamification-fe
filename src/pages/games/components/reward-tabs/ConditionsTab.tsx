@@ -25,6 +25,7 @@ import type { RequiresRewardsCondition, RewardConditions } from '@/schemas/rewar
 import type { Conditions } from '@/types/conditions'
 import { ChevronDown, ChevronRight, ChevronsUpDown, X } from 'lucide-react'
 import { useState } from 'react'
+import dayjs from 'dayjs'
 
 interface ConditionsTabProps {
   conditions: string
@@ -446,7 +447,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                   type="datetime-local"
                   value={
                     conds.timeWindow?.startDate
-                      ? new Date(conds.timeWindow.startDate).toISOString().slice(0, 16)
+                      ? dayjs(conds.timeWindow.startDate).format('YYYY-MM-DDTHH:mm')
                       : ''
                   }
                   onChange={(e) =>
@@ -454,7 +455,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                       timeWindow: {
                         ...conds.timeWindow,
                         startDate: e.target.value
-                          ? new Date(e.target.value).toISOString()
+                          ? dayjs(e.target.value).toISOString()
                           : undefined,
                       },
                     })
@@ -468,7 +469,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                   type="datetime-local"
                   value={
                     conds.timeWindow?.endDate
-                      ? new Date(conds.timeWindow.endDate).toISOString().slice(0, 16)
+                      ? dayjs(conds.timeWindow.endDate).format('YYYY-MM-DDTHH:mm')
                       : ''
                   }
                   onChange={(e) =>
@@ -476,7 +477,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                       timeWindow: {
                         ...conds.timeWindow,
                         endDate: e.target.value
-                          ? new Date(e.target.value).toISOString()
+                          ? dayjs(e.target.value).toISOString()
                           : undefined,
                       },
                     })

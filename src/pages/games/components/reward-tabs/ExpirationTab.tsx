@@ -154,7 +154,7 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                 Date <span className="text-destructive">*</span>
               </Label>
               <DatePicker
-                value={config?.date ? new Date(config.date) : undefined}
+                value={config?.date ? dayjs(config.date).toDate() : undefined}
                 onChange={(date) => {
                   if (!date) {
                     updateExpirationConfig({ mode: 'fixed', date: undefined })

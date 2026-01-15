@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rewardsService } from '@/services/rewards.service'
-import type { CreateRewardInput, UpdateRewardInput } from '@/schemas/reward.schema'
+import type { CreateRewardInput, UpdateRewardInput, Reward } from '@/schemas/reward.schema'
 
 export const rewardsKeys = {
   all: ['rewards'] as const,
@@ -51,6 +51,18 @@ export function useUpdateReward() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
       queryClient.invalidateQueries({ queryKey: rewardsKeys.detail(id) })
+    },
+  })
+}
+
+export function useBatchUpdateRewards() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
+      rewardsService.batchUpdate(updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rewards'] })
     },
   })
 }

@@ -37,5 +37,10 @@ export const rewardsService = {
       .json<ApiResponse<Reward>>()
       .then((res) => res.data),
 
+  batchUpdate: (updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
+    api
+      .post('internal/gamification/rewards/batch-update', { json: { updates } })
+      .json<ApiResponse<void>>(),
+
   delete: (id: string) => api.delete(`internal/gamification/rewards/${id}`),
 }

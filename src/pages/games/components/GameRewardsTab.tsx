@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, Sliders } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,7 @@ import {
   useCreateReward,
   useUpdateReward,
   useDeleteReward,
+  useBatchUpdateRewards,
 } from '@/hooks/useRewards'
 import type {
   Reward,
@@ -32,6 +33,7 @@ import { HandlerConfigTab } from './reward-tabs/HandlerConfigTab'
 import { ConditionsTab } from './reward-tabs/ConditionsTab'
 import { SharingTab } from './reward-tabs/SharingTab'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
+import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 
 const rewardCategoryLabels: Record<RewardCategory, string> = {
   voucher: 'Voucher',
@@ -170,11 +172,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const createReward = useCreateReward()
   const updateReward = useUpdateReward()
   const deleteReward = useDeleteReward()
+  const batchUpdateRewards = useBatchUpdateRewards()
 
   const [dialogMode, setDialogMode] = useState<DialogMode>('closed')
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [activeTab, setActiveTab] = useState('basic')
+  const [probabilityDialogOpen, setProbabilityDialogOpen] = useState(false)
 
   const handleOpenCreate = () => {
     setDialogMode('create')
@@ -267,6 +271,16 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
     handleClose()
   }
 
+  const handleProbabilityApply = async (updates: { rewardId: string; probability: number }[]) => {
+    // Batch update all rewards with new probabilities in a single transaction
+    await batchUpdateRewards.mutateAsync(
+      updates.map((u) => ({
+        rewardId: u.rewardId,
+        data: { probability: u.probability },
+      }))
+    )
+  }
+
   const isPending = createReward.isPending || updateReward.isPending || deleteReward.isPending
   const isCreate = dialogMode === 'create'
 
@@ -279,10 +293,16 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
               <CardTitle>Rewards</CardTitle>
               <CardDescription>Manage rewards for this game</CardDescription>
             </div>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Reward
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setProbabilityDialogOpen(true)} disabled={rewards.length === 0}>
+                <Sliders className="h-4 w-4 mr-2" />
+                Manage Probabilities
+              </Button>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Reward
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -428,6 +448,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ProbabilityManagerDialog
+        open={probabilityDialogOpen}
+        onOpenChange={setProbabilityDialogOpen}
+        rewards={rewards}
+        onApply={handleProbabilityApply}
+      />
     </>
   )
 }
