@@ -20,6 +20,22 @@ import type { Game, GameStatus, GameType } from '@/schemas/game.schema'
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
 
+const gameTypeLabels: Record<GameType, string> = {
+  spin: 'Spin Wheel',
+  scratch: 'Scratch Card',
+  quiz: 'Quiz',
+  puzzle: 'Puzzle',
+  match: 'Match Game',
+  lottery: 'Lottery',
+}
+
+const gameStatusLabels: Record<GameStatus, string> = {
+  draft: 'Draft',
+  active: 'Active',
+  paused: 'Paused',
+  ended: 'Ended',
+}
+
 interface GameInfoTabProps {
   game: Game
 }
@@ -101,8 +117,8 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
               </SelectTrigger>
               <SelectContent>
                 {gameTypes.map((type) => (
-                  <SelectItem key={type} value={type} className="capitalize">
-                    {type}
+                  <SelectItem key={type} value={type}>
+                    {gameTypeLabels[type]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -119,8 +135,8 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
               </SelectTrigger>
               <SelectContent>
                 {gameStatuses.map((status) => (
-                  <SelectItem key={status} value={status} className="capitalize">
-                    {status}
+                  <SelectItem key={status} value={status}>
+                    {gameStatusLabels[status]}
                   </SelectItem>
                 ))}
               </SelectContent>

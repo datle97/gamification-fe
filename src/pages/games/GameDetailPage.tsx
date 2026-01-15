@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useGame } from '@/hooks/useGames'
 import { GameInfoTab } from './components/GameInfoTab'
+import { GameConfigTab } from './components/GameConfigTab'
 import { GameMissionsTab } from './components/GameMissionsTab'
 import { GameRewardsTab } from './components/GameRewardsTab'
 import { GameUsersTab } from './components/GameUsersTab'
 
-type TabValue = 'info' | 'users' | 'missions' | 'rewards'
+type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards'
 
 export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -65,6 +66,7 @@ export function GameDetailPage() {
       <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="info">Info</TabsTrigger>
+          <TabsTrigger value="config">Config</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="missions">Missions</TabsTrigger>
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
@@ -72,6 +74,10 @@ export function GameDetailPage() {
 
         <TabsContent value="info" className="mt-6">
           <GameInfoTab game={game} />
+        </TabsContent>
+
+        <TabsContent value="config" className="mt-6">
+          <GameConfigTab game={game} />
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">

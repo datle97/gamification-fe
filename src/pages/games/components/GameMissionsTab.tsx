@@ -66,6 +66,28 @@ const missionPeriods: MissionPeriod[] = [
 ]
 const rewardTypes: MissionRewardType[] = ['turns', 'score']
 
+const missionTypeLabels: Record<MissionType, string> = {
+  single: 'Single',
+  count: 'Count',
+  streak: 'Streak',
+  cumulative: 'Cumulative',
+}
+
+const missionPeriodLabels: Record<MissionPeriod, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  weekly_mon: 'Weekly (Monday)',
+  weekly_sun: 'Weekly (Sunday)',
+  weekly_fri: 'Weekly (Friday)',
+  monthly: 'Monthly',
+  all_time: 'All Time',
+}
+
+const rewardTypeLabels: Record<MissionRewardType, string> = {
+  turns: 'Turns',
+  score: 'Score',
+}
+
 const triggerEventLabels: Record<TriggerEvent, string> = {
   'user:login': 'User Login',
   'zma:checkin': 'ZMA Checkin',
@@ -107,10 +129,10 @@ const columns: ColumnDef<Mission>[] = [
     accessorKey: 'missionType',
     header: 'Type',
     cell: ({ row }) => {
-      const type = row.getValue('missionType') as string
+      const type = row.getValue('missionType') as MissionType
       return (
-        <Badge variant="secondary" className="capitalize">
-          {type}
+        <Badge variant="secondary">
+          {missionTypeLabels[type]}
         </Badge>
       )
     },
@@ -405,8 +427,8 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {missionTypes.map((type) => (
-                        <SelectItem key={type} value={type} className="capitalize">
-                          {type}
+                        <SelectItem key={type} value={type}>
+                          {missionTypeLabels[type]}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -426,8 +448,8 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                   </SelectTrigger>
                   <SelectContent>
                     {missionPeriods.map((period) => (
-                      <SelectItem key={period} value={period} className="capitalize">
-                        {period.replace(/_/g, ' ')}
+                      <SelectItem key={period} value={period}>
+                        {missionPeriodLabels[period]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -491,8 +513,8 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                     </SelectTrigger>
                     <SelectContent>
                       {rewardTypes.map((type) => (
-                        <SelectItem key={type} value={type} className="capitalize">
-                          {type}
+                        <SelectItem key={type} value={type}>
+                          {rewardTypeLabels[type]}
                         </SelectItem>
                       ))}
                     </SelectContent>

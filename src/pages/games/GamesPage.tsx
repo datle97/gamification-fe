@@ -32,6 +32,22 @@ import type { CreateGameInput, Game, GameStatus, GameType } from '@/schemas/game
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
 
+const gameTypeLabels: Record<GameType, string> = {
+  spin: 'Spin Wheel',
+  scratch: 'Scratch Card',
+  quiz: 'Quiz',
+  puzzle: 'Puzzle',
+  match: 'Match Game',
+  lottery: 'Lottery',
+}
+
+const gameStatusLabels: Record<GameStatus, string> = {
+  draft: 'Draft',
+  active: 'Active',
+  paused: 'Paused',
+  ended: 'Ended',
+}
+
 const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   active: 'default',
   draft: 'outline',
@@ -54,10 +70,10 @@ const columns: ColumnDef<Game>[] = [
     accessorKey: 'type',
     header: 'Type',
     cell: ({ row }) => {
-      const type = row.getValue('type') as string
+      const type = row.getValue('type') as GameType
       return type ? (
-        <Badge variant="secondary" className="capitalize">
-          {type}
+        <Badge variant="secondary">
+          {gameTypeLabels[type]}
         </Badge>
       ) : (
         <span className="text-muted-foreground">-</span>
@@ -70,8 +86,8 @@ const columns: ColumnDef<Game>[] = [
     cell: ({ row }) => {
       const status = row.getValue('status') as GameStatus
       return status ? (
-        <Badge variant={statusVariants[status]} className="capitalize">
-          {status}
+        <Badge variant={statusVariants[status]}>
+          {gameStatusLabels[status]}
         </Badge>
       ) : (
         <span className="text-muted-foreground">-</span>
@@ -260,8 +276,8 @@ export function GamesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {gameTypes.map((type) => (
-                      <SelectItem key={type} value={type} className="capitalize">
-                        {type}
+                      <SelectItem key={type} value={type}>
+                        {gameTypeLabels[type]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -280,8 +296,8 @@ export function GamesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {gameStatuses.map((status) => (
-                      <SelectItem key={status} value={status} className="capitalize">
-                        {status}
+                      <SelectItem key={status} value={status}>
+                        {gameStatusLabels[status]}
                       </SelectItem>
                     ))}
                   </SelectContent>
