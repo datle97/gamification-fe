@@ -143,3 +143,18 @@ export interface ExpirationConfig {
   unit?: ExpirationUnit
   date?: string
 }
+
+// Reward Distribution Analytics
+export interface RewardDistribution {
+  rewardId: string
+  name: string
+  imageUrl: string | null
+  rewardType: string | null
+  probability: number
+  quota: number | null
+  quotaUsed: number
+  expectedCount: number
+  actualCount: number
+  deviation: number
+  status: 'ok' | 'over' | 'under'
+}

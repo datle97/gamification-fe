@@ -1,5 +1,10 @@
 import { api } from '@/lib/api'
-import type { Reward, CreateRewardInput, UpdateRewardInput } from '@/schemas/reward.schema'
+import type {
+  Reward,
+  CreateRewardInput,
+  UpdateRewardInput,
+  RewardDistribution,
+} from '@/schemas/reward.schema'
 
 interface ApiResponse<T> {
   data: T
@@ -43,4 +48,10 @@ export const rewardsService = {
       .json<ApiResponse<void>>(),
 
   delete: (id: string) => api.delete(`internal/gamification/rewards/${id}`),
+
+  getDistribution: (gameId: string) =>
+    api
+      .get(`internal/gamification/games/${gameId}/rewards/distribution`)
+      .json<ApiResponse<RewardDistribution[]>>()
+      .then((res) => res.data),
 }

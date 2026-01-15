@@ -6,6 +6,7 @@ export const rewardsKeys = {
   all: ['rewards'] as const,
   byGame: (gameId: string) => ['rewards', 'game', gameId] as const,
   detail: (id: string) => ['rewards', id] as const,
+  distribution: (gameId: string) => ['rewards', 'distribution', gameId] as const,
 }
 
 export function useRewards() {
@@ -75,5 +76,13 @@ export function useDeleteReward() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
     },
+  })
+}
+
+export function useRewardDistribution(gameId: string) {
+  return useQuery({
+    queryKey: rewardsKeys.distribution(gameId),
+    queryFn: () => rewardsService.getDistribution(gameId),
+    enabled: !!gameId,
   })
 }

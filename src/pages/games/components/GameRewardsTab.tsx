@@ -34,6 +34,7 @@ import { ConditionsTab } from './reward-tabs/ConditionsTab'
 import { SharingTab } from './reward-tabs/SharingTab'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
+import { RewardsDistributionCard } from './RewardsDistributionCard'
 
 const rewardCategoryLabels: Record<RewardCategory, string> = {
   voucher: 'Voucher',
@@ -285,7 +286,9 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const isCreate = dialogMode === 'create'
 
   return (
-    <>
+    <div className="space-y-6">
+      <RewardsDistributionCard gameId={gameId} />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -455,6 +458,6 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         rewards={rewards}
         onApply={handleProbabilityApply}
       />
-    </>
+    </div>
   )
 }
