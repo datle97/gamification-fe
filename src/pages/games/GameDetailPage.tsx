@@ -6,8 +6,9 @@ import { useGame } from '@/hooks/useGames'
 import { GameInfoTab } from './components/GameInfoTab'
 import { GameMissionsTab } from './components/GameMissionsTab'
 import { GameRewardsTab } from './components/GameRewardsTab'
+import { GameUsersTab } from './components/GameUsersTab'
 
-type TabValue = 'info' | 'missions' | 'rewards'
+type TabValue = 'info' | 'users' | 'missions' | 'rewards'
 
 export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -64,12 +65,17 @@ export function GameDetailPage() {
       <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="info">Info</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="missions">Missions</TabsTrigger>
           <TabsTrigger value="rewards">Rewards</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-6">
           <GameInfoTab game={game} />
+        </TabsContent>
+
+        <TabsContent value="users" className="mt-6">
+          <GameUsersTab gameId={game.gameId} />
         </TabsContent>
 
         <TabsContent value="missions" className="mt-6">
