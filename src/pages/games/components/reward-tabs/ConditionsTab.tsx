@@ -10,11 +10,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import { ConditionBuilder } from '@/components/common/ConditionBuilder'
 import { useRewardsByGame } from '@/hooks/useRewards'
 import type { RequiresRewardsCondition, RewardConditions } from '@/schemas/reward.schema'
 import type { Conditions } from '@/types/conditions'
-import { ChevronDown, ChevronRight, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronsUpDown, X } from 'lucide-react'
 import { useState } from 'react'
 
 interface ConditionsTabProps {
@@ -28,6 +37,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     requiresRewards: false,
+    requiresRewardsPopover: false,
     uniqueness: false,
     timeWindow: false,
     userSegment: false,
@@ -97,83 +107,137 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
               Require user to own specific rewards before unlocking this reward
             </p>
             <div className="space-y-2">
-              <Label htmlFor="rewardIds">Required Rewards</Label>
-              <Select
-                value=""
-                onValueChange={(value) => {
-                  const currentCondition = !Array.isArray(conds.requiresRewards)
-                    ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                    : undefined
-                  const currentRewardIds = currentCondition?.rewardIds
-                  const newRewardIds = currentRewardIds ? [...currentRewardIds, value] : [value]
-                  updateConditions({
-                    requiresRewards: {
-                      ...currentCondition,
-                      rewardIds: newRewardIds,
-                      mode: currentCondition?.mode || 'all',
-                    },
-                  })
-                }}
-              >
-                <SelectTrigger className="w-1/2">
-                  <SelectValue placeholder="Select a reward to add" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rewards
-                    .filter((r) => {
-                      const currentCondition = !Array.isArray(conds.requiresRewards)
-                        ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                        : undefined
-                      const currentRewardIds = currentCondition?.rewardIds
-                      return !currentRewardIds?.includes(r.rewardId)
-                    })
-                    .map((reward) => (
-                      <SelectItem key={reward.rewardId} value={reward.rewardId}>
-                        {reward.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {(() => {
-                const currentCondition = !Array.isArray(conds.requiresRewards)
-                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                  : undefined
-                const currentRewardIds = currentCondition?.rewardIds
-                return (
-                  currentRewardIds &&
-                  currentRewardIds.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {currentRewardIds.map((rewardId: string) => {
-                        const reward = rewards.find((r) => r.rewardId === rewardId)
-                        return (
-                          <Badge key={rewardId} variant="secondary" className="pl-2 pr-1">
-                            {reward?.name || rewardId}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 ml-2 hover:bg-transparent"
-                              onClick={() => {
-                                const newRewardIds = currentRewardIds.filter(
-                                  (id: string) => id !== rewardId
-                                )
-                                updateConditions({
-                                  requiresRewards:
-                                    newRewardIds.length > 0
+              <Label>Required Rewards</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <Popover open={expandedSections.requiresRewardsPopover} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, requiresRewardsPopover: open }))}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between font-normal"
+                      >
+                        {(() => {
+                          const currentCondition = !Array.isArray(conds.requiresRewards)
+                            ? conds.requiresRewards
+                            : undefined
+                          const count = currentCondition?.rewardIds?.length || 0
+                          return (
+                            <>
+                              <span>
+                                {count > 0 ? `${count} reward${count > 1 ? 's' : ''} selected` : 'Select rewards...'}
+                              </span>
+                              {count === 0 && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                            </>
+                          )
+                        })()}
+                      </Button>
+                    </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search rewards..." />
+                      <CommandList>
+                        <CommandEmpty>No rewards found</CommandEmpty>
+                        <CommandGroup>
+                          {rewards.map((reward) => {
+                            const currentCondition = !Array.isArray(conds.requiresRewards)
+                              ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                              : undefined
+                            const currentRewardIds = currentCondition?.rewardIds || []
+                            const isSelected = currentRewardIds.includes(reward.rewardId)
+
+                            return (
+                              <CommandItem
+                                key={reward.rewardId}
+                                value={reward.name}
+                                onSelect={() => {
+                                  const newRewardIds = isSelected
+                                    ? currentRewardIds.filter((id: string) => id !== reward.rewardId)
+                                    : [...currentRewardIds, reward.rewardId]
+
+                                  updateConditions({
+                                    requiresRewards: newRewardIds.length > 0
                                       ? {
                                           ...currentCondition,
                                           rewardIds: newRewardIds,
+                                          mode: currentCondition?.mode || 'all',
                                         }
                                       : undefined,
-                                })
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        )
-                      })}
-                    </div>
+                                  })
+                                }}
+                              >
+                                <Checkbox
+                                  checked={isSelected}
+                                  className="mr-2"
+                                />
+                                <span>{reward.name}</span>
+                              </CommandItem>
+                            )
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {(() => {
+                  const currentCondition = !Array.isArray(conds.requiresRewards)
+                    ? conds.requiresRewards
+                    : undefined
+                  const hasRewards = (currentCondition?.rewardIds?.length || 0) > 0
+                  return hasRewards && (
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        updateConditions({ requiresRewards: undefined })
+                      }}
+                    >
+                      <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                    </button>
                   )
+                })()}
+              </div>
+            </div>
+            {(() => {
+                const currentCondition = !Array.isArray(conds.requiresRewards)
+                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                  : undefined
+                const currentRewardIds = currentCondition?.rewardIds || []
+                return currentRewardIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {currentRewardIds.map((rewardId: string) => {
+                      const reward = rewards.find((r) => r.rewardId === rewardId)
+                      return (
+                        <Badge key={rewardId} variant="secondary" className="gap-1">
+                          {reward?.name || rewardId}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto w-auto p-0! hover:bg-transparent"
+                            onClick={() => {
+                              const newRewardIds = currentRewardIds.filter(
+                                (id: string) => id !== rewardId
+                              )
+                              updateConditions({
+                                requiresRewards:
+                                  newRewardIds.length > 0
+                                    ? {
+                                        ...currentCondition,
+                                        rewardIds: newRewardIds,
+                                      }
+                                    : undefined,
+                              })
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      )
+                    })}
+                  </div>
                 )
               })()}
             </div>
@@ -214,12 +278,12 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                 return (
                   currentCondition?.mode === 'any' && (
                     <div className="space-y-2">
-                      <Label htmlFor="requireCount">Count</Label>
+                      <Label htmlFor="requireCount" className="invisible">Count</Label>
                       <Input
                         id="requireCount"
                         type="number"
                         min={1}
-                        placeholder="1"
+                        placeholder="Count (e.g., 1)"
                         value={currentCondition?.count ?? ''}
                         onChange={(e) => {
                           const value = e.target.value
