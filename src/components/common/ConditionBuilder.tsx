@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -9,7 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import type { Conditions, ConditionGroup, Condition, ConditionOperator } from '@/types/conditions'
 
 interface FieldDefinition {
@@ -21,7 +29,8 @@ interface FieldDefinition {
 interface ConditionBuilderProps {
   value?: Conditions
   onChange: (value: Conditions | undefined) => void
-  availableFields?: FieldDefinition[]
+  fieldDefinitions?: FieldDefinition[]
+  onFieldDefinitionsChange?: (fields: FieldDefinition[]) => void
 }
 
 const OPERATORS: { value: ConditionOperator; label: string }[] = [
@@ -38,11 +47,14 @@ const OPERATORS: { value: ConditionOperator; label: string }[] = [
 export function ConditionBuilder({
   value,
   onChange,
-  availableFields = [],
+  fieldDefinitions = [],
+  onFieldDefinitionsChange,
 }: ConditionBuilderProps) {
-  const [fields, setFields] = useState<FieldDefinition[]>(availableFields)
-  const [newFieldName, setNewFieldName] = useState('')
-  const [newFieldType, setNewFieldType] = useState<'text' | 'number' | 'boolean'>('text')
+  const [internalFields, setInternalFields] = useState<FieldDefinition[]>(fieldDefinitions)
+
+  // Use internal state if no external control
+  const fields = onFieldDefinitionsChange ? fieldDefinitions : internalFields
+  const setFields = onFieldDefinitionsChange || setInternalFields
 
   // Normalize to ConditionGroup for easier manipulation
   const normalizeToGroup = (cond: Conditions | undefined): ConditionGroup => {
@@ -91,68 +103,26 @@ export function ConditionBuilder({
     onChange(denormalizeGroup(newGroup))
   }
 
-  const addField = () => {
-    if (!newFieldName.trim()) return
-    setFields([...fields, { name: newFieldName.trim(), label: newFieldName.trim(), type: newFieldType }])
-    setNewFieldName('')
-  }
-
-  const removeField = (fieldName: string) => {
-    setFields(fields.filter((f) => f.name !== fieldName))
+  const handleAddField = (field: FieldDefinition) => {
+    const existingIndex = fields.findIndex((f) => f.name === field.name)
+    if (existingIndex >= 0) {
+      // Replace existing field
+      const updated = [...fields]
+      updated[existingIndex] = field
+      setFields(updated)
+    } else {
+      // Add new field
+      setFields([...fields, field])
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Field Manager */}
-      <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-        <h4 className="text-sm font-semibold">Manage Fields</h4>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Field name (e.g. tierName, amount)"
-            value={newFieldName}
-            onChange={(e) => setNewFieldName(e.target.value)}
-            className="flex-1"
-          />
-          <Select value={newFieldType} onValueChange={(v: 'text' | 'number' | 'boolean') => setNewFieldType(v)}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="text">Text</SelectItem>
-              <SelectItem value="number">Number</SelectItem>
-              <SelectItem value="boolean">Boolean</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="button" onClick={addField} variant="secondary" size="sm">
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        </div>
-
-        {fields.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {fields.map((field) => (
-              <Badge key={field.name} variant="secondary" className="pl-2 pr-1">
-                {field.label} ({field.type})
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 ml-2 hover:bg-transparent"
-                  onClick={() => removeField(field.name)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Query Builder */}
       <ConditionGroupBuilder
         group={currentGroup}
-        fields={fields}
+        availableFields={fields}
+        onAddField={handleAddField}
         onChange={handleGroupChange}
         depth={0}
       />
@@ -170,16 +140,17 @@ export function ConditionBuilder({
 
 interface ConditionGroupBuilderProps {
   group: ConditionGroup
-  fields: FieldDefinition[]
+  availableFields: FieldDefinition[]
+  onAddField: (field: FieldDefinition) => void
   onChange: (group: ConditionGroup) => void
   onRemove?: () => void
   depth: number
 }
 
-function ConditionGroupBuilder({ group, fields, onChange, onRemove, depth }: ConditionGroupBuilderProps) {
+function ConditionGroupBuilder({ group, availableFields, onAddField, onChange, onRemove, depth }: ConditionGroupBuilderProps) {
   const addCondition = () => {
     const newCondition: Condition = {
-      field: fields[0]?.name || '',
+      field: '',
       op: 'eq',
       value: '',
     }
@@ -261,14 +232,16 @@ function ConditionGroupBuilder({ group, fields, onChange, onRemove, depth }: Con
           {'field' in condition ? (
             <ConditionRow
               condition={condition}
-              fields={fields}
+              availableFields={availableFields}
+              onAddField={onAddField}
               onChange={(updated) => updateCondition(index, updated)}
               onRemove={() => removeCondition(index)}
             />
           ) : (
             <ConditionGroupBuilder
               group={condition}
-              fields={fields}
+              availableFields={availableFields}
+              onAddField={onAddField}
               onChange={(updated) => updateCondition(index, updated)}
               onRemove={() => removeCondition(index)}
               depth={depth + 1}
@@ -279,7 +252,7 @@ function ConditionGroupBuilder({ group, fields, onChange, onRemove, depth }: Con
 
       {/* Add Buttons */}
       <div className="flex gap-2 pt-2">
-        <Button type="button" variant="outline" size="sm" onClick={addCondition} disabled={fields.length === 0}>
+        <Button type="button" variant="outline" size="sm" onClick={addCondition}>
           <Plus className="h-3 w-3 mr-1" />
           Add Condition
         </Button>
@@ -294,16 +267,92 @@ function ConditionGroupBuilder({ group, fields, onChange, onRemove, depth }: Con
 
 interface ConditionRowProps {
   condition: Condition
-  fields: FieldDefinition[]
+  availableFields: FieldDefinition[]
+  onAddField: (field: FieldDefinition) => void
   onChange: (condition: Condition) => void
   onRemove: () => void
 }
 
-function ConditionRow({ condition, fields, onChange, onRemove }: ConditionRowProps) {
-  const currentField = fields.find((f) => f.name === condition.field)
+function ConditionRow({ condition, availableFields, onAddField, onChange, onRemove }: ConditionRowProps) {
+  const [open, setOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState('')
+
+  const currentField = availableFields.find((f) => f.name === condition.field)
+  const currentType = currentField?.type || 'text'
+
+  // Handle popover open/close
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen && condition.field) {
+      // When opening, pre-fill search with current field
+      setSearchValue(condition.field)
+    } else if (!newOpen) {
+      // When closing, clear search
+      setSearchValue('')
+    }
+    setOpen(newOpen)
+  }
+
+  // Select existing field
+  const handleFieldSelect = (fieldName: string) => {
+    onChange({ ...condition, field: fieldName, value: '' })
+    setSearchValue('')
+    setOpen(false)
+  }
+
+  // Handle new field name input via Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      e.preventDefault()
+      const trimmedName = searchValue.trim()
+      const existing = availableFields.find((f) => f.name === trimmedName)
+
+      if (existing) {
+        // Field already exists, just select it
+        handleFieldSelect(trimmedName)
+      } else {
+        // New field with default type 'text'
+        const newField: FieldDefinition = {
+          name: trimmedName,
+          label: trimmedName,
+          type: 'text',
+        }
+        onAddField(newField)
+        onChange({ ...condition, field: trimmedName, value: '' })
+        setSearchValue('')
+        setOpen(false)
+      }
+    }
+  }
+
+  // Handle type change
+  const handleTypeChange = (newType: 'text' | 'number' | 'boolean') => {
+    const updatedField: FieldDefinition = {
+      name: condition.field,
+      label: condition.field,
+      type: newType,
+    }
+    onAddField(updatedField) // This will add or replace the field
+
+    // Get valid operators for new type
+    const getValidOperators = (type: string) => {
+      if (type === 'boolean') {
+        return ['eq', 'ne']
+      }
+      if (type === 'text') {
+        return ['eq', 'ne', 'in', 'not_in']
+      }
+      return ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'not_in']
+    }
+
+    const validOps = getValidOperators(newType)
+    const newOp = validOps.includes(condition.op) ? condition.op : 'eq'
+
+    // Reset value and possibly operator when type changes
+    onChange({ ...condition, op: newOp as ConditionOperator, value: '' })
+  }
 
   const handleValueChange = (newValue: string) => {
-    const field = fields.find((f) => f.name === condition.field)
+    const field = availableFields.find((f) => f.name === condition.field)
     if (!field) {
       onChange({ ...condition, value: newValue })
       return
@@ -324,6 +373,19 @@ function ConditionRow({ condition, fields, onChange, onRemove }: ConditionRowPro
     } else {
       onChange({ ...condition, value: newValue })
     }
+  }
+
+  // Get available operators based on field type
+  const getAvailableOperators = () => {
+    const type = currentType
+    if (type === 'boolean') {
+      return OPERATORS.filter((op) => ['eq', 'ne'].includes(op.value))
+    }
+    if (type === 'number') {
+      return OPERATORS
+    }
+    // text: only equality and array operators
+    return OPERATORS.filter((op) => ['eq', 'ne', 'in', 'not_in'].includes(op.value))
   }
 
   const getValueInput = () => {
@@ -370,36 +432,92 @@ function ConditionRow({ condition, fields, onChange, onRemove }: ConditionRowPro
 
   return (
     <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
-      {/* Field */}
-      <Select value={condition.field} onValueChange={(v) => onChange({ ...condition, field: v })}>
-        <SelectTrigger className="w-40">
-          <SelectValue placeholder="Field" />
-        </SelectTrigger>
-        <SelectContent>
-          {fields.map((field) => (
-            <SelectItem key={field.name} value={field.name}>
-              {field.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Field - Combobox */}
+      <Popover open={open} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-48 justify-between font-normal"
+          >
+            {condition.field || 'Type field name...'}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-0" align="start">
+          <Command onKeyDown={handleKeyDown} className="[&_[data-slot=command-input-wrapper]_svg]:hidden">
+            <CommandInput
+              placeholder="Type field name..."
+              value={searchValue}
+              onValueChange={setSearchValue}
+            />
+            <CommandList>
+              <CommandEmpty className="text-center text-sm">
+                <div className="py-2 px-2 text-sm text-muted-foreground">
+                  {searchValue.trim() ? (
+                    <>Press Enter to add "<span className="font-medium text-foreground">{searchValue}</span>"</>
+                  ) : (
+                    'Type field name and press Enter'
+                  )}
+                </div>
+              </CommandEmpty>
+              {availableFields.length > 0 && (
+                <CommandGroup>
+                  {availableFields.map((field) => (
+                    <CommandItem
+                      key={field.name}
+                      value={field.name}
+                      onSelect={handleFieldSelect}
+                    >
+                      <span>{field.label}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {field.type}
+                      </span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {/* Datatype */}
+      {condition.field && (
+        <Select
+          value={currentType}
+          onValueChange={handleTypeChange}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="text">Text</SelectItem>
+            <SelectItem value="number">Number</SelectItem>
+            <SelectItem value="boolean">Boolean</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Operator */}
-      <Select value={condition.op} onValueChange={(v: ConditionOperator) => onChange({ ...condition, op: v })}>
-        <SelectTrigger className="w-44">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {OPERATORS.map((op) => (
-            <SelectItem key={op.value} value={op.value}>
-              {op.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {condition.field && (
+        <Select value={condition.op} onValueChange={(v: ConditionOperator) => onChange({ ...condition, op: v })}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {getAvailableOperators().map((op) => (
+              <SelectItem key={op.value} value={op.value}>
+                {op.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Value */}
-      {getValueInput()}
+      {condition.field && getValueInput()}
 
       {/* Remove */}
       <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="h-9 w-9 p-0">

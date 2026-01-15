@@ -288,6 +288,70 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
         )}
       </div>
 
+      {/* User Attributes Section */}
+      <div className="border rounded-lg">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          onClick={() => toggleSection('userAttributes')}
+        >
+          <div className="flex items-center gap-2">
+            {expandedSections.userAttributes ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-medium">User Attributes</span>
+          </div>
+          {conds.requiresUserAttributes && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
+        </button>
+        {expandedSections.userAttributes && (
+          <div className="p-4 pt-0 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Filter by user profile attributes with complex AND/OR logic
+            </p>
+            <ConditionBuilder
+              value={conds.requiresUserAttributes as Conditions}
+              onChange={(value) => updateConditions({ requiresUserAttributes: value })}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Client Input Section */}
+      <div className="border rounded-lg">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          onClick={() => toggleSection('clientInput')}
+        >
+          <div className="flex items-center gap-2">
+            {expandedSections.clientInput ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-medium">Client Input Filters</span>
+          </div>
+          {conds.requiresClientInput && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
+        </button>
+        {expandedSections.clientInput && (
+          <div className="p-4 pt-0 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Filter by data sent from client with complex AND/OR logic
+            </p>
+            <ConditionBuilder
+              value={conds.requiresClientInput as Conditions}
+              onChange={(value) => updateConditions({ requiresClientInput: value })}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Time Window Section */}
       <div className="border rounded-lg">
         <button
@@ -645,80 +709,6 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             <p className="text-xs text-muted-foreground">
               Example: Reward only for users with score &lt; 6 points
             </p>
-          </div>
-        )}
-      </div>
-
-      {/* User Attributes Section */}
-      <div className="border rounded-lg">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-          onClick={() => toggleSection('userAttributes')}
-        >
-          <div className="flex items-center gap-2">
-            {expandedSections.userAttributes ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <span className="font-medium">User Attributes</span>
-          </div>
-          {conds.requiresUserAttributes && (
-            <span className="text-xs text-muted-foreground">Configured</span>
-          )}
-        </button>
-        {expandedSections.userAttributes && (
-          <div className="p-4 pt-0 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Filter by user profile attributes with complex AND/OR logic
-            </p>
-            <ConditionBuilder
-              value={conds.requiresUserAttributes as Conditions}
-              onChange={(value) => updateConditions({ requiresUserAttributes: value })}
-              availableFields={[
-                { name: 'tierName', label: 'Tier Name', type: 'text' },
-                { name: 'isVIP', label: 'Is VIP', type: 'boolean' },
-                { name: 'points', label: 'Points', type: 'number' },
-              ]}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Client Input Section */}
-      <div className="border rounded-lg">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-          onClick={() => toggleSection('clientInput')}
-        >
-          <div className="flex items-center gap-2">
-            {expandedSections.clientInput ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-            <span className="font-medium">Client Input Filters</span>
-          </div>
-          {conds.requiresClientInput && (
-            <span className="text-xs text-muted-foreground">Configured</span>
-          )}
-        </button>
-        {expandedSections.clientInput && (
-          <div className="p-4 pt-0 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Filter by data sent from client with complex AND/OR logic
-            </p>
-            <ConditionBuilder
-              value={conds.requiresClientInput as Conditions}
-              onChange={(value) => updateConditions({ requiresClientInput: value })}
-              availableFields={[
-                { name: 'amount', label: 'Transaction Amount', type: 'number' },
-                { name: 'couponCode', label: 'Coupon Code', type: 'text' },
-                { name: 'category', label: 'Category', type: 'text' },
-              ]}
-            />
           </div>
         )}
       </div>
