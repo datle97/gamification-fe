@@ -27,6 +27,7 @@ import type {
   CreateRewardInput,
 } from '@/schemas/reward.schema'
 import { BasicTab } from './reward-tabs/BasicTab'
+import { ExpirationTab } from './reward-tabs/ExpirationTab'
 import { HandlerConfigTab } from './reward-tabs/HandlerConfigTab'
 import { ConditionsTab } from './reward-tabs/ConditionsTab'
 import { SharingTab } from './reward-tabs/SharingTab'
@@ -300,7 +301,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       </Card>
 
       <Dialog open={dialogMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-6xl! w-[95vw] max-h-[95vh] flex flex-col p-0">
+        <DialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 sm:top-[5%] sm:translate-y-0">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>
               {isCreate ? 'Create Reward' : `Edit: ${selectedReward?.name}`}
@@ -317,10 +318,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <div className="border-b px-6">
-              <TabsList className="grid grid-cols-5 w-full h-auto">
+            <div className="px-6">
+              <TabsList className="grid grid-cols-6 w-full h-auto">
                 <TabsTrigger value="basic" className="data-[state=active]:border-b-2">
                   Basic
+                </TabsTrigger>
+                <TabsTrigger value="expiration" className="data-[state=active]:border-b-2">
+                  Expiration
                 </TabsTrigger>
                 <TabsTrigger value="config" className="data-[state=active]:border-b-2">
                   Handler Config
@@ -353,6 +357,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                   onChange={(data) => setFormData({ ...formData, ...data })}
                   isCreate={isCreate}
                   selectedReward={selectedReward}
+                />
+              </TabsContent>
+
+              <TabsContent value="expiration" className="mt-0">
+                <ExpirationTab
+                  expirationConfig={formData.expirationConfig}
+                  onChange={(exp) => setFormData({ ...formData, expirationConfig: exp })}
                 />
               </TabsContent>
 

@@ -10,8 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ConditionBuilder } from '@/components/common/ConditionBuilder'
 import { useRewardsByGame } from '@/hooks/useRewards'
 import type { RequiresRewardsCondition, RewardConditions } from '@/schemas/reward.schema'
+import type { Conditions } from '@/types/conditions'
 import { ChevronDown, ChevronRight, X } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,6 +32,8 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
     timeWindow: false,
     userSegment: false,
     leaderboardScore: false,
+    userAttributes: false,
+    clientInput: false,
   })
 
   const toggleSection = (section: string) => {
@@ -203,32 +207,33 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="requireCount">Count (for "Any" mode)</Label>
-                <Input
-                  id="requireCount"
-                  type="number"
-                  min={1}
-                  placeholder="1"
-                  value={(() => {
-                    const currentCondition = !Array.isArray(conds.requiresRewards)
-                      ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                      : undefined
-                    return currentCondition?.count ?? ''
-                  })()}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    const currentCondition = !Array.isArray(conds.requiresRewards)
-                      ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                      : undefined
-                    updateConditions({
-                      requiresRewards: currentCondition?.rewardIds
-                        ? { ...currentCondition, count: value ? parseInt(value) : undefined }
-                        : undefined,
-                    })
-                  }}
-                />
-              </div>
+              {(() => {
+                const currentCondition = !Array.isArray(conds.requiresRewards)
+                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                  : undefined
+                return (
+                  currentCondition?.mode === 'any' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="requireCount">Count</Label>
+                      <Input
+                        id="requireCount"
+                        type="number"
+                        min={1}
+                        placeholder="1"
+                        value={currentCondition?.count ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          updateConditions({
+                            requiresRewards: currentCondition?.rewardIds
+                              ? { ...currentCondition, count: value ? parseInt(value) : undefined }
+                              : undefined,
+                          })
+                        }}
+                      />
+                    </div>
+                  )
+                )
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
               Example: Unlock special reward #9 only after collecting 5 out of 8 mascots
@@ -644,12 +649,86 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
         )}
       </div>
 
+      {/* User Attributes Section */}
+      <div className="border rounded-lg">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          onClick={() => toggleSection('userAttributes')}
+        >
+          <div className="flex items-center gap-2">
+            {expandedSections.userAttributes ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-medium">User Attributes</span>
+          </div>
+          {conds.requiresUserAttributes && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
+        </button>
+        {expandedSections.userAttributes && (
+          <div className="p-4 pt-0 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Filter by user profile attributes with complex AND/OR logic
+            </p>
+            <ConditionBuilder
+              value={conds.requiresUserAttributes as Conditions}
+              onChange={(value) => updateConditions({ requiresUserAttributes: value })}
+              availableFields={[
+                { name: 'tierName', label: 'Tier Name', type: 'text' },
+                { name: 'isVIP', label: 'Is VIP', type: 'boolean' },
+                { name: 'points', label: 'Points', type: 'number' },
+              ]}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Client Input Section */}
+      <div className="border rounded-lg">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          onClick={() => toggleSection('clientInput')}
+        >
+          <div className="flex items-center gap-2">
+            {expandedSections.clientInput ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+            <span className="font-medium">Client Input Filters</span>
+          </div>
+          {conds.requiresClientInput && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
+        </button>
+        {expandedSections.clientInput && (
+          <div className="p-4 pt-0 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Filter by data sent from client with complex AND/OR logic
+            </p>
+            <ConditionBuilder
+              value={conds.requiresClientInput as Conditions}
+              onChange={(value) => updateConditions({ requiresClientInput: value })}
+              availableFields={[
+                { name: 'amount', label: 'Transaction Amount', type: 'number' },
+                { name: 'couponCode', label: 'Coupon Code', type: 'text' },
+                { name: 'category', label: 'Category', type: 'text' },
+              ]}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Advanced Note */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 p-4">
-        <p className="text-sm text-amber-900 dark:text-amber-200">
-          <strong>Advanced conditions:</strong> For complex conditions like user attributes and
-          client input filters (which support nested AND/OR logic), use the Advanced tab to edit the
-          conditions JSON directly.
+      <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 p-4">
+        <p className="text-sm text-blue-900 dark:text-blue-200">
+          <strong>Pro tip:</strong> You can use the Visual Builder above for User Attributes and
+          Client Input conditions, or edit them directly in the Advanced tab for fine-grained
+          control.
         </p>
       </div>
     </div>

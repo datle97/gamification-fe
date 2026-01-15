@@ -1,3 +1,4 @@
+import type { Conditions } from '@/types/conditions'
 import { z } from 'zod'
 
 // Enums
@@ -128,8 +129,17 @@ export interface RewardConditions {
   uniqueness?: UniquenessCondition
   requiresUserSegment?: UserSegmentCondition
   requiresLeaderboardScore?: NumericCondition
-  // Complex nested conditions - use Advanced tab
-  requiresUserAttributes?: Record<string, unknown>
-  requiresClientInput?: Record<string, unknown>
+  requiresUserAttributes?: Conditions
+  requiresClientInput?: Conditions
   mode?: 'AND' | 'OR'
+}
+
+// Expiration Config types
+export type ExpirationUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+
+export interface ExpirationConfig {
+  mode: 'permanent' | 'ttl' | 'fixed' | 'anchor'
+  value?: number
+  unit?: ExpirationUnit
+  date?: string
 }
