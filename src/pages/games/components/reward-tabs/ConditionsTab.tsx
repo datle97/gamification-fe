@@ -137,46 +137,48 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                   <PopoverContent className="w-[400px] p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Search rewards..." />
-                      <CommandList>
-                        <CommandEmpty>No rewards found</CommandEmpty>
-                        <CommandGroup>
-                          {rewards.map((reward) => {
-                            const currentCondition = !Array.isArray(conds.requiresRewards)
-                              ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                              : undefined
-                            const currentRewardIds = currentCondition?.rewardIds || []
-                            const isSelected = currentRewardIds.includes(reward.rewardId)
+                      <div onWheel={(e) => e.stopPropagation()}>
+                        <CommandList>
+                          <CommandEmpty>No rewards found</CommandEmpty>
+                          <CommandGroup>
+                            {rewards.map((reward) => {
+                              const currentCondition = !Array.isArray(conds.requiresRewards)
+                                ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                                : undefined
+                              const currentRewardIds = currentCondition?.rewardIds || []
+                              const isSelected = currentRewardIds.includes(reward.rewardId)
 
-                            return (
-                              <CommandItem
-                                key={reward.rewardId}
-                                value={reward.name}
-                                onSelect={() => {
-                                  const newRewardIds = isSelected
-                                    ? currentRewardIds.filter((id: string) => id !== reward.rewardId)
-                                    : [...currentRewardIds, reward.rewardId]
+                              return (
+                                <CommandItem
+                                  key={reward.rewardId}
+                                  value={reward.name}
+                                  onSelect={() => {
+                                    const newRewardIds = isSelected
+                                      ? currentRewardIds.filter((id: string) => id !== reward.rewardId)
+                                      : [...currentRewardIds, reward.rewardId]
 
-                                  updateConditions({
-                                    requiresRewards: newRewardIds.length > 0
-                                      ? {
-                                          ...currentCondition,
-                                          rewardIds: newRewardIds,
-                                          mode: currentCondition?.mode || 'all',
-                                        }
-                                      : undefined,
-                                  })
-                                }}
-                              >
-                                <Checkbox
-                                  checked={isSelected}
-                                  className="mr-2"
-                                />
-                                <span>{reward.name}</span>
-                              </CommandItem>
-                            )
-                          })}
-                        </CommandGroup>
-                      </CommandList>
+                                    updateConditions({
+                                      requiresRewards: newRewardIds.length > 0
+                                        ? {
+                                            ...currentCondition,
+                                            rewardIds: newRewardIds,
+                                            mode: currentCondition?.mode || 'all',
+                                          }
+                                        : undefined,
+                                    })
+                                  }}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    className="mr-2"
+                                  />
+                                  <span>{reward.name}</span>
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </div>
                     </Command>
                   </PopoverContent>
                 </Popover>
