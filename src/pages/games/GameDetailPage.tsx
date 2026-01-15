@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Info, Settings, Trophy, Users, Target, Gift } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useGame } from '@/hooks/useGames'
@@ -8,8 +8,9 @@ import { GameConfigTab } from './components/GameConfigTab'
 import { GameMissionsTab } from './components/GameMissionsTab'
 import { GameRewardsTab } from './components/GameRewardsTab'
 import { GameUsersTab } from './components/GameUsersTab'
+import { GameLeaderboardTab } from './components/GameLeaderboardTab'
 
-type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards'
+type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards' | 'leaderboard'
 
 export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -64,13 +65,36 @@ export function GameDetailPage() {
 
       {/* Tabs */}
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="info">Info</TabsTrigger>
-          <TabsTrigger value="config">Config</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="missions">Missions</TabsTrigger>
-          <TabsTrigger value="rewards">Rewards</TabsTrigger>
-        </TabsList>
+        <div className="relative -mx-1 px-1">
+          <div className="overflow-x-auto pb-1 scrollbar-hide">
+            <TabsList className="inline-flex w-max">
+              <TabsTrigger value="info" className="gap-2">
+                <Info className="h-4 w-4" />
+                Info
+              </TabsTrigger>
+              <TabsTrigger value="config" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Config
+              </TabsTrigger>
+              <TabsTrigger value="leaderboard" className="gap-2">
+                <Trophy className="h-4 w-4" />
+                Leaderboard
+              </TabsTrigger>
+              <TabsTrigger value="users" className="gap-2">
+                <Users className="h-4 w-4" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="missions" className="gap-2">
+                <Target className="h-4 w-4" />
+                Missions
+              </TabsTrigger>
+              <TabsTrigger value="rewards" className="gap-2">
+                <Gift className="h-4 w-4" />
+                Rewards
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
 
         <TabsContent value="info" className="mt-6">
           <GameInfoTab game={game} />
@@ -78,6 +102,10 @@ export function GameDetailPage() {
 
         <TabsContent value="config" className="mt-6">
           <GameConfigTab game={game} />
+        </TabsContent>
+
+        <TabsContent value="leaderboard" className="mt-6">
+          <GameLeaderboardTab game={game} />
         </TabsContent>
 
         <TabsContent value="users" className="mt-6">

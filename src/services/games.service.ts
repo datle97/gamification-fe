@@ -1,5 +1,9 @@
 import { api } from '@/lib/api'
 import type { Game, CreateGameInput, UpdateGameInput } from '@/schemas/game.schema'
+import type {
+  LeaderboardResponse,
+  HistoricalPeriods,
+} from '@/schemas/leaderboard.schema'
 
 interface ApiResponse<T> {
   data: T
@@ -32,4 +36,19 @@ export const gamesService = {
       .then((res) => res.data),
 
   delete: (id: string) => api.delete(`internal/gamification/games/${id}`),
+
+  // Leaderboard methods
+  getLeaderboard: (gameId: string, period?: string) =>
+    api
+      .get(`internal/gamification/games/${gameId}/leaderboard`, {
+        searchParams: period ? { period } : undefined,
+      })
+      .json<ApiResponse<LeaderboardResponse>>()
+      .then((res) => res.data),
+
+  getLeaderboardPeriods: (gameId: string) =>
+    api
+      .get(`internal/gamification/games/${gameId}/leaderboard/periods`)
+      .json<ApiResponse<HistoricalPeriods>>()
+      .then((res) => res.data),
 }

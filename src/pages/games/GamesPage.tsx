@@ -39,6 +39,7 @@ const gameTypeLabels: Record<GameType, string> = {
   puzzle: 'Puzzle',
   match: 'Match Game',
   lottery: 'Lottery',
+  catch: 'Catch',
 }
 
 const gameStatusLabels: Record<GameStatus, string> = {

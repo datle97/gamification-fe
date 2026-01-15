@@ -5,6 +5,9 @@ import type { CreateGameInput, UpdateGameInput } from '@/schemas/game.schema'
 export const gamesKeys = {
   all: ['games'] as const,
   detail: (id: string) => ['games', id] as const,
+  leaderboard: (gameId: string, period?: string) =>
+    ['games', gameId, 'leaderboard', period] as const,
+  leaderboardPeriods: (gameId: string) => ['games', gameId, 'leaderboard', 'periods'] as const,
 }
 
 export function useGames() {
@@ -54,5 +57,22 @@ export function useDeleteGame() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: gamesKeys.all })
     },
+  })
+}
+
+// Leaderboard hooks
+export function useLeaderboard(gameId: string, period?: string) {
+  return useQuery({
+    queryKey: gamesKeys.leaderboard(gameId, period),
+    queryFn: () => gamesService.getLeaderboard(gameId, period),
+    enabled: !!gameId,
+  })
+}
+
+export function useLeaderboardPeriods(gameId: string) {
+  return useQuery({
+    queryKey: gamesKeys.leaderboardPeriods(gameId),
+    queryFn: () => gamesService.getLeaderboardPeriods(gameId),
+    enabled: !!gameId,
   })
 }
