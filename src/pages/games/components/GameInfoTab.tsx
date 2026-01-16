@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useUpdateGame } from '@/hooks/useGames'
 import type { Game, GameStatus, GameType } from '@/schemas/game.schema'
 
-const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
+const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
 
 const gameTypeLabels: Record<GameType, string> = {
@@ -27,6 +27,7 @@ const gameTypeLabels: Record<GameType, string> = {
   puzzle: 'Puzzle',
   match: 'Match Game',
   lottery: 'Lottery',
+  catch: 'Catch Game',
 }
 
 const gameStatusLabels: Record<GameStatus, string> = {
@@ -52,7 +53,17 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
     startAt: game.startAt || null,
     endAt: game.endAt || null,
     timezone: game.timezone || 'Asia/Ho_Chi_Minh',
+    metadata: game.metadata ? JSON.stringify(game.metadata, null, 2) : '',
   })
+
+  const parseJsonField = (value: string) => {
+    if (!value.trim()) return undefined
+    try {
+      return JSON.parse(value)
+    } catch {
+      return undefined
+    }
+  }
 
   const handleSave = async () => {
     await updateGame.mutateAsync({
@@ -66,6 +77,7 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
         startAt: formData.startAt,
         endAt: formData.endAt,
         timezone: formData.timezone,
+        metadata: parseJsonField(formData.metadata),
       },
     })
   }
@@ -77,7 +89,8 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
     formData.templateUrl !== (game.templateUrl || '') ||
     formData.status !== (game.status || 'draft') ||
     formData.startAt !== (game.startAt || null) ||
-    formData.endAt !== (game.endAt || null)
+    formData.endAt !== (game.endAt || null) ||
+    formData.metadata !== (game.metadata ? JSON.stringify(game.metadata, null, 2) : '')
 
   return (
     <Card>
@@ -193,6 +206,20 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="min-h-24"
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="metadata">Metadata (JSON)</Label>
+          <Textarea
+            id="metadata"
+            placeholder='{"key": "value"}'
+            value={formData.metadata}
+            onChange={(e) => setFormData({ ...formData, metadata: e.target.value })}
+            className="min-h-24 font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            Custom metadata for frontend display (e.g., icons, labels, extra info)
+          </p>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t">

@@ -6,7 +6,6 @@ interface AdvancedTabProps {
   conditions: string
   shareConfig: string
   expirationConfig: string
-  metadata: string
   onChange: (field: string, value: string) => void
 }
 
@@ -15,7 +14,6 @@ export function AdvancedTab({
   conditions,
   shareConfig,
   expirationConfig,
-  metadata,
   onChange,
 }: AdvancedTabProps) {
   return (
@@ -57,16 +55,6 @@ export function AdvancedTab({
           placeholder='{"mode": "ttl", "ttlDays": 30}'
           value={expirationConfig}
           onChange={(e) => onChange('expirationConfig', e.target.value)}
-          className="min-h-20 font-mono text-xs"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="metadata">Metadata (JSON)</Label>
-        <Textarea
-          id="metadata"
-          placeholder='{"tnc": "Terms and conditions..."}'
-          value={metadata}
-          onChange={(e) => onChange('metadata', e.target.value)}
           className="min-h-20 font-mono text-xs"
         />
       </div>

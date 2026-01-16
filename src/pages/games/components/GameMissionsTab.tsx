@@ -191,6 +191,8 @@ interface FormData {
   endDate: string | null
   isActive: boolean
   allowFeTrigger: boolean
+  conditions: string
+  rewardExpirationConfig: string
 }
 
 const initialFormData: FormData = {
@@ -210,6 +212,8 @@ const initialFormData: FormData = {
   endDate: null,
   isActive: true,
   allowFeTrigger: true,
+  conditions: '',
+  rewardExpirationConfig: '',
 }
 
 interface GameMissionsTabProps {
@@ -252,6 +256,10 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
       endDate: mission.endDate || null,
       isActive: mission.isActive ?? true,
       allowFeTrigger: mission.allowFeTrigger ?? true,
+      conditions: mission.conditions ? JSON.stringify(mission.conditions, null, 2) : '',
+      rewardExpirationConfig: mission.rewardExpirationConfig
+        ? JSON.stringify(mission.rewardExpirationConfig, null, 2)
+        : '',
     })
   }
 
@@ -261,16 +269,42 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
     setFormData(initialFormData)
   }
 
+  const parseJsonField = (value: string) => {
+    if (!value.trim()) return undefined
+    try {
+      return JSON.parse(value)
+    } catch {
+      return undefined
+    }
+  }
+
   const handleSave = async () => {
     if (!formData.code || !formData.name) return
 
+    const conditions = parseJsonField(formData.conditions)
+    const rewardExpirationConfig = parseJsonField(formData.rewardExpirationConfig)
+
     if (sheetMode === 'create') {
       await createMission.mutateAsync({
-        ...formData,
-        gameId,
+        code: formData.code,
+        name: formData.name,
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+        triggerEvent: formData.triggerEvent,
+        missionType: formData.missionType,
+        missionPeriod: formData.missionPeriod,
+        targetValue: formData.targetValue,
         maxCompletions: formData.maxCompletions || undefined,
+        rewardType: formData.rewardType,
+        rewardValue: formData.rewardValue,
+        displayOrder: formData.displayOrder,
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
+        isActive: formData.isActive,
+        allowFeTrigger: formData.allowFeTrigger,
+        conditions,
+        rewardExpirationConfig,
+        gameId,
       } as CreateMissionInput)
     } else if (sheetMode === 'edit' && selectedMission) {
       await updateMission.mutateAsync({
@@ -291,6 +325,8 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
           endDate: formData.endDate,
           isActive: formData.isActive,
           allowFeTrigger: formData.allowFeTrigger,
+          conditions,
+          rewardExpirationConfig,
         },
       })
     }
@@ -616,6 +652,39 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                     Allow FE Trigger
                   </Label>
                 </div>
+              </div>
+            </div>
+
+            {/* Advanced */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Advanced</h4>
+              <div className="space-y-2">
+                <Label htmlFor="conditions">Conditions (JSON)</Label>
+                <Textarea
+                  id="conditions"
+                  placeholder='{"field": "storeId", "op": "eq", "value": "store-001"}'
+                  value={formData.conditions}
+                  onChange={(e) => setFormData({ ...formData, conditions: e.target.value })}
+                  className="min-h-20 font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional conditions for mission eligibility
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rewardExpirationConfig">Reward Expiration Config (JSON)</Label>
+                <Textarea
+                  id="rewardExpirationConfig"
+                  placeholder='{"mode": "ttl", "ttlDays": 30}'
+                  value={formData.rewardExpirationConfig}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rewardExpirationConfig: e.target.value })
+                  }
+                  className="min-h-20 font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Expiration settings for mission rewards (turns/score)
+                </p>
               </div>
             </div>
 

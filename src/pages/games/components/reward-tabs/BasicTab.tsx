@@ -43,6 +43,7 @@ interface FormData {
   quota: number | null
   displayOrder: number
   isActive: boolean
+  metadata: string
 }
 
 interface BasicTabProps {
@@ -86,6 +87,19 @@ export function BasicTab({ formData, onChange, isCreate, selectedReward }: Basic
             value={formData.imageUrl}
             onChange={(e) => onChange({ imageUrl: e.target.value })}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="metadata">Metadata (JSON)</Label>
+          <Textarea
+            id="metadata"
+            placeholder='{"tnc": "Terms and conditions..."}'
+            value={formData.metadata}
+            onChange={(e) => onChange({ metadata: e.target.value })}
+            className="min-h-20 font-mono text-sm"
+          />
+          <p className="text-xs text-muted-foreground">
+            Custom metadata for frontend display (e.g., terms, icons, extra info)
+          </p>
         </div>
       </div>
 

@@ -376,6 +376,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                     quota: formData.quota,
                     displayOrder: formData.displayOrder,
                     isActive: formData.isActive,
+                    metadata: formData.metadata,
                   }}
                   onChange={(data) => setFormData({ ...formData, ...data })}
                   isCreate={isCreate}
@@ -420,7 +421,6 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                   conditions={formData.conditions}
                   shareConfig={formData.shareConfig}
                   expirationConfig={formData.expirationConfig}
-                  metadata={formData.metadata}
                   onChange={(field, value) => setFormData({ ...formData, [field]: value })}
                 />
               </TabsContent>
