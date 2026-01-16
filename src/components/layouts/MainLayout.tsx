@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
-import { Outlet, useLocation } from 'react-router'
-import { Moon, Sun } from 'lucide-react'
+import { Outlet, useLocation, useNavigate } from 'react-router'
+import { LogOut, Moon, Sun } from 'lucide-react'
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
+import { useAuthStore } from '@/stores/authStore'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -51,8 +52,15 @@ function getBreadcrumbs(pathname: string) {
 
 export function MainLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const breadcrumbs = getBreadcrumbs(location.pathname)
   const { theme, toggleTheme } = useTheme()
+  const logout = useAuthStore((state) => state.logout)
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <SidebarProvider className="bg-sidebar">
@@ -81,6 +89,10 @@ export function MainLayout() {
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8">
+              <LogOut className="h-4 w-4" />
+              <span className="sr-only">Logout</span>
             </Button>
           </div>
         </header>
