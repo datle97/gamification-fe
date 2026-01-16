@@ -127,3 +127,11 @@ export function useRevokeUserReward(gameId: string, userId: string) {
     },
   })
 }
+
+export function useUserActivities(gameId: string, userId: string, page = 1, limit = 50) {
+  return useQuery({
+    queryKey: [...gameUsersKeys.detail(gameId, userId), 'activities', page, limit] as const,
+    queryFn: () => gameUsersService.getActivities(gameId, userId, page, limit),
+    enabled: !!gameId && !!userId,
+  })
+}

@@ -5,7 +5,7 @@ import { MainLayout } from '@/components/layouts'
 import { AuthGuard, ThemeProvider } from '@/components/common'
 import { LoginPage } from '@/pages/login'
 import { DashboardPage } from '@/pages/dashboard'
-import { GamesPage, GameDetailPage } from '@/pages/games'
+import { GamesPage, GameDetailPage, UserDetailPage } from '@/pages/games'
 import { AppsPage } from '@/pages/apps'
 import { AppGamesPage } from '@/pages/app-games'
 import { SettingsPage } from '@/pages/settings'
@@ -29,6 +29,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/games" element={<GamesPage />} />
               <Route path="/games/:gameId" element={<GameDetailPage />} />
+              <Route path="/games/:gameId/users/:userId" element={<UserDetailPage />} />
               <Route path="/apps" element={<AppsPage />} />
               <Route path="/app-games" element={<AppGamesPage />} />
               <Route path="/settings" element={<SettingsPage />} />

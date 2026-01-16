@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router'
 import {
   Sheet,
   SheetContent,
@@ -22,13 +23,14 @@ import {
   useUserTurns,
   useUserRewards,
   useUserMissions,
+  useUserActivities,
   useCheckEligibility,
   useGrantTurns,
   useResetMissionProgress,
   useResetAllMissionsProgress,
   useRevokeUserReward,
 } from '@/hooks/useGameUsers'
-import type { RewardEligibilityResult } from '@/services/game-users.service'
+import type { RewardEligibilityResult, ActivityType } from '@/services/game-users.service'
 import {
   Loader2,
   Coins,
@@ -42,6 +44,12 @@ import {
   Plus,
   RotateCcw,
   Trash2,
+  History,
+  Gamepad2,
+  Trophy,
+  Clock,
+  Shield,
+  ExternalLink,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useAdminTestingTools } from '@/stores/settingsStore'
@@ -167,6 +175,32 @@ function formatOperator(op?: string): string {
   }
 }
 
+// Get icon and color for activity type
+function getActivityIcon(type: ActivityType) {
+  switch (type) {
+    case 'game_play':
+      return { icon: Gamepad2, color: 'text-blue-500' }
+    case 'turn_earn':
+      return { icon: Plus, color: 'text-green-500' }
+    case 'turn_spend':
+      return { icon: Coins, color: 'text-orange-500' }
+    case 'turn_expire':
+      return { icon: Clock, color: 'text-muted-foreground' }
+    case 'reward_earn':
+      return { icon: Gift, color: 'text-purple-500' }
+    case 'mission_complete':
+      return { icon: Trophy, color: 'text-yellow-500' }
+    case 'score_earn':
+      return { icon: Target, color: 'text-primary' }
+    case 'admin_grant':
+      return { icon: Shield, color: 'text-green-500' }
+    case 'admin_revoke':
+      return { icon: Trash2, color: 'text-destructive' }
+    default:
+      return { icon: History, color: 'text-muted-foreground' }
+  }
+}
+
 interface UserDetailSheetProps {
   gameId: string
   userId: string | null
@@ -175,12 +209,14 @@ interface UserDetailSheetProps {
 }
 
 export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDetailSheetProps) {
+  const navigate = useNavigate()
   const isDevMode = useAdminTestingTools()
   const { formatDate, formatDateTime } = useFormatDate()
   const { data: userGame, isLoading } = useGameUserDetail(gameId, userId || '')
   const { data: turns } = useUserTurns(gameId, userId || '')
   const { data: rewards } = useUserRewards(gameId, userId || '')
   const { data: missions } = useUserMissions(gameId, userId || '')
+  const { data: activitiesData } = useUserActivities(gameId, userId || '')
 
   // Check eligibility state
   const [showClientInput, setShowClientInput] = useState(false)
@@ -284,6 +320,17 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
               <SheetTitle>{user?.displayName || userId}</SheetTitle>
               <SheetDescription className="font-mono text-xs">{userId}</SheetDescription>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onOpenChange(false)
+                navigate(`/games/${gameId}/users/${userId}`)
+              }}
+            >
+              <ExternalLink className="h-4 w-4 mr-1.5" />
+              Full View
+            </Button>
           </div>
         </SheetHeader>
 
@@ -376,9 +423,10 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
         {/* Tabs - Scrollable content */}
         <Tabs key={userId} defaultValue="rewards" className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 pt-4">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="rewards">Rewards ({rewards?.length || 0})</TabsTrigger>
               <TabsTrigger value="missions">Missions ({missions?.length || 0})</TabsTrigger>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
           </div>
 
@@ -704,6 +752,42 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
               ) : (
                 <div className="text-center text-sm text-muted-foreground py-8">
                   No missions found
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activity" className="flex-1 overflow-y-auto px-4 pb-4 mt-4">
+            <div className="space-y-1">
+              {activitiesData?.activities && activitiesData.activities.length > 0 ? (
+                activitiesData.activities.map((activity) => {
+                  const { icon: Icon, color } = getActivityIcon(activity.type)
+                  return (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 py-2 border-l-2 border-muted pl-4 relative"
+                    >
+                      {/* Timeline dot */}
+                      <div
+                        className={`absolute -left-[5px] top-3 h-2 w-2 rounded-full bg-current ${color}`}
+                      />
+                      {/* Icon */}
+                      <div className={`shrink-0 mt-0.5 ${color}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm">{activity.description}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {formatDateTime(activity.timestamp)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  No activity found
                 </div>
               )}
             </div>

@@ -117,6 +117,40 @@ export interface GrantTurnsResult {
   newBalance: number
 }
 
+export type ActivityType =
+  | 'game_play'
+  | 'turn_earn'
+  | 'turn_spend'
+  | 'turn_expire'
+  | 'reward_earn'
+  | 'mission_complete'
+  | 'score_earn'
+  | 'admin_grant'
+  | 'admin_revoke'
+
+export interface UserActivity {
+  id: string
+  type: ActivityType
+  timestamp: string
+  description: string
+  metadata?: {
+    rewardName?: string
+    rewardId?: string
+    missionName?: string
+    missionId?: string
+    amount?: number
+    score?: number
+    reason?: string
+    sessionId?: string
+  }
+}
+
+export interface UserActivitiesResponse {
+  activities: UserActivity[]
+  total: number
+  hasMore: boolean
+}
+
 export const gameUsersService = {
   listByGame: (params: ListGameUsersParams) => {
     const { gameId, ...searchParams } = params
@@ -190,5 +224,13 @@ export const gameUsersService = {
     api
       .delete(`gamification/admin/games/${gameId}/users/${userId}/rewards/${userRewardId}`)
       .json<ApiResponse<{ revoked: boolean }>>()
+      .then((res) => res.data),
+
+  getActivities: (gameId: string, userId: string, page = 1, limit = 50) =>
+    api
+      .get(`gamification/admin/games/${gameId}/users/${userId}/activities`, {
+        searchParams: { page: page.toString(), limit: limit.toString() },
+      })
+      .json<ApiResponse<UserActivitiesResponse>>()
       .then((res) => res.data),
 }
