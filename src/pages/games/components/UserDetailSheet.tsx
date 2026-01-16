@@ -26,6 +26,7 @@ import {
   useGrantTurns,
   useResetMissionProgress,
   useResetAllMissionsProgress,
+  useRevokeUserReward,
 } from '@/hooks/useGameUsers'
 import type { RewardEligibilityResult } from '@/services/game-users.service'
 import {
@@ -40,7 +41,11 @@ import {
   Settings2,
   Plus,
   RotateCcw,
+  Trash2,
 } from 'lucide-react'
+
+// Check if we're in development mode (hide testing features in production)
+const isDevMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_FEATURES === 'true'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -199,6 +204,9 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
   const resetMission = useResetMissionProgress(gameId, userId || '')
   const resetAllMissions = useResetAllMissionsProgress(gameId, userId || '')
 
+  // Revoke reward state
+  const revokeReward = useRevokeUserReward(gameId, userId || '')
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setGrantTurnsOpen(false)
@@ -292,54 +300,56 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                   <Coins className="h-4 w-4 text-muted-foreground" />
                   <div className="text-sm font-medium text-muted-foreground">Turns</div>
                 </div>
-                <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-primary">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64" align="end">
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium">Grant Turns</div>
-                      <div className="space-y-2">
-                        <Label htmlFor="grantAmount" className="text-xs">
-                          Amount
-                        </Label>
-                        <Input
-                          id="grantAmount"
-                          type="number"
-                          min="1"
-                          value={grantAmount}
-                          onChange={(e) => setGrantAmount(e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="grantReason" className="text-xs">
-                          Reason (optional)
-                        </Label>
-                        <Input
-                          id="grantReason"
-                          placeholder="Testing, compensation..."
-                          value={grantReason}
-                          onChange={(e) => setGrantReason(e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={handleGrantTurns}
-                        disabled={grantTurns.isPending}
-                      >
-                        {grantTurns.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
+                {isDevMode && (
+                  <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-primary">
+                        <Plus className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64" align="end">
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">Grant Turns</div>
+                        <div className="space-y-2">
+                          <Label htmlFor="grantAmount" className="text-xs">
+                            Amount
+                          </Label>
+                          <Input
+                            id="grantAmount"
+                            type="number"
+                            min="1"
+                            value={grantAmount}
+                            onChange={(e) => setGrantAmount(e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="grantReason" className="text-xs">
+                            Reason (optional)
+                          </Label>
+                          <Input
+                            id="grantReason"
+                            placeholder="Testing, compensation..."
+                            value={grantReason}
+                            onChange={(e) => setGrantReason(e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={handleGrantTurns}
+                          disabled={grantTurns.isPending}
+                        >
+                          {grantTurns.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
               <div className="text-2xl font-bold mt-2">{totalTurns}</div>
             </div>
@@ -562,7 +572,7 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
               {rewards && rewards.length > 0 ? (
                 rewards.map((reward) => (
                   <div key={reward.id} className="rounded-lg border p-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       {reward.reward?.imageUrl && (
                         <img
                           src={reward.reward.imageUrl}
@@ -584,6 +594,22 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                           )}
                         </div>
                       </div>
+                      {isDevMode && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => revokeReward.mutate(reward.id)}
+                          disabled={revokeReward.isPending}
+                          title="Revoke reward"
+                        >
+                          {revokeReward.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -596,8 +622,8 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
           </TabsContent>
 
           <TabsContent value="missions" className="flex-1 overflow-y-auto px-4 pb-4 mt-4">
-            {/* Reset All Button */}
-            {missions && missions.length > 0 && (
+            {/* Reset All Button - Dev mode only */}
+            {isDevMode && missions && missions.length > 0 && (
               <div className="mb-4">
                 <Button
                   size="sm"
@@ -658,20 +684,22 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => resetMission.mutate(item.missionId)}
-                          disabled={resetMission.isPending}
-                          title="Reset mission progress"
-                        >
-                          {resetMission.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RotateCcw className="h-4 w-4" />
-                          )}
-                        </Button>
+                        {isDevMode && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => resetMission.mutate(item.missionId)}
+                            disabled={resetMission.isPending}
+                            title="Reset mission progress"
+                          >
+                            {resetMission.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )

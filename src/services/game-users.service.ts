@@ -185,4 +185,10 @@ export const gameUsersService = {
       .post(`gamification/admin/games/${gameId}/users/${userId}/missions/reset-all`)
       .json<ApiResponse<{ resetCount: number }>>()
       .then((res) => res.data),
+
+  revokeUserReward: (gameId: string, userId: string, userRewardId: string) =>
+    api
+      .delete(`gamification/admin/games/${gameId}/users/${userId}/rewards/${userRewardId}`)
+      .json<ApiResponse<{ revoked: boolean }>>()
+      .then((res) => res.data),
 }

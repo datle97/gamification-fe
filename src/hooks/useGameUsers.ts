@@ -109,3 +109,16 @@ export function useResetAllMissionsProgress(gameId: string, userId: string) {
     },
   })
 }
+
+export function useRevokeUserReward(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (userRewardId: string) =>
+      gameUsersService.revokeUserReward(gameId, userId, userRewardId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'rewards'],
+      })
+    },
+  })
+}
