@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/dashboard'
 import { GamesPage, GameDetailPage } from '@/pages/games'
 import { AppsPage } from '@/pages/apps'
 import { AppGamesPage } from '@/pages/app-games'
+import { SettingsPage } from '@/pages/settings'
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/games/:gameId" element={<GameDetailPage />} />
             <Route path="/apps" element={<AppsPage />} />
             <Route path="/app-games" element={<AppGamesPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

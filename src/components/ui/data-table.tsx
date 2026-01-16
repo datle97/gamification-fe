@@ -18,6 +18,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { useCompactTables, useTablePageSize } from '@/stores/settingsStore'
+import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -29,12 +31,16 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  pageSize = 100,
+  pageSize,
   onRowClick,
 }: DataTableProps<TData, TValue>) {
+  const compactTables = useCompactTables()
+  const defaultPageSize = useTablePageSize()
+  const effectivePageSize = pageSize ?? defaultPageSize
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize,
+    pageSize: effectivePageSize,
   })
 
   const table = useReactTable({
@@ -56,7 +62,10 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={cn(compactTables && 'h-8 py-1 text-xs')}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -75,7 +84,10 @@ export function DataTable<TData, TValue>({
                   className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cn(compactTables && 'py-1 text-xs')}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}

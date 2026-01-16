@@ -5,6 +5,7 @@ import {
   type GrantTurnsInput,
   type ListGameUsersParams,
 } from '@/services/game-users.service'
+import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
 export const gameUsersKeys = {
   all: ['game-users'] as const,
@@ -15,18 +16,22 @@ export const gameUsersKeys = {
 }
 
 export function useGameUsers(params: ListGameUsersParams) {
+  const refetchInterval = useRefetchInterval()
   return useQuery({
     queryKey: gameUsersKeys.list(params),
     queryFn: () => gameUsersService.listByGame(params),
     enabled: !!params.gameId,
+    refetchInterval,
   })
 }
 
 export function useGameStats(gameId: string) {
+  const refetchInterval = useRefetchInterval()
   return useQuery({
     queryKey: gameUsersKeys.stats(gameId),
     queryFn: () => gameUsersService.getStats(gameId),
     enabled: !!gameId,
+    refetchInterval,
   })
 }
 

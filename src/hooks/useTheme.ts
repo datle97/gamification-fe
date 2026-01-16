@@ -1,32 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 type Theme = 'light' | 'dark'
 
-function getStoredTheme(): Theme | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem('theme') as Theme | null
-}
-
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = getStoredTheme()
-    // Default to dark if no stored preference
-    return stored || 'dark'
-  })
+  const darkMode = useSettingsStore((state) => state.ui.darkMode)
+  const saveSettings = useSettingsStore((state) => state.saveSettings)
 
+  const theme: Theme = darkMode ? 'dark' : 'light'
+
+  // Apply theme class to document
   useEffect(() => {
     const root = document.documentElement
     root.classList.remove('light', 'dark')
     root.classList.add(theme)
+    // Keep legacy localStorage in sync for compatibility
     localStorage.setItem('theme', theme)
   }, [theme])
 
   const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
+    saveSettings({ ui: { darkMode: newTheme === 'dark' } })
   }
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'))
+    saveSettings({ ui: { darkMode: !darkMode } })
   }
 
   return { theme, setTheme, toggleTheme }

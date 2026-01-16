@@ -3,6 +3,7 @@ import { gamesService } from '@/services/games.service'
 import { appsService } from '@/services/apps.service'
 import { rewardsService } from '@/services/rewards.service'
 import type { Game } from '@/schemas/game.schema'
+import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
 interface GameStats {
   totalUsers: number
@@ -197,9 +198,11 @@ async function fetchDashboardStats(): Promise<DashboardStats> {
 }
 
 export function useDashboardStats() {
+  const refetchInterval = useRefetchInterval()
   return useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: fetchDashboardStats,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval,
   })
 }

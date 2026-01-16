@@ -43,16 +43,11 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react'
-
-// Check if we're in development mode (hide testing features in production)
-const isDevMode = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_FEATURES === 'true'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
+import { useAdminTestingTools } from '@/stores/settingsStore'
 import { Badge } from '@/components/ui/badge'
 import parse from 'html-react-parser'
-
-dayjs.extend(relativeTime)
+import { useFormatDate } from '@/hooks/useFormatDate'
 
 // Format condition check to human-readable text
 function formatConditionCheck(check: {
@@ -180,6 +175,8 @@ interface UserDetailSheetProps {
 }
 
 export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDetailSheetProps) {
+  const isDevMode = useAdminTestingTools()
+  const { formatDate, formatDateTime } = useFormatDate()
   const { data: userGame, isLoading } = useGameUserDetail(gameId, userId || '')
   const { data: turns } = useUserTurns(gameId, userId || '')
   const { data: rewards } = useUserRewards(gameId, userId || '')
@@ -588,9 +585,9 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                           </div>
                         )}
                         <div className="mt-1 text-xs text-muted-foreground">
-                          Received: {dayjs(reward.createdAt).format('MMM DD, YYYY HH:mm')}
+                          Received: {formatDateTime(reward.createdAt)}
                           {reward.expiredAt && (
-                            <> • Expires: {dayjs(reward.expiredAt).format('MMM DD, YYYY')}</>
+                            <> • Expires: {formatDate(reward.expiredAt)}</>
                           )}
                         </div>
                       </div>
@@ -680,7 +677,7 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                           </div>
                           {progress?.completedAt && (
                             <div className="mt-1 text-xs text-muted-foreground">
-                              Completed: {dayjs(progress.completedAt).format('MMM DD, YYYY HH:mm')}
+                              Completed: {formatDateTime(progress.completedAt)}
                             </div>
                           )}
                         </div>

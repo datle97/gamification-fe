@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gamesService } from '@/services/games.service'
 import type { CreateGameInput, UpdateGameInput } from '@/schemas/game.schema'
+import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
 export const gamesKeys = {
   all: ['games'] as const,
@@ -11,9 +12,11 @@ export const gamesKeys = {
 }
 
 export function useGames() {
+  const refetchInterval = useRefetchInterval()
   return useQuery({
     queryKey: gamesKeys.all,
     queryFn: gamesService.getAll,
+    refetchInterval,
   })
 }
 
