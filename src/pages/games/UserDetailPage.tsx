@@ -58,10 +58,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
 } from 'recharts'
 import parse from 'html-react-parser'
 import dayjs from 'dayjs'
@@ -354,27 +350,6 @@ export function UserDetailPage() {
     [activitiesData]
   )
 
-  // Activity breakdown for pie chart
-  const activityBreakdown = useMemo(() => {
-    if (!activitiesData?.activities) return []
-
-    const counts: Record<string, number> = {}
-    activitiesData.activities.forEach((a) => {
-      counts[a.type] = (counts[a.type] || 0) + 1
-    })
-
-    return Object.entries(counts)
-      .map(([type, count]) => {
-        const config = ACTIVITY_CONFIG[type as ActivityType]
-        return {
-          name: config?.label || type,
-          value: count,
-          colorVar: config?.colorVar || 'muted-foreground',
-        }
-      })
-      .sort((a, b) => b.value - a.value)
-  }, [activitiesData])
-
   // Get chart colors from CSS variables - convert oklch to rgb for recharts compatibility
   const chartColors = useMemo(() => {
     if (typeof window === 'undefined') {
@@ -654,11 +629,10 @@ export function UserDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Activity Over Time Chart */}
-            <Card>
+          {/* Activity Over Time Chart */}
+          <Card>
               <CardHeader>
-                <CardTitle className="text-base">Activity (Last 14 Days)</CardTitle>
+                <CardTitle className="text-base">Plays & Rewards (14 Days)</CardTitle>
               </CardHeader>
               <CardContent>
                 {activityOverTime.length > 0 ? (
@@ -714,71 +688,6 @@ export function UserDetailPage() {
                 )}
               </CardContent>
             </Card>
-
-            {/* Activity Breakdown Pie Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Activity Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {activityBreakdown.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={activityBreakdown}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        innerRadius={35}
-                        paddingAngle={2}
-                        label={false}
-                      >
-                        {activityBreakdown.map((entry, index) => {
-                          const colorMap: Record<string, string> = {
-                            'chart-1': chartColors.chart1,
-                            'chart-2': chartColors.chart2,
-                            'chart-3': chartColors.chart3,
-                            'chart-4': chartColors.chart4,
-                            'chart-5': chartColors.chart5,
-                            'primary': chartColors.primary,
-                            'muted-foreground': chartColors.muted,
-                            'destructive': chartColors.destructive,
-                          }
-                          return (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={colorMap[entry.colorVar] || chartColors.muted}
-                            />
-                          )
-                        })}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: chartColors.popover,
-                          border: `1px solid ${chartColors.border}`,
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                        }}
-                        itemStyle={{ color: chartColors.foreground }}
-                      />
-                      <Legend
-                        wrapperStyle={{ fontSize: '12px' }}
-                        formatter={(value) => (
-                          <span style={{ color: chartColors.foreground }}>{value}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                    No activity data
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Recent Activity */}
           <Card>
