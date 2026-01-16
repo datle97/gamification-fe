@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -23,6 +23,7 @@ import {
   useUserRewards,
   useUserMissions,
   useCheckEligibility,
+  useGrantTurns,
 } from '@/hooks/useGameUsers'
 import type { RewardEligibilityResult } from '@/services/game-users.service'
 import {
@@ -35,7 +36,9 @@ import {
   X,
   Search,
   Settings2,
+  Plus,
 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Badge } from '@/components/ui/badge'
@@ -183,6 +186,39 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
   const [eligibilityOpen, setEligibilityOpen] = useState(false)
   const checkEligibility = useCheckEligibility(gameId, userId || '')
 
+  // Grant turns state
+  const [grantTurnsOpen, setGrantTurnsOpen] = useState(false)
+  const [grantAmount, setGrantAmount] = useState('1')
+  const [grantReason, setGrantReason] = useState('')
+  const grantTurns = useGrantTurns(gameId, userId || '')
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGrantTurnsOpen(false)
+    setGrantAmount('1')
+    setGrantReason('')
+    setEligibilityResults(null)
+    setEligibilityOpen(false)
+    setShowClientInput(false)
+    setClientInputJson('')
+  }, [userId])
+
+  const handleGrantTurns = () => {
+    const amount = parseInt(grantAmount, 10)
+    if (isNaN(amount) || amount < 1) return
+
+    grantTurns.mutate(
+      { amount, reason: grantReason || undefined },
+      {
+        onSuccess: () => {
+          setGrantTurnsOpen(false)
+          setGrantAmount('1')
+          setGrantReason('')
+        },
+      }
+    )
+  }
+
   const handleCheckEligibility = (withClientInput: boolean) => {
     if (withClientInput) {
       setShowClientInput(true)
@@ -244,9 +280,59 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
           <div className="grid grid-cols-3 gap-4">
             {/* Turns Card */}
             <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2">
-                <Coins className="h-4 w-4 text-muted-foreground" />
-                <div className="text-sm font-medium text-muted-foreground">Turns</div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Coins className="h-4 w-4 text-muted-foreground" />
+                  <div className="text-sm font-medium text-muted-foreground">Turns</div>
+                </div>
+                <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-primary">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64" align="end">
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium">Grant Turns</div>
+                      <div className="space-y-2">
+                        <Label htmlFor="grantAmount" className="text-xs">
+                          Amount
+                        </Label>
+                        <Input
+                          id="grantAmount"
+                          type="number"
+                          min="1"
+                          value={grantAmount}
+                          onChange={(e) => setGrantAmount(e.target.value)}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="grantReason" className="text-xs">
+                          Reason (optional)
+                        </Label>
+                        <Input
+                          id="grantReason"
+                          placeholder="Testing, compensation..."
+                          value={grantReason}
+                          onChange={(e) => setGrantReason(e.target.value)}
+                          className="h-8"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleGrantTurns}
+                        disabled={grantTurns.isPending}
+                      >
+                        {grantTurns.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="text-2xl font-bold mt-2">{totalTurns}</div>
             </div>

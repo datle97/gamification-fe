@@ -10,16 +10,16 @@ export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) 
   const getScript = () => {
     try {
       const cfg = JSON.parse(config)
-      return cfg.script || ''
+      return cfg.code || ''
     } catch {
       return ''
     }
   }
 
-  const updateScript = (script: string) => {
+  const updateScript = (code: string) => {
     try {
       const cfg = JSON.parse(config)
-      cfg.script = script
+      cfg.code = code
       onChange(JSON.stringify(cfg, null, 2))
     } catch {
       // Initialize if invalid JSON
@@ -27,7 +27,7 @@ export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) 
         JSON.stringify(
           {
             type: 'script',
-            script,
+            code,
           },
           null,
           2

@@ -106,6 +106,17 @@ export interface CheckEligibilityInput {
   clientInput?: Record<string, unknown>
 }
 
+export interface GrantTurnsInput {
+  amount: number
+  portalId?: number
+  reason?: string
+}
+
+export interface GrantTurnsResult {
+  turnsGranted: number
+  newBalance: number
+}
+
 export const gameUsersService = {
   listByGame: (params: ListGameUsersParams) => {
     const { gameId, ...searchParams } = params
@@ -153,5 +164,13 @@ export const gameUsersService = {
         json: input || {},
       })
       .json<ApiResponse<RewardEligibilityResult[]>>()
+      .then((res) => res.data),
+
+  grantTurns: (gameId: string, userId: string, input: GrantTurnsInput) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/grant-turns`, {
+        json: input,
+      })
+      .json<ApiResponse<GrantTurnsResult>>()
       .then((res) => res.data),
 }

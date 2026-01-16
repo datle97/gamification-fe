@@ -1,7 +1,8 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   gameUsersService,
   type CheckEligibilityInput,
+  type GrantTurnsInput,
   type ListGameUsersParams,
 } from '@/services/game-users.service'
 
@@ -65,5 +66,21 @@ export function useCheckEligibility(gameId: string, userId: string) {
   return useMutation({
     mutationFn: (input?: CheckEligibilityInput) =>
       gameUsersService.checkEligibility(gameId, userId, input),
+  })
+}
+
+export function useGrantTurns(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: GrantTurnsInput) =>
+      gameUsersService.grantTurns(gameId, userId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'turns'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: gameUsersKeys.detail(gameId, userId),
+      })
+    },
   })
 }
