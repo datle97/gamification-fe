@@ -85,6 +85,27 @@ export interface UserMissionProgress {
   } | null
 }
 
+export interface EligibilityCheckDetail {
+  name: string
+  passed: boolean
+  detail?: Record<string, unknown>
+}
+
+export interface RewardEligibilityResult {
+  reward: {
+    rewardId: string
+    name: string
+    imageUrl?: string
+    probability: number
+  }
+  isEligible: boolean
+  checks: EligibilityCheckDetail[]
+}
+
+export interface CheckEligibilityInput {
+  clientInput?: Record<string, unknown>
+}
+
 export const gameUsersService = {
   listByGame: (params: ListGameUsersParams) => {
     const { gameId, ...searchParams } = params
@@ -124,5 +145,13 @@ export const gameUsersService = {
     api
       .get(`gamification/admin/games/${gameId}/users/${userId}/missions`)
       .json<ApiResponse<UserMissionProgress[]>>()
+      .then((res) => res.data),
+
+  checkEligibility: (gameId: string, userId: string, input?: CheckEligibilityInput) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/check-eligibility`, {
+        json: input || {},
+      })
+      .json<ApiResponse<RewardEligibilityResult[]>>()
       .then((res) => res.data),
 }

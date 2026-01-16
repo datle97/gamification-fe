@@ -1,5 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
-import { gameUsersService, type ListGameUsersParams } from '@/services/game-users.service'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  gameUsersService,
+  type CheckEligibilityInput,
+  type ListGameUsersParams,
+} from '@/services/game-users.service'
 
 export const gameUsersKeys = {
   all: ['game-users'] as const,
@@ -54,5 +58,12 @@ export function useUserMissions(gameId: string, userId: string) {
     queryKey: [...gameUsersKeys.detail(gameId, userId), 'missions'] as const,
     queryFn: () => gameUsersService.getMissions(gameId, userId),
     enabled: !!gameId && !!userId,
+  })
+}
+
+export function useCheckEligibility(gameId: string, userId: string) {
+  return useMutation({
+    mutationFn: (input?: CheckEligibilityInput) =>
+      gameUsersService.checkEligibility(gameId, userId, input),
   })
 }
