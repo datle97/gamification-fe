@@ -13,34 +13,34 @@ interface ApiResponse<T> {
 export const gamesService = {
   getAll: () =>
     api
-      .get('internal/gamification/games')
+      .get('gamification/admin/games')
       .json<ApiResponse<Game[]>>()
       .then((res) => res.data),
 
   getById: (id: string) =>
     api
-      .get(`internal/gamification/games/${id}`)
+      .get(`gamification/admin/games/${id}`)
       .json<ApiResponse<Game>>()
       .then((res) => res.data),
 
   create: (data: CreateGameInput) =>
     api
-      .post('internal/gamification/games', { json: data })
+      .post('gamification/admin/games', { json: data })
       .json<ApiResponse<Game>>()
       .then((res) => res.data),
 
   update: (id: string, data: UpdateGameInput) =>
     api
-      .put(`internal/gamification/games/${id}`, { json: data })
+      .put(`gamification/admin/games/${id}`, { json: data })
       .json<ApiResponse<Game>>()
       .then((res) => res.data),
 
-  delete: (id: string) => api.delete(`internal/gamification/games/${id}`),
+  delete: (id: string) => api.delete(`gamification/admin/games/${id}`),
 
   // Stats methods
   getGameStats: (gameId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/stats`)
+      .get(`gamification/admin/games/${gameId}/stats`)
       .json<
         ApiResponse<{
           totalUsers: number
@@ -53,7 +53,7 @@ export const gamesService = {
   // Leaderboard methods
   getLeaderboard: (gameId: string, period?: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/leaderboard`, {
+      .get(`gamification/admin/games/${gameId}/leaderboard`, {
         searchParams: period ? { period } : undefined,
       })
       .json<ApiResponse<LeaderboardResponse>>()
@@ -61,7 +61,7 @@ export const gamesService = {
 
   getLeaderboardPeriods: (gameId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/leaderboard/periods`)
+      .get(`gamification/admin/games/${gameId}/leaderboard/periods`)
       .json<ApiResponse<HistoricalPeriods>>()
       .then((res) => res.data),
 }

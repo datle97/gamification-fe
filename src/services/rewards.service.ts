@@ -14,44 +14,46 @@ interface ApiResponse<T> {
 export const rewardsService = {
   getAll: () =>
     api
-      .get('internal/gamification/rewards')
+      .get('gamification/admin/rewards')
       .json<ApiResponse<Reward[]>>()
       .then((res) => res.data),
 
   getByGameId: (gameId: string) =>
     api
-      .get('internal/gamification/rewards', { searchParams: { gameId } })
+      .get('gamification/admin/rewards', { searchParams: { gameId } })
       .json<ApiResponse<Reward[]>>()
       .then((res) => res.data),
 
   getById: (id: string) =>
     api
-      .get(`internal/gamification/rewards/${id}`)
+      .get(`gamification/admin/rewards/${id}`)
       .json<ApiResponse<Reward>>()
       .then((res) => res.data),
 
-  create: (data: CreateRewardInput) =>
-    api
-      .post('internal/gamification/rewards', { json: data })
+  create: async (data: CreateRewardInput) => {
+    const { gameId, ...rest } = data
+    const res = await api
+      .post(`gamification/admin/games/${gameId}/rewards`, { json: rest })
       .json<ApiResponse<Reward>>()
-      .then((res) => res.data),
+    return res.data
+  },
 
   update: (id: string, data: UpdateRewardInput) =>
     api
-      .put(`internal/gamification/rewards/${id}`, { json: data })
+      .put(`gamification/admin/rewards/${id}`, { json: data })
       .json<ApiResponse<Reward>>()
       .then((res) => res.data),
 
   batchUpdate: (updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
     api
-      .post('internal/gamification/rewards/batch-update', { json: { updates } })
+      .post('gamification/admin/rewards/batch-update', { json: { updates } })
       .json<ApiResponse<void>>(),
 
-  delete: (id: string) => api.delete(`internal/gamification/rewards/${id}`),
+  delete: (id: string) => api.delete(`gamification/admin/rewards/${id}`),
 
   getDistribution: (gameId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/rewards/distribution`)
+      .get(`gamification/admin/games/${gameId}/rewards/distribution`)
       .json<ApiResponse<RewardDistribution[]>>()
       .then((res) => res.data),
 }

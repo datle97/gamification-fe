@@ -89,32 +89,32 @@ export const gameUsersService = {
   listByGame: (params: ListGameUsersParams) => {
     const { gameId, ...searchParams } = params
     return api
-      .get(`internal/gamification/games/${gameId}/users`, { searchParams })
+      .get(`gamification/admin/games/${gameId}/users`, { searchParams })
       .json<ApiResponse<{ data: GameUser[]; total: number }>>()
       .then((res) => res.data)
   },
 
   getStats: (gameId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/stats`)
+      .get(`gamification/admin/games/${gameId}/stats`)
       .json<ApiResponse<GameStats>>()
       .then((res) => res.data),
 
   getDetail: (gameId: string, userId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/users/${userId}`)
+      .get(`gamification/admin/games/${gameId}/users/${userId}`)
       .json<ApiResponse<GameUser>>()
       .then((res) => res.data),
 
   getTurns: (gameId: string, userId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/users/${userId}/turns`)
+      .get(`gamification/admin/games/${gameId}/users/${userId}/turns`)
       .json<ApiResponse<UserTurn[]>>()
       .then((res) => res.data),
 
   getRewards: (gameId: string, userId: string, page = 1, limit = 50) =>
     api
-      .get(`internal/gamification/games/${gameId}/users/${userId}/rewards`, {
+      .get(`gamification/admin/games/${gameId}/users/${userId}/rewards`, {
         searchParams: { page: page.toString(), limit: limit.toString() },
       })
       .json<ApiResponse<UserReward[]>>()
@@ -122,7 +122,7 @@ export const gameUsersService = {
 
   getMissions: (gameId: string, userId: string) =>
     api
-      .get(`internal/gamification/games/${gameId}/users/${userId}/missions`)
+      .get(`gamification/admin/games/${gameId}/users/${userId}/missions`)
       .json<ApiResponse<UserMissionProgress[]>>()
       .then((res) => res.data),
 }

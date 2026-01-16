@@ -14,20 +14,17 @@ export const linksService = {
 
     const query = searchParams.toString()
     return api
-      .get(`internal/gamification/links${query ? `?${query}` : ''}`)
+      .get(`gamification/admin/links${query ? `?${query}` : ''}`)
       .json<ApiResponse<Link[]>>()
       .then((res) => res.data)
   },
 
   create: (data: CreateLinkInput) =>
     api
-      .post('internal/gamification/links', { json: data })
+      .post('gamification/admin/links', { json: data })
       .json<ApiResponse<Link>>()
       .then((res) => res.data),
 
   delete: (appId: string, gameId: string) =>
-    api
-      .post('internal/gamification/links/delete', { json: { appId, gameId } })
-      .json<ApiResponse<{ ok: boolean }>>()
-      .then((res) => res.data),
+    api.delete('gamification/admin/links', { json: { appId, gameId } }),
 }

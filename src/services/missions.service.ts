@@ -9,33 +9,35 @@ interface ApiResponse<T> {
 export const missionsService = {
   getAll: () =>
     api
-      .get('internal/gamification/missions')
+      .get('gamification/admin/missions')
       .json<ApiResponse<Mission[]>>()
       .then((res) => res.data),
 
   getByGameId: (gameId: string) =>
     api
-      .get('internal/gamification/missions', { searchParams: { gameId } })
+      .get('gamification/admin/missions', { searchParams: { gameId } })
       .json<ApiResponse<Mission[]>>()
       .then((res) => res.data),
 
   getById: (id: string) =>
     api
-      .get(`internal/gamification/missions/${id}`)
+      .get(`gamification/admin/missions/${id}`)
       .json<ApiResponse<Mission>>()
       .then((res) => res.data),
 
-  create: (data: CreateMissionInput) =>
-    api
-      .post('internal/gamification/missions', { json: data })
+  create: async (data: CreateMissionInput) => {
+    const { gameId, ...rest } = data
+    const res = await api
+      .post(`gamification/admin/games/${gameId}/missions`, { json: rest })
       .json<ApiResponse<Mission>>()
-      .then((res) => res.data),
+    return res.data
+  },
 
   update: (id: string, data: UpdateMissionInput) =>
     api
-      .put(`internal/gamification/missions/${id}`, { json: data })
+      .put(`gamification/admin/missions/${id}`, { json: data })
       .json<ApiResponse<Mission>>()
       .then((res) => res.data),
 
-  delete: (id: string) => api.delete(`internal/gamification/missions/${id}`),
+  delete: (id: string) => api.delete(`gamification/admin/missions/${id}`),
 }
