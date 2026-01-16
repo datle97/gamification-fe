@@ -186,17 +186,17 @@ function formatOperator(op?: string): string {
 // Activity type labels and colors using theme variables
 const ACTIVITY_CONFIG: Record<
   ActivityType,
-  { label: string; colorVar: string; bgClass: string; textClass: string; borderClass: string }
+  { label: string; colorVar: string; bgClass: string; textClass: string; borderClass: string; badgeBgClass: string }
 > = {
-  game_play: { label: 'Game Plays', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1' },
-  turn_earn: { label: 'Turns Earned', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2' },
-  turn_spend: { label: 'Turns Spent', colorVar: 'chart-3', bgClass: 'bg-chart-3', textClass: 'text-chart-3', borderClass: 'border-chart-3' },
-  turn_expire: { label: 'Turns Expired', colorVar: 'muted-foreground', bgClass: 'bg-muted-foreground', textClass: 'text-muted-foreground', borderClass: 'border-muted-foreground' },
-  reward_earn: { label: 'Rewards Won', colorVar: 'chart-4', bgClass: 'bg-chart-4', textClass: 'text-chart-4', borderClass: 'border-chart-4' },
-  mission_complete: { label: 'Missions', colorVar: 'chart-5', bgClass: 'bg-chart-5', textClass: 'text-chart-5', borderClass: 'border-chart-5' },
-  score_earn: { label: 'Score Earned', colorVar: 'primary', bgClass: 'bg-primary', textClass: 'text-primary', borderClass: 'border-primary' },
-  admin_grant: { label: 'Admin Grant', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2' },
-  admin_revoke: { label: 'Admin Revoke', colorVar: 'destructive', bgClass: 'bg-destructive', textClass: 'text-destructive', borderClass: 'border-destructive' },
+  game_play: { label: 'Game Plays', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1', badgeBgClass: 'bg-chart-1/20' },
+  turn_earn: { label: 'Turns Earned', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2', badgeBgClass: 'bg-chart-2/20' },
+  turn_spend: { label: 'Turns Spent', colorVar: 'primary', bgClass: 'bg-primary', textClass: 'text-primary', borderClass: 'border-primary', badgeBgClass: 'bg-primary/20' },
+  turn_expire: { label: 'Turns Expired', colorVar: 'muted-foreground', bgClass: 'bg-muted-foreground', textClass: 'text-muted-foreground', borderClass: 'border-muted-foreground', badgeBgClass: 'bg-muted-foreground/20' },
+  reward_earn: { label: 'Rewards Won', colorVar: 'chart-4', bgClass: 'bg-chart-4', textClass: 'text-chart-4', borderClass: 'border-chart-4', badgeBgClass: 'bg-chart-4/20' },
+  mission_complete: { label: 'Missions', colorVar: 'chart-5', bgClass: 'bg-chart-5', textClass: 'text-chart-5', borderClass: 'border-chart-5', badgeBgClass: 'bg-chart-5/20' },
+  score_earn: { label: 'Score Earned', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1', badgeBgClass: 'bg-chart-1/20' },
+  admin_grant: { label: 'Admin Grant', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2', badgeBgClass: 'bg-chart-2/20' },
+  admin_revoke: { label: 'Admin Revoke', colorVar: 'destructive', bgClass: 'bg-destructive', textClass: 'text-destructive', borderClass: 'border-destructive', badgeBgClass: 'bg-destructive/20' },
 }
 
 // Get icon for activity type
@@ -411,15 +411,96 @@ export function UserDetailPage() {
       .slice(-14) // Last 14 days
   }, [activitiesData])
 
-  // Group activities by date for improved timeline
-  const activitiesByDate = useMemo(() => {
+  // Group activities by requestId, then by date
+  const groupedActivities = useMemo(() => {
     if (!activitiesData?.activities) return []
 
-    const grouped: { date: string; label: string; activities: UserActivity[] }[] = []
     const now = dayjs()
 
-    activitiesData.activities.forEach((activity) => {
-      const activityDate = dayjs(activity.timestamp)
+    // TODO: add requestId to transaction_log
+    // SIMULATION - Group activities between turn_spend (or game_play) events
+    // turn_spend starts a new session, subsequent reward_earn/score_earn belong to it
+    const sortedActivities = [...activitiesData.activities].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+
+    let currentSessionId: string | null = null
+    const activitiesWithSimulatedRequestId = sortedActivities.map((activity) => {
+      // If already has requestId, use it
+      if (activity.metadata?.requestId) return activity
+
+      // turn_spend or game_play starts a new session
+      if (activity.type === 'turn_spend' || activity.type === 'game_play') {
+        currentSessionId = `sim_${activity.id}`
+        return {
+          ...activity,
+          metadata: { ...activity.metadata, requestId: currentSessionId },
+        }
+      }
+
+      // These types belong to current game session
+      const sessionTypes: ActivityType[] = ['reward_earn', 'score_earn', 'mission_complete']
+      if (currentSessionId && sessionTypes.includes(activity.type)) {
+        return {
+          ...activity,
+          metadata: { ...activity.metadata, requestId: currentSessionId },
+        }
+      }
+
+      // Other types (turn_earn, admin_grant, etc.) are standalone
+      return activity
+    })
+
+    // First, group by requestId (or use id as fallback for ungrouped)
+    const byRequestId = new Map<string, UserActivity[]>()
+
+    activitiesWithSimulatedRequestId.forEach((activity) => {
+      const key = activity.metadata?.requestId || `single_${activity.id}`
+      if (!byRequestId.has(key)) {
+        byRequestId.set(key, [])
+      }
+      byRequestId.get(key)!.push(activity)
+    })
+
+    // Convert to array of activity groups
+    const groups: {
+      requestId: string
+      timestamp: string
+      activities: UserActivity[]
+      primaryType: ActivityType
+    }[] = []
+
+    byRequestId.forEach((activities, requestId) => {
+      // Sort activities within group by type priority
+      const typePriority: Record<ActivityType, number> = {
+        game_play: 1,
+        turn_spend: 2,
+        reward_earn: 3,
+        score_earn: 4,
+        mission_complete: 5,
+        turn_earn: 6,
+        turn_expire: 7,
+        admin_grant: 8,
+        admin_revoke: 9,
+      }
+      activities.sort((a, b) => typePriority[a.type] - typePriority[b.type])
+
+      groups.push({
+        requestId,
+        timestamp: activities[0].timestamp,
+        activities,
+        primaryType: activities[0].type,
+      })
+    })
+
+    // Sort groups by timestamp descending
+    groups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+    // Now group by date
+    const byDate: { date: string; label: string; groups: typeof groups }[] = []
+
+    groups.forEach((group) => {
+      const activityDate = dayjs(group.timestamp)
       const dateKey = activityDate.format('YYYY-MM-DD')
 
       let dateLabel: string
@@ -431,19 +512,19 @@ export function UserDetailPage() {
         dateLabel = activityDate.format('MMM D')
       }
 
-      const existingGroup = grouped.find((g) => g.date === dateKey)
+      const existingGroup = byDate.find((g) => g.date === dateKey)
       if (existingGroup) {
-        existingGroup.activities.push(activity)
+        existingGroup.groups.push(group)
       } else {
-        grouped.push({
+        byDate.push({
           date: dateKey,
           label: dateLabel,
-          activities: [activity],
+          groups: [group],
         })
       }
     })
 
-    return grouped
+    return byDate
   }, [activitiesData])
 
   const handleTabChange = (value: string) => {
@@ -750,57 +831,88 @@ export function UserDetailPage() {
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="mt-6 space-y-6">
-          {activitiesByDate.length > 0 ? (
+          {groupedActivities.length > 0 ? (
             <div className="space-y-8">
-              {activitiesByDate.map((group) => (
-                <div key={group.date}>
+              {groupedActivities.map((dateGroup) => (
+                <div key={dateGroup.date}>
                   {/* Date Header */}
                   <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pl-14">
-                    {group.label}
+                    {dateGroup.label}
                   </div>
-                  {/* Activities for this date */}
-                  <div className="relative">
-                    {/* Vertical timeline line */}
-                    <div className="absolute left-12 top-0 bottom-0 w-px bg-border" />
+                  {/* Activity groups for this date */}
+                  <div className="space-y-0">
+                      {dateGroup.groups.map((group) => {
+                        const isGrouped = group.activities.length > 1
+                        const primaryActivity = group.activities[0]
+                        const primaryConfig = ACTIVITY_CONFIG[group.primaryType]
+                        const PrimaryIcon = getActivityIcon(group.primaryType)
+                        const subActivities = group.activities.slice(1)
 
-                    <div className="space-y-1">
-                      {group.activities.map((activity) => {
-                        const Icon = getActivityIcon(activity.type)
-                        const config = ACTIVITY_CONFIG[activity.type]
+                        // Extract rewards and scores for badges
+                        const rewards = subActivities.filter(a => a.type === 'reward_earn')
+                        const scores = subActivities.filter(a => a.type === 'score_earn')
+                        const missions = subActivities.filter(a => a.type === 'mission_complete')
+
                         return (
-                          <div
-                            key={activity.id}
-                            className="flex items-start group"
-                          >
+                          <div key={group.requestId} className="flex gap-4 group">
                             {/* Time column */}
-                            <div className="w-11 text-xs text-muted-foreground tabular-nums text-right pt-2.5 shrink-0 pr-3">
-                              {dayjs(activity.timestamp).format('HH:mm')}
+                            <div className="w-10 text-xs text-muted-foreground tabular-nums text-right pt-0.5 shrink-0">
+                              {dayjs(group.timestamp).format('HH:mm')}
                             </div>
 
-                            {/* Connector + Content card */}
-                            <div className="flex-1 min-w-0 flex items-start">
-                              {/* Horizontal connector line */}
-                              <div className={`w-4 h-px mt-4 shrink-0 ${config?.bgClass || 'bg-border'}`} />
+                            {/* Timeline dot */}
+                            <div className="relative flex flex-col items-center">
+                              <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${primaryConfig?.bgClass || 'bg-border'}`} />
+                              {/* Connector line to next item */}
+                              <div className="w-px flex-1 bg-border mt-2" />
+                            </div>
 
-                              {/* Content card */}
-                              <div className={`flex-1 min-w-0 py-2 px-3 rounded-lg border-l-2 bg-muted/30 hover:bg-muted/50 transition-colors ${config?.borderClass || 'border-muted'}`}>
-                                <div className="flex items-start gap-2">
-                                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config?.textClass || 'text-muted-foreground'}`} />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-sm">
-                                      {activity.description}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-0.5">
-                                      {config?.label}
-                                    </div>
-                                  </div>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pb-4">
+                              {/* Main action */}
+                              <div className="flex items-start gap-2">
+                                <PrimaryIcon className={`h-4 w-4 mt-0.5 shrink-0 ${primaryConfig?.textClass || 'text-muted-foreground'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm">{primaryActivity.description}</span>
                                 </div>
                               </div>
+
+                              {/* Sub-activities as inline badges */}
+                              {isGrouped && (
+                                <div className="flex flex-wrap gap-1.5 mt-2 ml-6">
+                                  {rewards.map((r) => (
+                                    <span
+                                      key={r.id}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.reward_earn.badgeBgClass}`}
+                                    >
+                                      <Gift className={`h-3 w-3 ${ACTIVITY_CONFIG.reward_earn.textClass}`} />
+                                      {r.metadata?.rewardName || r.description.replace('Won "', '').replace('"', '')}
+                                    </span>
+                                  ))}
+                                  {scores.map((s) => (
+                                    <span
+                                      key={s.id}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.score_earn.badgeBgClass}`}
+                                    >
+                                      <Target className={`h-3 w-3 ${ACTIVITY_CONFIG.score_earn.textClass}`} />
+                                      +{s.metadata?.score || 1}
+                                    </span>
+                                  ))}
+                                  {missions.map((m) => (
+                                    <span
+                                      key={m.id}
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.mission_complete.badgeBgClass}`}
+                                    >
+                                      <Trophy className={`h-3 w-3 ${ACTIVITY_CONFIG.mission_complete.textClass}`} />
+                                      {m.metadata?.missionName || 'Mission'}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )
                       })}
-                    </div>
                   </div>
                 </div>
               ))}

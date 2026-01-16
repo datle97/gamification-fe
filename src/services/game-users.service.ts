@@ -153,6 +153,7 @@ export interface UserActivity {
     score?: number
     reason?: string
     sessionId?: string
+    requestId?: string
   }
 }
 
