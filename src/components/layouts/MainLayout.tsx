@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { Moon, Sun } from 'lucide-react'
 import { AppSidebar } from '@/components/app-sidebar'
@@ -63,14 +64,16 @@ export function MainLayout() {
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumbs.map((crumb, index) => (
-                <BreadcrumbItem key={crumb.label}>
+                <Fragment key={crumb.label}>
                   {index > 0 && <BreadcrumbSeparator />}
-                  {crumb.href ? (
-                    <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage className="font-medium">{crumb.label}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
+                  <BreadcrumbItem>
+                    {crumb.href ? (
+                      <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                    ) : (
+                      <BreadcrumbPage className="font-medium">{crumb.label}</BreadcrumbPage>
+                    )}
+                  </BreadcrumbItem>
+                </Fragment>
               ))}
             </BreadcrumbList>
           </Breadcrumb>
