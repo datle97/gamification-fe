@@ -34,22 +34,78 @@ interface ConditionsTabProps {
   gameId: string
 }
 
+// Type for expandable sections - matches condition keys + popover states
+interface ExpandedSections {
+  requiresRewards: boolean
+  requiresRewardsPopover: boolean
+  excludeRewardsPopover: boolean
+  uniqueness: boolean
+  timeWindow: boolean
+  userSegment: boolean
+  leaderboardScore: boolean
+  userAttributes: boolean
+  clientInput: boolean
+}
+
+const defaultExpandedSections: ExpandedSections = {
+  requiresRewards: false,
+  requiresRewardsPopover: false,
+  excludeRewardsPopover: false,
+  uniqueness: false,
+  timeWindow: false,
+  userSegment: false,
+  leaderboardScore: false,
+  userAttributes: false,
+  clientInput: false,
+}
+
+// Helper to check if conditions are configured (used for initial expand & badges)
+function getConfiguredSections(conds: RewardConditions) {
+  const rr = !Array.isArray(conds.requiresRewards) ? conds.requiresRewards : undefined
+  return {
+    requiresRewards: !!(rr?.rewardIds?.length || rr?.excludeRewards?.length),
+    uniqueness: !!conds.uniqueness?.maxPerUser,
+    timeWindow: !!(
+      conds.timeWindow?.startDate ||
+      conds.timeWindow?.endDate ||
+      conds.timeWindow?.daysOfWeek?.length ||
+      conds.timeWindow?.hours
+    ),
+    userSegment: !!(
+      conds.requiresUserSegment?.userIds?.length ||
+      conds.requiresUserSegment?.phoneNumbers?.length ||
+      conds.requiresUserSegment?.excludeUserIds?.length ||
+      conds.requiresUserSegment?.excludePhoneNumbers?.length
+    ),
+    leaderboardScore: !!(
+      conds.requiresLeaderboardScore?.op &&
+      conds.requiresLeaderboardScore?.value !== undefined
+    ),
+    userAttributes: !!conds.requiresUserAttributes,
+    clientInput: !!conds.requiresClientInput,
+  }
+}
+
 export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabProps) {
   const { data: rewards = [] } = useRewardsByGame(gameId)
 
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    requiresRewards: false,
-    requiresRewardsPopover: false,
-    excludeRewardsPopover: false,
-    uniqueness: false,
-    timeWindow: false,
-    userSegment: false,
-    leaderboardScore: false,
-    userAttributes: false,
-    clientInput: false,
-  })
+  // Parse initial conditions to determine which sections should be expanded
+  const getInitialExpandedSections = (): ExpandedSections => {
+    try {
+      const conds: RewardConditions = conditions ? JSON.parse(conditions) : {}
+      const configured = getConfiguredSections(conds)
+      return {
+        ...defaultExpandedSections,
+        ...configured,
+      }
+    } catch {
+      return defaultExpandedSections
+    }
+  }
 
-  const toggleSection = (section: string) => {
+  const [expandedSections, setExpandedSections] = useState<ExpandedSections>(getInitialExpandedSections)
+
+  const toggleSection = (section: keyof ExpandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
@@ -78,13 +134,8 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
 
   const conds = getConditions()
 
-  // Check if user segment has any actual values (not just empty arrays)
-  const hasUserSegmentConfig = !!(
-    conds.requiresUserSegment?.userIds?.length ||
-    conds.requiresUserSegment?.phoneNumbers?.length ||
-    conds.requiresUserSegment?.excludeUserIds?.length ||
-    conds.requiresUserSegment?.excludePhoneNumbers?.length
-  )
+  // Get configured sections for "Configured" badges
+  const configuredSections = getConfiguredSections(conds)
 
   // Helper to check if user segment has other fields with values (excluding specified field)
   const hasOtherUserSegmentFields = (exclude: 'userIds' | 'phoneNumbers' | 'excludeUserIds' | 'excludePhoneNumbers') => {
@@ -119,13 +170,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Collection Requirements</span>
           </div>
-          {(() => {
-            const rr = !Array.isArray(conds.requiresRewards) ? conds.requiresRewards : undefined
-            const hasConfig = rr?.rewardIds?.length || rr?.excludeRewards?.length
-            return hasConfig ? (
-              <span className="text-xs text-muted-foreground">Configured</span>
-            ) : null
-          })()}
+          {configuredSections.requiresRewards && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
         </button>
         {expandedSections.requiresRewards && (
           <div className="p-4 pt-0 space-y-4">
@@ -291,7 +338,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                   })
                 }}
               >
-                <SelectTrigger className="w-auto h-7 text-sm">
+                <SelectTrigger className="w-auto h-7 text-sm text-foreground">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -509,7 +556,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Duplicate Prevention</span>
           </div>
-          {conds.uniqueness && <span className="text-xs text-muted-foreground">Configured</span>}
+          {configuredSections.uniqueness && <span className="text-xs text-muted-foreground">Configured</span>}
         </button>
         {expandedSections.uniqueness && (
           <div className="p-4 pt-0 space-y-4">
@@ -555,7 +602,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">User Attributes</span>
           </div>
-          {conds.requiresUserAttributes && (
+          {configuredSections.userAttributes && (
             <span className="text-xs text-muted-foreground">Configured</span>
           )}
         </button>
@@ -587,7 +634,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Client Input Filters</span>
           </div>
-          {conds.requiresClientInput && (
+          {configuredSections.clientInput && (
             <span className="text-xs text-muted-foreground">Configured</span>
           )}
         </button>
@@ -619,7 +666,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Time Window</span>
           </div>
-          {conds.timeWindow && <span className="text-xs text-muted-foreground">Configured</span>}
+          {configuredSections.timeWindow && <span className="text-xs text-muted-foreground">Configured</span>}
         </button>
         {expandedSections.timeWindow && (
           <div className="p-4 pt-0 space-y-4">
@@ -765,7 +812,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">User Segment</span>
           </div>
-          {hasUserSegmentConfig && (
+          {configuredSections.userSegment && (
             <span className="text-xs text-muted-foreground">Configured</span>
           )}
         </button>
@@ -893,7 +940,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Leaderboard Score</span>
           </div>
-          {conds.requiresLeaderboardScore && (
+          {configuredSections.leaderboardScore && (
             <span className="text-xs text-muted-foreground">Configured</span>
           )}
         </button>
