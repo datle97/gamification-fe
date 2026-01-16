@@ -37,6 +37,19 @@ export const gamesService = {
 
   delete: (id: string) => api.delete(`internal/gamification/games/${id}`),
 
+  // Stats methods
+  getGameStats: (gameId: string) =>
+    api
+      .get(`internal/gamification/games/${gameId}/stats`)
+      .json<
+        ApiResponse<{
+          totalUsers: number
+          activeToday: number
+          activeLast7Days: number
+        }>
+      >()
+      .then((res) => res.data),
+
   // Leaderboard methods
   getLeaderboard: (gameId: string, period?: string) =>
     api

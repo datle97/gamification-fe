@@ -27,14 +27,21 @@ interface GameLeaderboardTabProps {
 }
 
 export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<string | undefined>(undefined)
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('current')
 
-  const { data: leaderboard, isLoading, refetch } = useLeaderboard(game.gameId, selectedPeriod)
+  const { data: leaderboard, isLoading, refetch, isFetching } = useLeaderboard(
+    game.gameId,
+    selectedPeriod === 'current' ? undefined : selectedPeriod
+  )
   const { data: periods = [], isLoading: isLoadingPeriods } = useLeaderboardPeriods(game.gameId)
 
   const currentPeriod = useMemo(() => {
     return periods.find((p) => p.isCurrent)
   }, [periods])
+
+  const handlePeriodChange = (value: string) => {
+    setSelectedPeriod(value)
+  }
 
   const handleExport = () => {
     if (!leaderboard) return
@@ -62,7 +69,8 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
     URL.revokeObjectURL(url)
   }
 
-  if (isLoading || isLoadingPeriods) {
+  // Initial loading state (only for first load)
+  if (isLoadingPeriods) {
     return (
       <div className="flex items-center justify-center p-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -92,34 +100,28 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
     )
   }
 
-  if (!leaderboard) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Leaderboard Data</CardTitle>
-          <CardDescription>No rankings available for this game yet</CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
+  // Get period info for header display
+  const displayPeriod = leaderboard?.period || currentPeriod
 
   return (
     <div className="space-y-6">
-      {/* Header Controls */}
+      {/* Header Controls - Always visible */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Leaderboard Rankings</h3>
-          <p className="text-sm text-muted-foreground">
-            {leaderboard.period.isCurrent ? 'Current Period' : 'Historical Period'}:{' '}
-            {dayjs(leaderboard.period.startDate).format('MMM D, YYYY')} -{' '}
-            {dayjs(leaderboard.period.endDate).format('MMM D, YYYY')}
-          </p>
+          {displayPeriod && (
+            <p className="text-sm text-muted-foreground">
+              {displayPeriod.isCurrent ? 'Current Period' : 'Historical Period'}:{' '}
+              {dayjs(displayPeriod.startDate).format('MMM D, YYYY')} -{' '}
+              {dayjs(displayPeriod.endDate).format('MMM D, YYYY')}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {/* Period Selector */}
           {periods.length > 0 && (
-            <Select value={selectedPeriod || 'current'} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-48">
+            <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
+              <SelectTrigger className="w-56">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
@@ -134,16 +136,12 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
 
                     let label = ''
                     if (period.periodType.startsWith('weekly')) {
-                      // Weekly: "Week of Jan 12 - Jan 18, 2026"
                       label = `Week of ${startDate.format('MMM D')} - ${endDate.format(isSameYear ? 'MMM D, YYYY' : 'MMM D, YYYY')}`
                     } else if (period.periodType === 'daily') {
-                      // Daily: "Monday, Jan 12, 2026"
                       label = startDate.format('dddd, MMM D, YYYY')
                     } else if (period.periodType === 'monthly') {
-                      // Monthly: "January 2026"
                       label = startDate.format('MMMM YYYY')
                     } else {
-                      // Fallback to original format
                       label = `${period.period} (${startDate.format('MMM D')} - ${endDate.format('MMM D')})`
                     }
 
@@ -158,20 +156,37 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
           )}
 
           {/* Refresh Button */}
-          <Button variant="outline" size="icon" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           </Button>
 
           {/* Export Button */}
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={handleExport} disabled={!leaderboard || isFetching}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
         </div>
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Content Section - Shows loading or data */}
+      {isLoading || isFetching ? (
+        <div className="flex items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : !leaderboard ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Trophy className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <p className="text-lg font-medium">No Leaderboard Data</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              No rankings available for this period yet
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Stats Summary */}
+          <div className="grid grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Total Participants</CardDescription>
@@ -291,6 +306,8 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

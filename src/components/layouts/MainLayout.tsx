@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { useTheme } from '@/hooks/useTheme'
 
 const pageTitles: Record<string, string> = {
+  '/dashboard': 'Dashboard',
   '/games': 'Games',
   '/games/new': 'New Game',
   '/apps': 'Apps',
