@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   useGameUserDetail,
@@ -45,7 +46,7 @@ import {
   useRevokeUserReward,
 } from '@/hooks/useGameUsers'
 import { useAdminTestingTools } from '@/stores/settingsStore'
-import type { RewardEligibilityResult } from '@/services/game-users.service'
+import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
 import { useGame } from '@/hooks/useGames'
 import { useFormatDate } from '@/hooks/useFormatDate'
 import type { ActivityType } from '@/services/game-users.service'
@@ -63,6 +64,8 @@ import {
   Legend,
 } from 'recharts'
 import parse from 'html-react-parser'
+import dayjs from 'dayjs'
+import type { UserActivity } from '@/services/game-users.service'
 
 type TabValue = 'overview' | 'activity' | 'rewards' | 'missions'
 
@@ -187,17 +190,17 @@ function formatOperator(op?: string): string {
 // Activity type labels and colors using theme variables
 const ACTIVITY_CONFIG: Record<
   ActivityType,
-  { label: string; colorVar: string; bgClass: string }
+  { label: string; colorVar: string; bgClass: string; textClass: string; borderClass: string }
 > = {
-  game_play: { label: 'Game Plays', colorVar: 'chart-1', bgClass: 'bg-chart-1' },
-  turn_earn: { label: 'Turns Earned', colorVar: 'chart-2', bgClass: 'bg-chart-2' },
-  turn_spend: { label: 'Turns Spent', colorVar: 'chart-3', bgClass: 'bg-chart-3' },
-  turn_expire: { label: 'Turns Expired', colorVar: 'muted-foreground', bgClass: 'bg-muted-foreground' },
-  reward_earn: { label: 'Rewards Won', colorVar: 'chart-4', bgClass: 'bg-chart-4' },
-  mission_complete: { label: 'Missions', colorVar: 'chart-5', bgClass: 'bg-chart-5' },
-  score_earn: { label: 'Score Earned', colorVar: 'primary', bgClass: 'bg-primary' },
-  admin_grant: { label: 'Admin Grant', colorVar: 'chart-2', bgClass: 'bg-chart-2' },
-  admin_revoke: { label: 'Admin Revoke', colorVar: 'destructive', bgClass: 'bg-destructive' },
+  game_play: { label: 'Game Plays', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1' },
+  turn_earn: { label: 'Turns Earned', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2' },
+  turn_spend: { label: 'Turns Spent', colorVar: 'chart-3', bgClass: 'bg-chart-3', textClass: 'text-chart-3', borderClass: 'border-chart-3' },
+  turn_expire: { label: 'Turns Expired', colorVar: 'muted-foreground', bgClass: 'bg-muted-foreground', textClass: 'text-muted-foreground', borderClass: 'border-muted-foreground' },
+  reward_earn: { label: 'Rewards Won', colorVar: 'chart-4', bgClass: 'bg-chart-4', textClass: 'text-chart-4', borderClass: 'border-chart-4' },
+  mission_complete: { label: 'Missions', colorVar: 'chart-5', bgClass: 'bg-chart-5', textClass: 'text-chart-5', borderClass: 'border-chart-5' },
+  score_earn: { label: 'Score Earned', colorVar: 'primary', bgClass: 'bg-primary', textClass: 'text-primary', borderClass: 'border-primary' },
+  admin_grant: { label: 'Admin Grant', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2' },
+  admin_revoke: { label: 'Admin Revoke', colorVar: 'destructive', bgClass: 'bg-destructive', textClass: 'text-destructive', borderClass: 'border-destructive' },
 }
 
 // Get icon for activity type
@@ -255,6 +258,9 @@ export function UserDetailPage() {
   const [grantTurnsOpen, setGrantTurnsOpen] = useState(false)
   const [grantAmount, setGrantAmount] = useState('1')
   const [grantReason, setGrantReason] = useState('')
+  const [grantExpMode, setGrantExpMode] = useState<ExpirationMode>('permanent')
+  const [grantExpValue, setGrantExpValue] = useState('7')
+  const [grantExpUnit, setGrantExpUnit] = useState<ExpirationUnit>('day')
   const [showClientInput, setShowClientInput] = useState(false)
   const [clientInputJson, setClientInputJson] = useState('')
   const [eligibilityResults, setEligibilityResults] = useState<RewardEligibilityResult[] | null>(null)
@@ -266,6 +272,9 @@ export function UserDetailPage() {
     setGrantTurnsOpen(false)
     setGrantAmount('1')
     setGrantReason('')
+    setGrantExpMode('permanent')
+    setGrantExpValue('7')
+    setGrantExpUnit('day')
     setEligibilityResults(null)
     setEligibilityOpen(false)
     setShowClientInput(false)
@@ -276,13 +285,25 @@ export function UserDetailPage() {
     const amount = parseInt(grantAmount, 10)
     if (isNaN(amount) || amount < 1) return
 
+    const expirationConfig =
+      grantExpMode === 'permanent'
+        ? { mode: 'permanent' as const }
+        : {
+            mode: 'ttl' as const,
+            value: parseInt(grantExpValue, 10) || 7,
+            unit: grantExpUnit,
+          }
+
     grantTurns.mutate(
-      { amount, reason: grantReason || undefined },
+      { amount, reason: grantReason || undefined, expirationConfig },
       {
         onSuccess: () => {
           setGrantTurnsOpen(false)
           setGrantAmount('1')
           setGrantReason('')
+          setGrantExpMode('permanent')
+          setGrantExpValue('7')
+          setGrantExpUnit('day')
         },
       }
     )
@@ -415,6 +436,41 @@ export function UserDetailPage() {
       .slice(-14) // Last 14 days
   }, [activitiesData])
 
+  // Group activities by date for improved timeline
+  const activitiesByDate = useMemo(() => {
+    if (!activitiesData?.activities) return []
+
+    const grouped: { date: string; label: string; activities: UserActivity[] }[] = []
+    const now = dayjs()
+
+    activitiesData.activities.forEach((activity) => {
+      const activityDate = dayjs(activity.timestamp)
+      const dateKey = activityDate.format('YYYY-MM-DD')
+
+      let dateLabel: string
+      if (activityDate.isSame(now, 'day')) {
+        dateLabel = 'Today'
+      } else if (activityDate.isSame(now.subtract(1, 'day'), 'day')) {
+        dateLabel = 'Yesterday'
+      } else {
+        dateLabel = activityDate.format('MMM D')
+      }
+
+      const existingGroup = grouped.find((g) => g.date === dateKey)
+      if (existingGroup) {
+        existingGroup.activities.push(activity)
+      } else {
+        grouped.push({
+          date: dateKey,
+          label: dateLabel,
+          activities: [activity],
+        })
+      }
+    })
+
+    return grouped
+  }, [activitiesData])
+
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
       setSearchParams({})
@@ -486,7 +542,7 @@ export function UserDetailPage() {
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64" align="start">
+              <PopoverContent className="w-72" align="start">
                 <div className="space-y-3">
                   <div className="text-sm font-medium">Grant Turns</div>
                   <div className="space-y-2">
@@ -499,9 +555,48 @@ export function UserDetailPage() {
                       min="1"
                       value={grantAmount}
                       onChange={(e) => setGrantAmount(e.target.value)}
-                      className="h-8"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Expiration</Label>
+                    <Select
+                      value={grantExpMode}
+                      onValueChange={(v) => setGrantExpMode(v as ExpirationMode)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="permanent">Permanent (no expiry)</SelectItem>
+                        <SelectItem value="ttl">Expires after...</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {grantExpMode === 'ttl' && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={grantExpValue}
+                        onChange={(e) => setGrantExpValue(e.target.value)}
+                        className="w-20"
+                      />
+                      <Select
+                        value={grantExpUnit}
+                        onValueChange={(v) => setGrantExpUnit(v as ExpirationUnit)}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hour">Hour(s)</SelectItem>
+                          <SelectItem value="day">Day(s)</SelectItem>
+                          <SelectItem value="week">Week(s)</SelectItem>
+                          <SelectItem value="month">Month(s)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="grantReason" className="text-xs">
                       Reason (optional)
@@ -511,11 +606,9 @@ export function UserDetailPage() {
                       placeholder="Testing, compensation..."
                       value={grantReason}
                       onChange={(e) => setGrantReason(e.target.value)}
-                      className="h-8"
                     />
                   </div>
                   <Button
-                    size="sm"
                     className="w-full"
                     onClick={handleGrantTurns}
                     disabled={grantTurns.isPending}
@@ -691,91 +784,121 @@ export function UserDetailPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="text-base">Recent Activity</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => handleTabChange('activity')}>
-                View All
-              </Button>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {activitiesData?.activities.slice(0, 5).map((activity) => {
-                  const Icon = getActivityIcon(activity.type)
-                  const config = ACTIVITY_CONFIG[activity.type]
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-center gap-3 py-2 border-b last:border-0"
-                    >
-                      <div
-                        className={`p-2 rounded-full ${config?.bgClass || 'bg-muted'} text-primary-foreground`}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm">{activity.description}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDateTime(activity.timestamp)}
+              {activitiesData?.activities && activitiesData.activities.length > 0 ? (
+                <div className="relative">
+                  {/* Vertical timeline line */}
+                  <div className="absolute left-12 top-0 bottom-0 w-px bg-border" />
+
+                  <div className="space-y-1">
+                    {activitiesData.activities.slice(0, 5).map((activity) => {
+                      const Icon = getActivityIcon(activity.type)
+                      const config = ACTIVITY_CONFIG[activity.type]
+                      return (
+                        <div
+                          key={activity.id}
+                          className="flex items-start group"
+                        >
+                          {/* Time column */}
+                          <div className="w-11 text-xs text-muted-foreground tabular-nums text-right pt-2.5 shrink-0 pr-3">
+                            {dayjs(activity.timestamp).format('HH:mm')}
+                          </div>
+
+                          {/* Connector + Content card */}
+                          <div className="flex-1 min-w-0 flex items-start">
+                            {/* Horizontal connector line */}
+                            <div className={`w-4 h-px mt-4 shrink-0 ${config?.bgClass || 'bg-border'}`} />
+
+                            {/* Content card */}
+                            <div className={`flex-1 min-w-0 py-2 px-3 rounded-lg border-l-2 bg-muted/30 hover:bg-muted/50 transition-colors ${config?.borderClass || 'border-muted'}`}>
+                              <div className="flex items-start gap-2">
+                                <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config?.textClass || 'text-muted-foreground'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm">
+                                    {activity.description}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground mt-0.5">
+                                    {config?.label}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                {(!activitiesData?.activities || activitiesData.activities.length === 0) && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No recent activity
+                      )
+                    })}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No recent activity
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Activity Tab */}
-        <TabsContent value="activity" className="mt-6 space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Activity Timeline
-          </h3>
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-1">
-                {activitiesData?.activities.map((activity) => {
-                  const Icon = getActivityIcon(activity.type)
-                  const config = ACTIVITY_CONFIG[activity.type]
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-start gap-3 py-3 border-l-2 border-muted pl-4 relative hover:bg-muted/50 rounded-r-lg transition-colors"
-                    >
-                      {/* Timeline dot */}
-                      <div
-                        className={`absolute -left-[5px] top-4 h-2 w-2 rounded-full ${config?.bgClass || 'bg-muted'}`}
-                      />
-                      {/* Icon */}
-                      <div
-                        className={`shrink-0 p-1.5 rounded-full text-primary-foreground ${config?.bgClass || 'bg-muted'}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{activity.description}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {config?.label || activity.type}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {formatDateTime(activity.timestamp)}
-                        </div>
-                      </div>
+        <TabsContent value="activity" className="mt-6 space-y-6">
+          {activitiesByDate.length > 0 ? (
+            <div className="space-y-8">
+              {activitiesByDate.map((group) => (
+                <div key={group.date}>
+                  {/* Date Header */}
+                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pl-14">
+                    {group.label}
+                  </div>
+                  {/* Activities for this date */}
+                  <div className="relative">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-12 top-0 bottom-0 w-px bg-border" />
+
+                    <div className="space-y-1">
+                      {group.activities.map((activity) => {
+                        const Icon = getActivityIcon(activity.type)
+                        const config = ACTIVITY_CONFIG[activity.type]
+                        return (
+                          <div
+                            key={activity.id}
+                            className="flex items-start group"
+                          >
+                            {/* Time column */}
+                            <div className="w-11 text-xs text-muted-foreground tabular-nums text-right pt-2.5 shrink-0 pr-3">
+                              {dayjs(activity.timestamp).format('HH:mm')}
+                            </div>
+
+                            {/* Connector + Content card */}
+                            <div className="flex-1 min-w-0 flex items-start">
+                              {/* Horizontal connector line */}
+                              <div className={`w-4 h-px mt-4 shrink-0 ${config?.bgClass || 'bg-border'}`} />
+
+                              {/* Content card */}
+                              <div className={`flex-1 min-w-0 py-2 px-3 rounded-lg border-l-2 bg-muted/30 hover:bg-muted/50 transition-colors ${config?.borderClass || 'border-muted'}`}>
+                                <div className="flex items-start gap-2">
+                                  <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config?.textClass || 'text-muted-foreground'}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm">
+                                      {activity.description}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-0.5">
+                                      {config?.label}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )
-                })}
-                {(!activitiesData?.activities || activitiesData.activities.length === 0) && (
-                  <div className="text-center py-12 text-muted-foreground">No activity found</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">No activity found</div>
+          )}
         </TabsContent>
 
         {/* Rewards Tab */}

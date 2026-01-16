@@ -106,10 +106,21 @@ export interface CheckEligibilityInput {
   clientInput?: Record<string, unknown>
 }
 
+export type ExpirationMode = 'permanent' | 'ttl' | 'fixed' | 'anchor'
+export type ExpirationUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+
+export interface ExpirationConfig {
+  mode: ExpirationMode
+  value?: number
+  unit?: ExpirationUnit
+  date?: string
+}
+
 export interface GrantTurnsInput {
   amount: number
   portalId?: number
   reason?: string
+  expirationConfig?: ExpirationConfig
 }
 
 export interface GrantTurnsResult {
