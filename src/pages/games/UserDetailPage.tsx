@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router'
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   ArrowLeft,
   Loader2,
@@ -16,18 +16,36 @@ import {
   Plus,
   Trash2,
   Shield,
+  RotateCcw,
+  Search,
+  Settings2,
+  ChevronDown,
+  Check,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   useGameUserDetail,
   useUserTurns,
   useUserRewards,
   useUserMissions,
   useUserActivities,
+  useCheckEligibility,
+  useGrantTurns,
+  useResetMissionProgress,
+  useResetAllMissionsProgress,
+  useRevokeUserReward,
 } from '@/hooks/useGameUsers'
+import { useAdminTestingTools } from '@/stores/settingsStore'
+import type { RewardEligibilityResult } from '@/services/game-users.service'
 import { useGame } from '@/hooks/useGames'
 import { useFormatDate } from '@/hooks/useFormatDate'
 import type { ActivityType } from '@/services/game-users.service'
@@ -47,6 +65,124 @@ import {
 import parse from 'html-react-parser'
 
 type TabValue = 'overview' | 'activity' | 'rewards' | 'missions'
+
+// Format condition check to human-readable text
+function formatConditionCheck(check: {
+  name: string
+  passed: boolean
+  detail?: Record<string, unknown>
+}): string {
+  const { name, passed, detail } = check
+
+  switch (name) {
+    case 'requiresRewards': {
+      const required = detail?.required as
+        | { rewardIds?: string[]; count?: number; mode?: string }
+        | undefined
+      const owned = (detail?.owned as string[]) || []
+      if (!required?.rewardIds?.length)
+        return passed ? 'Has required rewards' : 'Missing required rewards'
+      const mode = required.mode || 'all'
+      const count = required.count || required.rewardIds.length
+      if (mode === 'all') {
+        return passed
+          ? `Has all ${required.rewardIds.length} required rewards`
+          : `Need all ${required.rewardIds.length} rewards, has ${owned.length}`
+      }
+      return passed
+        ? `Has ${owned.length}/${count} required rewards`
+        : `Need ${count} rewards, has ${owned.length}`
+    }
+
+    case 'uniqueness': {
+      const maxPerUser = detail?.maxPerUser as number | undefined
+      const ownedCount = (detail?.ownedCount as number) || 0
+      if (maxPerUser === undefined || maxPerUser === null) return 'No limit'
+      return passed
+        ? `Limit ${maxPerUser}/user (has ${ownedCount})`
+        : `Limit ${maxPerUser}/user, already has ${ownedCount}`
+    }
+
+    case 'userAttributes': {
+      const required = detail?.required as
+        | { field?: string; op?: string; value?: unknown }
+        | undefined
+      const actual = detail?.actual as Record<string, unknown> | undefined
+      if (!required?.field) return passed ? 'Attributes OK' : 'Attributes not met'
+      const actualValue = actual?.[required.field]
+      const opText = formatOperator(required.op)
+      return passed
+        ? `${required.field} = ${actualValue ?? 0} (${opText} ${required.value})`
+        : `Need ${required.field} ${opText} ${required.value}, has ${actualValue ?? 0}`
+    }
+
+    case 'clientInput': {
+      const required = detail?.required as
+        | { field?: string; op?: string; value?: unknown }
+        | undefined
+      const actual = detail?.actual as Record<string, unknown> | undefined
+      if (!required?.field) return passed ? 'Input OK' : 'Input not provided'
+      const actualValue = actual?.[required.field]
+      const opText = formatOperator(required.op)
+      return passed
+        ? `${required.field} = ${actualValue}`
+        : `Need ${required.field} ${opText} ${required.value}${actualValue !== undefined ? `, got ${actualValue}` : ''}`
+    }
+
+    case 'timeWindow': {
+      const tw = detail as
+        | { startDate?: string; endDate?: string; hours?: [number, number] }
+        | undefined
+      if (!tw) return passed ? 'Within time window' : 'Outside time window'
+      if (tw.hours) {
+        return passed
+          ? `Active ${tw.hours[0]}:00-${tw.hours[1]}:00`
+          : `Only active ${tw.hours[0]}:00-${tw.hours[1]}:00`
+      }
+      return passed ? 'Within time window' : 'Outside time window'
+    }
+
+    case 'userSegment': {
+      return passed ? 'In target segment' : 'Not in target segment'
+    }
+
+    case 'leaderboardScore': {
+      const required = detail?.required as { op?: string; value?: number } | undefined
+      const actual = detail?.actual as number | undefined
+      if (!required) return passed ? 'Score OK' : 'Score not met'
+      const opText = formatOperator(required.op)
+      return passed
+        ? `Score = ${actual ?? 0} (${opText} ${required.value})`
+        : `Need score ${opText} ${required.value}, has ${actual ?? 0}`
+    }
+
+    default:
+      return name
+  }
+}
+
+function formatOperator(op?: string): string {
+  switch (op) {
+    case 'eq':
+      return '='
+    case 'ne':
+      return '≠'
+    case 'gt':
+      return '>'
+    case 'gte':
+      return '≥'
+    case 'lt':
+      return '<'
+    case 'lte':
+      return '≤'
+    case 'in':
+      return 'in'
+    case 'not_in':
+      return 'not in'
+    default:
+      return op || '='
+  }
+}
 
 // Activity type labels and colors using theme variables
 const ACTIVITY_CONFIG: Record<
@@ -98,6 +234,8 @@ export function UserDetailPage() {
 
   const currentTab = (searchParams.get('tab') as TabValue) || 'overview'
 
+  const isDevMode = useAdminTestingTools()
+
   // Data fetching
   const { data: game } = useGame(gameId!)
   const { data: userGame, isLoading } = useGameUserDetail(gameId!, userId!)
@@ -105,6 +243,74 @@ export function UserDetailPage() {
   const { data: rewards } = useUserRewards(gameId!, userId!)
   const { data: missions } = useUserMissions(gameId!, userId!)
   const { data: activitiesData } = useUserActivities(gameId!, userId!, 1, 200)
+
+  // Admin actions
+  const checkEligibility = useCheckEligibility(gameId!, userId!)
+  const grantTurns = useGrantTurns(gameId!, userId!)
+  const resetMission = useResetMissionProgress(gameId!, userId!)
+  const resetAllMissions = useResetAllMissionsProgress(gameId!, userId!)
+  const revokeReward = useRevokeUserReward(gameId!, userId!)
+
+  // Admin state
+  const [grantTurnsOpen, setGrantTurnsOpen] = useState(false)
+  const [grantAmount, setGrantAmount] = useState('1')
+  const [grantReason, setGrantReason] = useState('')
+  const [showClientInput, setShowClientInput] = useState(false)
+  const [clientInputJson, setClientInputJson] = useState('')
+  const [eligibilityResults, setEligibilityResults] = useState<RewardEligibilityResult[] | null>(null)
+  const [eligibilityOpen, setEligibilityOpen] = useState(false)
+
+  // Reset admin state when userId changes
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGrantTurnsOpen(false)
+    setGrantAmount('1')
+    setGrantReason('')
+    setEligibilityResults(null)
+    setEligibilityOpen(false)
+    setShowClientInput(false)
+    setClientInputJson('')
+  }, [userId])
+
+  const handleGrantTurns = () => {
+    const amount = parseInt(grantAmount, 10)
+    if (isNaN(amount) || amount < 1) return
+
+    grantTurns.mutate(
+      { amount, reason: grantReason || undefined },
+      {
+        onSuccess: () => {
+          setGrantTurnsOpen(false)
+          setGrantAmount('1')
+          setGrantReason('')
+        },
+      }
+    )
+  }
+
+  const handleCheckEligibility = (withClientInput: boolean) => {
+    if (withClientInput) {
+      setShowClientInput(true)
+      return
+    }
+
+    let clientInput: Record<string, unknown> | undefined
+    if (clientInputJson.trim()) {
+      try {
+        clientInput = JSON.parse(clientInputJson)
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    checkEligibility.mutate(clientInput ? { clientInput } : undefined, {
+      onSuccess: (data) => {
+        setEligibilityResults(data)
+        setEligibilityOpen(true)
+        setShowClientInput(false)
+      },
+    })
+  }
 
   // Computed stats
   const totalTurns = useMemo(
@@ -272,9 +478,59 @@ export function UserDetailPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Coins className="h-4 w-4" />
-              <span className="text-sm font-medium">Turns</span>
+            <div className="flex items-center justify-between text-muted-foreground mb-2">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                <span className="text-sm font-medium">Turns</span>
+              </div>
+              {isDevMode && (
+                <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="secondary" size="icon" className="h-6 w-6 text-primary">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64" align="end">
+                    <div className="space-y-3">
+                      <div className="text-sm font-medium">Grant Turns</div>
+                      <div className="space-y-2">
+                        <Label htmlFor="grantAmount" className="text-xs">
+                          Amount
+                        </Label>
+                        <Input
+                          id="grantAmount"
+                          type="number"
+                          min="1"
+                          value={grantAmount}
+                          onChange={(e) => setGrantAmount(e.target.value)}
+                          className="h-8"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="grantReason" className="text-xs">
+                          Reason (optional)
+                        </Label>
+                        <Input
+                          id="grantReason"
+                          placeholder="Testing, compensation..."
+                          value={grantReason}
+                          onChange={(e) => setGrantReason(e.target.value)}
+                          className="h-8"
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={handleGrantTurns}
+                        disabled={grantTurns.isPending}
+                      >
+                        {grantTurns.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
             <div className="text-3xl font-bold">{totalTurns}</div>
           </CardContent>
@@ -549,114 +805,285 @@ export function UserDetailPage() {
         </TabsContent>
 
         {/* Rewards Tab */}
-        <TabsContent value="rewards" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {rewards?.map((reward) => (
-              <Card key={reward.id}>
-                <CardContent className="p-4">
+        <TabsContent value="rewards" className="mt-6 space-y-4">
+          {/* Header with Check Eligibility */}
+          <Collapsible open={eligibilityOpen} onOpenChange={setEligibilityOpen}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Received Rewards
+              </h3>
+              <div className="flex items-center gap-2">
+                {eligibilityResults && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      {eligibilityOpen ? 'Hide' : 'Show'} Results
+                      <ChevronDown
+                        className={`h-4 w-4 ml-1 transition-transform ${eligibilityOpen ? 'rotate-180' : ''}`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+                <div className="flex">
+                  <Button
+                    size="sm"
+                    onClick={() => handleCheckEligibility(false)}
+                    disabled={checkEligibility.isPending}
+                    className="rounded-r-none"
+                  >
+                    {checkEligibility.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Check Eligibility
+                  </Button>
+                  <Popover open={showClientInput} onOpenChange={setShowClientInput}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="sm"
+                        className="rounded-l-none border-l px-2"
+                        disabled={checkEligibility.isPending}
+                      >
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium">Check with Client Input</div>
+                        <div className="space-y-2">
+                          <Label htmlFor="clientInput" className="text-xs">
+                            Client Input (JSON)
+                          </Label>
+                          <Textarea
+                            id="clientInput"
+                            placeholder={'{\n  "utm_source": "facebook",\n  "storeId": "store-001"\n}'}
+                            value={clientInputJson}
+                            onChange={(e) => setClientInputJson(e.target.value)}
+                            className="font-mono text-xs min-h-20 resize-none"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleCheckEligibility(false)}
+                          disabled={checkEligibility.isPending}
+                        >
+                          {checkEligibility.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          )}
+                          Check Eligibility
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </div>
+
+            {/* Eligibility Results */}
+            <CollapsibleContent>
+              {eligibilityResults && (
+                <div className="mt-4 space-y-3">
+                  {/* Summary */}
+                  <div className="text-sm text-muted-foreground">
+                    <span className="text-primary font-medium">
+                      {eligibilityResults.filter((r) => r.isEligible).length}
+                    </span>
+                    {' / '}
+                    {eligibilityResults.length} rewards eligible
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {/* Sort: eligible first, then ineligible */}
+                    {[...eligibilityResults]
+                      .sort((a, b) => (a.isEligible === b.isEligible ? 0 : a.isEligible ? -1 : 1))
+                      .map((result) => (
+                        <div
+                          key={result.reward.rewardId}
+                          className={`rounded-lg border p-3 ${!result.isEligible ? 'opacity-70' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`h-10 w-10 rounded flex items-center justify-center shrink-0 ${
+                                result.isEligible ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+                              }`}
+                            >
+                              {result.isEligible ? (
+                                <Check className="h-5 w-5" />
+                              ) : (
+                                <X className="h-5 w-5" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">{result.reward.name}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {result.reward.probability}% probability
+                              </div>
+                              {result.checks.length > 0 && (
+                                <div className="mt-1.5 space-y-0.5">
+                                  {result.checks.map((check, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="flex items-center gap-1 text-xs text-muted-foreground"
+                                    >
+                                      {check.passed ? (
+                                        <Check className="h-3 w-3 text-primary shrink-0" />
+                                      ) : (
+                                        <X className="h-3 w-3 text-destructive shrink-0" />
+                                      )}
+                                      <span className="truncate">{formatConditionCheck(check)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Received Rewards List */}
+          {rewards && rewards.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {rewards.map((reward) => (
+                <div key={reward.id} className="rounded-lg border p-3 group">
                   <div className="flex items-start gap-3">
-                    {reward.reward?.imageUrl ? (
+                    {reward.reward?.imageUrl && (
                       <img
                         src={reward.reward.imageUrl}
                         alt=""
-                        className="h-16 w-16 rounded-lg object-cover"
+                        className="h-10 w-10 rounded object-cover shrink-0"
                       />
-                    ) : (
-                      <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center">
-                        <Gift className="h-8 w-8 text-muted-foreground" />
-                      </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium">{reward.reward?.name || 'Unknown Reward'}</div>
-                      {reward.reward?.rewardType && (
-                        <Badge variant="secondary" className="mt-1 text-xs">
-                          {reward.reward.rewardType}
-                        </Badge>
-                      )}
+                      <div className="font-medium truncate">{reward.reward?.name || 'Unknown Reward'}</div>
                       {reward.rewardValue && (
-                        <div className="text-sm text-muted-foreground font-mono mt-1 truncate">
+                        <div className="text-sm text-muted-foreground font-mono truncate">
                           {reward.rewardValue}
                         </div>
                       )}
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {formatDateTime(reward.createdAt)}
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {formatDate(reward.createdAt)}
+                        {reward.expiredAt && <> • {formatDate(reward.expiredAt)}</>}
                       </div>
-                      {reward.expiredAt && (
-                        <div className="text-xs text-destructive">
-                          Expires: {formatDate(reward.expiredAt)}
-                        </div>
-                      )}
                     </div>
+                    {isDevMode && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => revokeReward.mutate(reward.id)}
+                        disabled={revokeReward.isPending}
+                        title="Revoke reward"
+                      >
+                        {revokeReward.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-            {(!rewards || rewards.length === 0) && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                No rewards found
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-sm text-muted-foreground py-8">
+              No rewards found
+            </div>
+          )}
         </TabsContent>
 
         {/* Missions Tab */}
-        <TabsContent value="missions" className="mt-6">
-          <div className="space-y-3">
-            {missions?.map((mission) => {
-              const progress = mission.progress
-              const isCompleted = progress?.isCompleted || false
-              const percentage = progress
-                ? Math.min(100, (progress.currentValue / mission.targetValue) * 100)
-                : 0
+        <TabsContent value="missions" className="mt-6 space-y-4">
+          {/* Reset All Button - Dev mode only */}
+          {isDevMode && missions && missions.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => resetAllMissions.mutate()}
+                disabled={resetAllMissions.isPending}
+              >
+                {resetAllMissions.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                )}
+                Reset All Missions
+              </Button>
+            </div>
+          )}
 
-              return (
-                <Card key={mission.missionId}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{mission.name}</span>
-                          {isCompleted && (
-                            <Badge className="bg-green-500">Completed</Badge>
-                          )}
-                          <Badge variant="outline">{mission.missionPeriod}</Badge>
-                        </div>
-                        {mission.description && (
-                          <div className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none">
-                            {parse(mission.description)}
-                          </div>
-                        )}
-                        <div className="mt-3 flex items-center gap-3">
-                          <div className="flex-1 bg-secondary rounded-full h-2.5">
-                            <div
-                              className={`h-2.5 rounded-full transition-all ${
-                                isCompleted ? 'bg-green-500' : 'bg-primary'
-                              }`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-muted-foreground tabular-nums font-medium">
-                            {progress?.currentValue || 0} / {mission.targetValue}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>
-                            Reward: {mission.rewardValue} {mission.rewardType}
-                          </span>
-                          {progress?.completedAt && (
-                            <span>Completed: {formatDateTime(progress.completedAt)}</span>
-                          )}
-                        </div>
-                      </div>
+          {missions && missions.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {missions.map((mission) => {
+                const progress = mission.progress
+                const isCompleted = progress?.isCompleted || false
+                const percentage = progress
+                  ? Math.min(100, (progress.currentValue / mission.targetValue) * 100)
+                  : 0
+
+                return (
+                  <div key={mission.missionId} className="rounded-lg border p-3 relative group">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{mission.name}</span>
+                      {isCompleted && (
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          ✓ Completed
+                        </Badge>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-            {(!missions || missions.length === 0) && (
-              <div className="text-center py-12 text-muted-foreground">No missions found</div>
-            )}
-          </div>
+                    {mission.description && (
+                      <div className="text-sm text-muted-foreground mt-1 line-clamp-2 prose prose-sm max-w-none">
+                        {parse(mission.description)}
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 bg-secondary rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {progress?.currentValue || 0} / {mission.targetValue}
+                      </span>
+                    </div>
+                    {progress?.completedAt && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Completed: {formatDateTime(progress.completedAt)}
+                      </div>
+                    )}
+                    {isDevMode && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => resetMission.mutate(mission.missionId)}
+                        disabled={resetMission.isPending}
+                        title="Reset mission progress"
+                      >
+                        {resetMission.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center text-sm text-muted-foreground py-8">
+              No missions found
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

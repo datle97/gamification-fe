@@ -27,6 +27,17 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
 }
 
+// Truncate long IDs (UUIDs) for display
+function truncateId(id: string, maxLength = 12): string {
+  if (id.length <= maxLength) return id
+  return `${id.slice(0, 6)}...${id.slice(-4)}`
+}
+
+// Check if string looks like a UUID
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+}
+
 function getBreadcrumbs(pathname: string) {
   const segments = pathname.split('/').filter(Boolean)
   const breadcrumbs: { label: string; href?: string }[] = []
@@ -35,11 +46,28 @@ function getBreadcrumbs(pathname: string) {
   for (let i = 0; i < segments.length; i++) {
     currentPath += `/${segments[i]}`
     const isLast = i === segments.length - 1
+    const segment = segments[i]
 
-    // Get title from pageTitles or capitalize segment
-    const title =
-      pageTitles[currentPath] ||
-      segments[i].charAt(0).toUpperCase() + segments[i].slice(1).replace(/-/g, ' ')
+    // Special case: /games/:gameId/users/:userId - "Users" should link to ?tab=users
+    if (segment === 'users' && i >= 2 && segments[i - 2] === 'games') {
+      const gameId = segments[i - 1]
+      breadcrumbs.push({
+        label: 'Users',
+        href: isLast ? undefined : `/games/${gameId}?tab=users`,
+      })
+      continue
+    }
+
+    // Get title from pageTitles or format segment
+    let title = pageTitles[currentPath]
+    if (!title) {
+      // Truncate UUIDs for display
+      if (isUuid(segment)) {
+        title = truncateId(segment)
+      } else {
+        title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ')
+      }
+    }
 
     breadcrumbs.push({
       label: title,
