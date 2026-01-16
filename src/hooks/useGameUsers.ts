@@ -84,3 +84,28 @@ export function useGrantTurns(gameId: string, userId: string) {
     },
   })
 }
+
+export function useResetMissionProgress(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (missionId: string) =>
+      gameUsersService.resetMissionProgress(gameId, userId, missionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'missions'],
+      })
+    },
+  })
+}
+
+export function useResetAllMissionsProgress(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => gameUsersService.resetAllMissionsProgress(gameId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'missions'],
+      })
+    },
+  })
+}

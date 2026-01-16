@@ -24,6 +24,8 @@ import {
   useUserMissions,
   useCheckEligibility,
   useGrantTurns,
+  useResetMissionProgress,
+  useResetAllMissionsProgress,
 } from '@/hooks/useGameUsers'
 import type { RewardEligibilityResult } from '@/services/game-users.service'
 import {
@@ -37,6 +39,7 @@ import {
   Search,
   Settings2,
   Plus,
+  RotateCcw,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import dayjs from 'dayjs'
@@ -191,6 +194,10 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
   const [grantAmount, setGrantAmount] = useState('1')
   const [grantReason, setGrantReason] = useState('')
   const grantTurns = useGrantTurns(gameId, userId || '')
+
+  // Reset mission state
+  const resetMission = useResetMissionProgress(gameId, userId || '')
+  const resetAllMissions = useResetAllMissionsProgress(gameId, userId || '')
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -588,58 +595,93 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
             </div>
           </TabsContent>
 
-          <TabsContent value="missions" className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 mt-4">
-            {missions && missions.length > 0 ? (
-              missions.map((item) => {
-                const progress = item.progress
-                const isCompleted = progress?.isCompleted || false
-                const percentage = progress
-                  ? Math.min(100, (progress.currentValue / item.targetValue) * 100)
-                  : 0
-
-                return (
-                  <div key={item.missionId} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{item.name}</span>
-                          {isCompleted && (
-                            <Badge variant="secondary" className="text-xs">
-                              ✓ Completed
-                            </Badge>
-                          )}
-                        </div>
-                        {item.description && (
-                          <div className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none">
-                            {parse(item.description)}
-                          </div>
-                        )}
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 bg-secondary rounded-full h-2">
-                            <div
-                              className="bg-primary h-2 rounded-full transition-all"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {progress?.currentValue || 0} / {item.targetValue}
-                          </span>
-                        </div>
-                        {progress?.completedAt && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            Completed: {dayjs(progress.completedAt).format('MMM DD, YYYY HH:mm')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="text-center text-sm text-muted-foreground py-8">
-                No missions found
+          <TabsContent value="missions" className="flex-1 overflow-y-auto px-4 pb-4 mt-4">
+            {/* Reset All Button */}
+            {missions && missions.length > 0 && (
+              <div className="mb-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => resetAllMissions.mutate()}
+                  disabled={resetAllMissions.isPending}
+                >
+                  {resetAllMissions.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                  )}
+                  Reset All Missions
+                </Button>
               </div>
             )}
+
+            <div className="space-y-2">
+              {missions && missions.length > 0 ? (
+                missions.map((item) => {
+                  const progress = item.progress
+                  const isCompleted = progress?.isCompleted || false
+                  const percentage = progress
+                    ? Math.min(100, (progress.currentValue / item.targetValue) * 100)
+                    : 0
+
+                  return (
+                    <div key={item.missionId} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{item.name}</span>
+                            {isCompleted && (
+                              <Badge variant="secondary" className="text-xs">
+                                ✓ Completed
+                              </Badge>
+                            )}
+                          </div>
+                          {item.description && (
+                            <div className="text-sm text-muted-foreground mt-1 prose prose-sm max-w-none">
+                              {parse(item.description)}
+                            </div>
+                          )}
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="flex-1 bg-secondary rounded-full h-2">
+                              <div
+                                className="bg-primary h-2 rounded-full transition-all"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {progress?.currentValue || 0} / {item.targetValue}
+                            </span>
+                          </div>
+                          {progress?.completedAt && (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Completed: {dayjs(progress.completedAt).format('MMM DD, YYYY HH:mm')}
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => resetMission.mutate(item.missionId)}
+                          disabled={resetMission.isPending}
+                          title="Reset mission progress"
+                        >
+                          {resetMission.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="text-center text-sm text-muted-foreground py-8">
+                  No missions found
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </SheetContent>

@@ -173,4 +173,16 @@ export const gameUsersService = {
       })
       .json<ApiResponse<GrantTurnsResult>>()
       .then((res) => res.data),
+
+  resetMissionProgress: (gameId: string, userId: string, missionId: string) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/missions/${missionId}/reset`)
+      .json<ApiResponse<{ reset: boolean }>>()
+      .then((res) => res.data),
+
+  resetAllMissionsProgress: (gameId: string, userId: string) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/missions/reset-all`)
+      .json<ApiResponse<{ resetCount: number }>>()
+      .then((res) => res.data),
 }
