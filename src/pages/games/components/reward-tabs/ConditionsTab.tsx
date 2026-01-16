@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     requiresRewards: false,
     requiresRewardsPopover: false,
+    excludeRewardsPopover: false,
     uniqueness: false,
     timeWindow: false,
     userSegment: false,
@@ -76,6 +78,25 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
 
   const conds = getConditions()
 
+  // Check if user segment has any actual values (not just empty arrays)
+  const hasUserSegmentConfig = !!(
+    conds.requiresUserSegment?.userIds?.length ||
+    conds.requiresUserSegment?.phoneNumbers?.length ||
+    conds.requiresUserSegment?.excludeUserIds?.length ||
+    conds.requiresUserSegment?.excludePhoneNumbers?.length
+  )
+
+  // Helper to check if user segment has other fields with values (excluding specified field)
+  const hasOtherUserSegmentFields = (exclude: 'userIds' | 'phoneNumbers' | 'excludeUserIds' | 'excludePhoneNumbers') => {
+    const seg = conds.requiresUserSegment
+    return !!(
+      (exclude !== 'userIds' && seg?.userIds?.length) ||
+      (exclude !== 'phoneNumbers' && seg?.phoneNumbers?.length) ||
+      (exclude !== 'excludeUserIds' && seg?.excludeUserIds?.length) ||
+      (exclude !== 'excludePhoneNumbers' && seg?.excludePhoneNumbers?.length)
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
@@ -98,9 +119,13 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Collection Requirements</span>
           </div>
-          {conds.requiresRewards && (
-            <span className="text-xs text-muted-foreground">Configured</span>
-          )}
+          {(() => {
+            const rr = !Array.isArray(conds.requiresRewards) ? conds.requiresRewards : undefined
+            const hasConfig = rr?.rewardIds?.length || rr?.excludeRewards?.length
+            return hasConfig ? (
+              <span className="text-xs text-muted-foreground">Configured</span>
+            ) : null
+          })()}
         </button>
         {expandedSections.requiresRewards && (
           <div className="p-4 pt-0 space-y-4">
@@ -134,7 +159,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                         })()}
                       </Button>
                     </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="start">
+                  <PopoverContent className="w-100 p-0" align="start">
                     <Command>
                       <CommandInput placeholder="Search rewards..." />
                       <div onWheel={(e) => e.stopPropagation()}>
@@ -244,66 +269,226 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                 )
               })()}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="requireMode">Mode</Label>
-                <Select
-                  value={(() => {
-                    const currentCondition = !Array.isArray(conds.requiresRewards)
-                      ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                      : undefined
-                    return currentCondition?.mode || 'all'
-                  })()}
-                  onValueChange={(value: 'all' | 'any') => {
-                    const currentCondition = !Array.isArray(conds.requiresRewards)
-                      ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                      : undefined
-                    updateConditions({
-                      requiresRewards: currentCondition?.rewardIds
+            {/* Mode selector - inline style */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>User must have</span>
+              <Select
+                value={(() => {
+                  const currentCondition = !Array.isArray(conds.requiresRewards)
+                    ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                    : undefined
+                  return currentCondition?.mode || 'all'
+                })()}
+                onValueChange={(value: 'all' | 'any') => {
+                  const currentCondition = !Array.isArray(conds.requiresRewards)
+                    ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                    : undefined
+                  updateConditions({
+                    requiresRewards:
+                      currentCondition?.rewardIds?.length || currentCondition?.excludeRewards?.length
                         ? { ...currentCondition, mode: value }
                         : undefined,
-                    })
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All - Must have all rewards</SelectItem>
-                    <SelectItem value="any">Any - Must have at least N rewards</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  })
+                }}
+              >
+                <SelectTrigger className="w-auto h-7 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">all</SelectItem>
+                  <SelectItem value="any">at least</SelectItem>
+                </SelectContent>
+              </Select>
               {(() => {
                 const currentCondition = !Array.isArray(conds.requiresRewards)
                   ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
                   : undefined
-                return (
-                  currentCondition?.mode === 'any' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="requireCount" className="invisible">Count</Label>
-                      <Input
-                        id="requireCount"
-                        type="number"
-                        min={1}
-                        placeholder="Count (e.g., 1)"
-                        value={currentCondition?.count ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value
+                return currentCondition?.mode === 'any' ? (
+                  <Input
+                    type="number"
+                    min={1}
+                    className="w-16 text-sm"
+                    placeholder="1"
+                    value={currentCondition?.count ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      updateConditions({
+                        requiresRewards:
+                          currentCondition?.rewardIds?.length ||
+                          currentCondition?.excludeRewards?.length
+                            ? {
+                                ...currentCondition,
+                                count: value ? parseInt(value) : undefined,
+                              }
+                            : undefined,
+                      })
+                    }}
+                  />
+                ) : null
+              })()}
+              <span>of selected rewards</span>
+            </div>
+            <Separator className="my-2" />
+            {/* Excluded Rewards */}
+            <div className="space-y-2">
+              <Label>Excluded Rewards (must NOT have)</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="relative">
+                  <Popover
+                    open={expandedSections.excludeRewardsPopover}
+                    onOpenChange={(open) =>
+                      setExpandedSections((prev) => ({ ...prev, excludeRewardsPopover: open }))
+                    }
+                  >
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                      {(() => {
+                        const currentCondition = !Array.isArray(conds.requiresRewards)
+                          ? conds.requiresRewards
+                          : undefined
+                        const count = currentCondition?.excludeRewards?.length || 0
+                        return (
+                          <>
+                            <span>
+                              {count > 0
+                                ? `${count} reward${count > 1 ? 's' : ''} excluded`
+                                : 'Select rewards to exclude...'}
+                            </span>
+                            {count === 0 && (
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            )}
+                          </>
+                        )
+                      })()}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-100 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search rewards..." />
+                      <div onWheel={(e) => e.stopPropagation()}>
+                        <CommandList>
+                          <CommandEmpty>No rewards found</CommandEmpty>
+                          <CommandGroup>
+                            {rewards.map((reward) => {
+                              const currentCondition = !Array.isArray(conds.requiresRewards)
+                                ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                                : undefined
+                              const excludeRewards = currentCondition?.excludeRewards || []
+                              const isExcluded = excludeRewards.includes(reward.rewardId)
+
+                              return (
+                                <CommandItem
+                                  key={reward.rewardId}
+                                  value={reward.name}
+                                  onSelect={() => {
+                                    const newExcludeRewards = isExcluded
+                                      ? excludeRewards.filter((id: string) => id !== reward.rewardId)
+                                      : [...excludeRewards, reward.rewardId]
+
+                                    updateConditions({
+                                      requiresRewards:
+                                        newExcludeRewards.length > 0 ||
+                                        currentCondition?.rewardIds?.length
+                                          ? {
+                                              ...currentCondition,
+                                              excludeRewards:
+                                                newExcludeRewards.length > 0
+                                                  ? newExcludeRewards
+                                                  : undefined,
+                                            }
+                                          : undefined,
+                                    })
+                                  }}
+                                >
+                                  <Checkbox checked={isExcluded} className="mr-2" />
+                                  <span>{reward.name}</span>
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </div>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {(() => {
+                  const currentCondition = !Array.isArray(conds.requiresRewards)
+                    ? conds.requiresRewards
+                    : undefined
+                  const hasExcluded = (currentCondition?.excludeRewards?.length || 0) > 0
+                  return (
+                    hasExcluded && (
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const current = !Array.isArray(conds.requiresRewards)
+                            ? conds.requiresRewards
+                            : undefined
                           updateConditions({
-                            requiresRewards: currentCondition?.rewardIds
-                              ? { ...currentCondition, count: value ? parseInt(value) : undefined }
+                            requiresRewards: current?.rewardIds?.length
+                              ? { ...current, excludeRewards: undefined }
                               : undefined,
                           })
                         }}
-                      />
+                      >
+                        <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                      </button>
+                    )
+                  )
+                })()}
+                </div>
+              </div>
+              {/* Excluded rewards badges */}
+              {(() => {
+                const currentCondition = !Array.isArray(conds.requiresRewards)
+                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                  : undefined
+                const excludeRewards = currentCondition?.excludeRewards || []
+                return (
+                  excludeRewards.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {excludeRewards.map((rewardId: string) => {
+                        const reward = rewards.find((r) => r.rewardId === rewardId)
+                        return (
+                          <Badge key={rewardId} variant="destructive" className="gap-1">
+                            {reward?.name || rewardId}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto w-auto p-0! hover:bg-transparent"
+                              onClick={() => {
+                                const newExcludeRewards = excludeRewards.filter(
+                                  (id: string) => id !== rewardId
+                                )
+                                updateConditions({
+                                  requiresRewards:
+                                    newExcludeRewards.length > 0 || currentCondition?.rewardIds?.length
+                                      ? {
+                                          ...currentCondition,
+                                          excludeRewards:
+                                            newExcludeRewards.length > 0 ? newExcludeRewards : undefined,
+                                        }
+                                      : undefined,
+                                })
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        )
+                      })}
                     </div>
                   )
                 )
               })()}
             </div>
             <p className="text-xs text-muted-foreground">
-              Example: Unlock special reward #9 only after collecting 5 out of 8 mascots
+              Example: Unlock special reward #9 only after collecting 5 out of 8 mascots, but NOT if
+              user already has the grand prize
             </p>
           </div>
         )}
@@ -580,7 +765,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">User Segment</span>
           </div>
-          {conds.requiresUserSegment && (
+          {hasUserSegmentConfig && (
             <span className="text-xs text-muted-foreground">Configured</span>
           )}
         </button>
@@ -605,11 +790,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                           .filter(Boolean)
                       : undefined
                     updateConditions({
-                      requiresUserSegment: userIds
+                      requiresUserSegment: userIds?.length
                         ? { ...conds.requiresUserSegment, userIds }
-                        : conds.requiresUserSegment?.phoneNumbers ||
-                            conds.requiresUserSegment?.excludeUserIds ||
-                            conds.requiresUserSegment?.excludePhoneNumbers
+                        : hasOtherUserSegmentFields('userIds')
                           ? { ...conds.requiresUserSegment, userIds: undefined }
                           : undefined,
                     })
@@ -631,11 +814,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                           .filter(Boolean)
                       : undefined
                     updateConditions({
-                      requiresUserSegment: phoneNumbers
+                      requiresUserSegment: phoneNumbers?.length
                         ? { ...conds.requiresUserSegment, phoneNumbers }
-                        : conds.requiresUserSegment?.userIds ||
-                            conds.requiresUserSegment?.excludeUserIds ||
-                            conds.requiresUserSegment?.excludePhoneNumbers
+                        : hasOtherUserSegmentFields('phoneNumbers')
                           ? { ...conds.requiresUserSegment, phoneNumbers: undefined }
                           : undefined,
                     })
@@ -657,11 +838,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                           .filter(Boolean)
                       : undefined
                     updateConditions({
-                      requiresUserSegment: excludeUserIds
+                      requiresUserSegment: excludeUserIds?.length
                         ? { ...conds.requiresUserSegment, excludeUserIds }
-                        : conds.requiresUserSegment?.userIds ||
-                            conds.requiresUserSegment?.phoneNumbers ||
-                            conds.requiresUserSegment?.excludePhoneNumbers
+                        : hasOtherUserSegmentFields('excludeUserIds')
                           ? { ...conds.requiresUserSegment, excludeUserIds: undefined }
                           : undefined,
                     })
@@ -685,11 +864,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                           .filter(Boolean)
                       : undefined
                     updateConditions({
-                      requiresUserSegment: excludePhoneNumbers
+                      requiresUserSegment: excludePhoneNumbers?.length
                         ? { ...conds.requiresUserSegment, excludePhoneNumbers }
-                        : conds.requiresUserSegment?.userIds ||
-                            conds.requiresUserSegment?.phoneNumbers ||
-                            conds.requiresUserSegment?.excludeUserIds
+                        : hasOtherUserSegmentFields('excludePhoneNumbers')
                           ? { ...conds.requiresUserSegment, excludePhoneNumbers: undefined }
                           : undefined,
                     })

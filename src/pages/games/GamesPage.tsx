@@ -58,14 +58,14 @@ const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | '
 
 const columns: ColumnDef<Game>[] = [
   {
-    accessorKey: 'code',
-    header: 'Code',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
-  },
-  {
     accessorKey: 'name',
     header: 'Name',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
+    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('name')}</span>,
+  },
+  {
+    accessorKey: 'code',
+    header: 'Code',
+    cell: ({ row }) => <span className="font-medium">{row.getValue('code')}</span>,
   },
   {
     accessorKey: 'type',
