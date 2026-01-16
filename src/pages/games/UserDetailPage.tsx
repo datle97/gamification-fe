@@ -474,97 +474,68 @@ export function UserDetailPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-muted-foreground mb-2">
-              <div className="flex items-center gap-2">
-                <Coins className="h-4 w-4" />
-                <span className="text-sm font-medium">Turns</span>
-              </div>
-              {isDevMode && (
-                <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="secondary" size="icon" className="h-6 w-6 text-primary">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64" align="end">
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium">Grant Turns</div>
-                      <div className="space-y-2">
-                        <Label htmlFor="grantAmount" className="text-xs">
-                          Amount
-                        </Label>
-                        <Input
-                          id="grantAmount"
-                          type="number"
-                          min="1"
-                          value={grantAmount}
-                          onChange={(e) => setGrantAmount(e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="grantReason" className="text-xs">
-                          Reason (optional)
-                        </Label>
-                        <Input
-                          id="grantReason"
-                          placeholder="Testing, compensation..."
-                          value={grantReason}
-                          onChange={(e) => setGrantReason(e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={handleGrantTurns}
-                        disabled={grantTurns.isPending}
-                      >
-                        {grantTurns.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                        Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-            <div className="text-3xl font-bold">{totalTurns}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Gift className="h-4 w-4" />
-              <span className="text-sm font-medium">Rewards</span>
-            </div>
-            <div className="text-3xl font-bold">{rewards?.length || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Gamepad2 className="h-4 w-4" />
-              <span className="text-sm font-medium">Plays</span>
-            </div>
-            <div className="text-3xl font-bold">{totalPlays}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="text-sm font-medium">Total Score</span>
-            </div>
-            <div className="text-3xl font-bold">{totalScore.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+      {/* Stats Inline */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1.5">
+          <Coins className="h-4 w-4" />
+          <span className="font-semibold text-foreground">{totalTurns}</span> turns
+          {isDevMode && (
+            <Popover open={grantTurnsOpen} onOpenChange={setGrantTurnsOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-5 w-5 text-primary">
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="start">
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Grant Turns</div>
+                  <div className="space-y-2">
+                    <Label htmlFor="grantAmount" className="text-xs">
+                      Amount
+                    </Label>
+                    <Input
+                      id="grantAmount"
+                      type="number"
+                      min="1"
+                      value={grantAmount}
+                      onChange={(e) => setGrantAmount(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="grantReason" className="text-xs">
+                      Reason (optional)
+                    </Label>
+                    <Input
+                      id="grantReason"
+                      placeholder="Testing, compensation..."
+                      value={grantReason}
+                      onChange={(e) => setGrantReason(e.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={handleGrantTurns}
+                    disabled={grantTurns.isPending}
+                  >
+                    {grantTurns.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Grant {grantAmount} Turn{parseInt(grantAmount) !== 1 ? 's' : ''}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Gamepad2 className="h-4 w-4" />
+          <span className="font-semibold text-foreground">{totalPlays}</span> plays
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <TrendingUp className="h-4 w-4" />
+          <span className="font-semibold text-foreground">{totalScore.toLocaleString()}</span> score
+        </span>
       </div>
 
       {/* Tabs */}
@@ -759,7 +730,10 @@ export function UserDetailPage() {
         </TabsContent>
 
         {/* Activity Tab */}
-        <TabsContent value="activity" className="mt-6">
+        <TabsContent value="activity" className="mt-6 space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Activity Timeline
+          </h3>
           <Card>
             <CardContent className="p-6">
               <div className="space-y-1">
@@ -1000,12 +974,15 @@ export function UserDetailPage() {
 
         {/* Missions Tab */}
         <TabsContent value="missions" className="mt-6 space-y-4">
-          {/* Reset All Button - Dev mode only */}
-          {isDevMode && missions && missions.length > 0 && (
-            <div className="flex justify-end">
+          {/* Header with Reset All Button */}
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Mission Progress
+            </h3>
+            {isDevMode && missions && missions.length > 0 && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="default"
                 onClick={() => resetAllMissions.mutate()}
                 disabled={resetAllMissions.isPending}
               >
@@ -1016,8 +993,8 @@ export function UserDetailPage() {
                 )}
                 Reset All Missions
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {missions && missions.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
