@@ -225,6 +225,165 @@ function getActivityIcon(type: ActivityType) {
   }
 }
 
+// Activity group type for timeline
+type ActivityGroup = {
+  requestId: string
+  timestamp: string
+  activities: UserActivity[]
+  primaryType: ActivityType
+}
+
+type DateGroup = {
+  date: string
+  label: string
+  groups: ActivityGroup[]
+}
+
+// Reusable ActivityTimeline component
+function ActivityTimeline({
+  dateGroups,
+  limit,
+  showDateHeaders = true,
+}: {
+  dateGroups: DateGroup[]
+  limit?: number
+  showDateHeaders?: boolean
+}) {
+  // Flatten all groups if we need to limit
+  const allGroups = dateGroups.flatMap((dg) => dg.groups)
+  const limitedGroups = limit ? allGroups.slice(0, limit) : null
+
+  // If limiting, we need to rebuild date groups with only the limited items
+  const displayGroups = limitedGroups
+    ? (() => {
+        const result: DateGroup[] = []
+        limitedGroups.forEach((group) => {
+          const originalDateGroup = dateGroups.find((dg) =>
+            dg.groups.some((g) => g.requestId === group.requestId)
+          )
+          if (!originalDateGroup) return
+
+          const existing = result.find((r) => r.date === originalDateGroup.date)
+          if (existing) {
+            existing.groups.push(group)
+          } else {
+            result.push({
+              date: originalDateGroup.date,
+              label: originalDateGroup.label,
+              groups: [group],
+            })
+          }
+        })
+        return result
+      })()
+    : dateGroups
+
+  if (displayGroups.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        No activity found
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {displayGroups.map((dateGroup) => (
+        <div key={dateGroup.date}>
+          {/* Date Header */}
+          {showDateHeaders && (
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pl-14">
+              {dateGroup.label}
+            </div>
+          )}
+          {/* Activity groups for this date */}
+          <div className="space-y-0">
+            {dateGroup.groups.map((group) => {
+              const isGrouped = group.activities.length > 1
+              const primaryActivity = group.activities[0]
+              const primaryConfig = ACTIVITY_CONFIG[group.primaryType]
+              const PrimaryIcon = getActivityIcon(group.primaryType)
+              const subActivities = group.activities.slice(1)
+
+              // Extract rewards and scores for badges
+              const rewards = subActivities.filter((a) => a.type === 'reward_earn')
+              const scores = subActivities.filter((a) => a.type === 'score_earn')
+              const missions = subActivities.filter((a) => a.type === 'mission_complete')
+
+              return (
+                <div key={group.requestId} className="flex gap-4 group">
+                  {/* Time column */}
+                  <div className="w-10 text-xs text-muted-foreground tabular-nums text-right pt-0.5 shrink-0">
+                    {dayjs(group.timestamp).format('HH:mm')}
+                  </div>
+
+                  {/* Timeline dot */}
+                  <div className="relative flex flex-col items-center">
+                    <div
+                      className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${primaryConfig?.bgClass || 'bg-border'}`}
+                    />
+                    {/* Connector line to next item */}
+                    <div className="w-px flex-1 bg-border mt-2" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pb-4">
+                    {/* Main action */}
+                    <div className="flex items-start gap-2">
+                      <PrimaryIcon
+                        className={`h-4 w-4 mt-0.5 shrink-0 ${primaryConfig?.textClass || 'text-muted-foreground'}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm">{primaryActivity.description}</span>
+                      </div>
+                    </div>
+
+                    {/* Sub-activities as inline badges */}
+                    {isGrouped && (
+                      <div className="flex flex-wrap gap-1.5 mt-2 ml-6">
+                        {rewards.map((r) => (
+                          <span
+                            key={r.id}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.reward_earn.badgeBgClass}`}
+                          >
+                            <Gift className={`h-3 w-3 ${ACTIVITY_CONFIG.reward_earn.textClass}`} />
+                            {r.metadata?.rewardName ||
+                              r.description.replace('Won "', '').replace('"', '')}
+                          </span>
+                        ))}
+                        {scores.map((s) => (
+                          <span
+                            key={s.id}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.score_earn.badgeBgClass}`}
+                          >
+                            <Target className={`h-3 w-3 ${ACTIVITY_CONFIG.score_earn.textClass}`} />
+                            +{s.metadata?.score || 1}
+                          </span>
+                        ))}
+                        {missions.map((m) => (
+                          <span
+                            key={m.id}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.mission_complete.badgeBgClass}`}
+                          >
+                            <Trophy
+                              className={`h-3 w-3 ${ACTIVITY_CONFIG.mission_complete.textClass}`}
+                            />
+                            {m.metadata?.missionName || 'Mission'}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function UserDetailPage() {
   const { gameId, userId } = useParams<{ gameId: string; userId: string }>()
   const navigate = useNavigate()
@@ -776,150 +935,14 @@ export function UserDetailPage() {
               <CardTitle className="text-base">Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              {activitiesData?.activities && activitiesData.activities.length > 0 ? (
-                <div className="relative">
-                  {/* Vertical timeline line */}
-                  <div className="absolute left-12 top-0 bottom-0 w-px bg-border" />
-
-                  <div className="space-y-1">
-                    {activitiesData.activities.slice(0, 5).map((activity) => {
-                      const Icon = getActivityIcon(activity.type)
-                      const config = ACTIVITY_CONFIG[activity.type]
-                      return (
-                        <div
-                          key={activity.id}
-                          className="flex items-start group"
-                        >
-                          {/* Time column */}
-                          <div className="w-11 text-xs text-muted-foreground tabular-nums text-right pt-2.5 shrink-0 pr-3">
-                            {dayjs(activity.timestamp).format('HH:mm')}
-                          </div>
-
-                          {/* Connector + Content card */}
-                          <div className="flex-1 min-w-0 flex items-start">
-                            {/* Horizontal connector line */}
-                            <div className={`w-4 h-px mt-4 shrink-0 ${config?.bgClass || 'bg-border'}`} />
-
-                            {/* Content card */}
-                            <div className={`flex-1 min-w-0 py-2 px-3 rounded-lg border-l-2 bg-muted/30 hover:bg-muted/50 transition-colors ${config?.borderClass || 'border-muted'}`}>
-                              <div className="flex items-start gap-2">
-                                <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${config?.textClass || 'text-muted-foreground'}`} />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm">
-                                    {activity.description}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground mt-0.5">
-                                    {config?.label}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No recent activity
-                </div>
-              )}
+              <ActivityTimeline dateGroups={groupedActivities} limit={5} />
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="mt-6 space-y-6">
-          {groupedActivities.length > 0 ? (
-            <div className="space-y-8">
-              {groupedActivities.map((dateGroup) => (
-                <div key={dateGroup.date}>
-                  {/* Date Header */}
-                  <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pl-14">
-                    {dateGroup.label}
-                  </div>
-                  {/* Activity groups for this date */}
-                  <div className="space-y-0">
-                      {dateGroup.groups.map((group) => {
-                        const isGrouped = group.activities.length > 1
-                        const primaryActivity = group.activities[0]
-                        const primaryConfig = ACTIVITY_CONFIG[group.primaryType]
-                        const PrimaryIcon = getActivityIcon(group.primaryType)
-                        const subActivities = group.activities.slice(1)
-
-                        // Extract rewards and scores for badges
-                        const rewards = subActivities.filter(a => a.type === 'reward_earn')
-                        const scores = subActivities.filter(a => a.type === 'score_earn')
-                        const missions = subActivities.filter(a => a.type === 'mission_complete')
-
-                        return (
-                          <div key={group.requestId} className="flex gap-4 group">
-                            {/* Time column */}
-                            <div className="w-10 text-xs text-muted-foreground tabular-nums text-right pt-0.5 shrink-0">
-                              {dayjs(group.timestamp).format('HH:mm')}
-                            </div>
-
-                            {/* Timeline dot */}
-                            <div className="relative flex flex-col items-center">
-                              <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${primaryConfig?.bgClass || 'bg-border'}`} />
-                              {/* Connector line to next item */}
-                              <div className="w-px flex-1 bg-border mt-2" />
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0 pb-4">
-                              {/* Main action */}
-                              <div className="flex items-start gap-2">
-                                <PrimaryIcon className={`h-4 w-4 mt-0.5 shrink-0 ${primaryConfig?.textClass || 'text-muted-foreground'}`} />
-                                <div className="flex-1 min-w-0">
-                                  <span className="text-sm">{primaryActivity.description}</span>
-                                </div>
-                              </div>
-
-                              {/* Sub-activities as inline badges */}
-                              {isGrouped && (
-                                <div className="flex flex-wrap gap-1.5 mt-2 ml-6">
-                                  {rewards.map((r) => (
-                                    <span
-                                      key={r.id}
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.reward_earn.badgeBgClass}`}
-                                    >
-                                      <Gift className={`h-3 w-3 ${ACTIVITY_CONFIG.reward_earn.textClass}`} />
-                                      {r.metadata?.rewardName || r.description.replace('Won "', '').replace('"', '')}
-                                    </span>
-                                  ))}
-                                  {scores.map((s) => (
-                                    <span
-                                      key={s.id}
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.score_earn.badgeBgClass}`}
-                                    >
-                                      <Target className={`h-3 w-3 ${ACTIVITY_CONFIG.score_earn.textClass}`} />
-                                      +{s.metadata?.score || 1}
-                                    </span>
-                                  ))}
-                                  {missions.map((m) => (
-                                    <span
-                                      key={m.id}
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-foreground ${ACTIVITY_CONFIG.mission_complete.badgeBgClass}`}
-                                    >
-                                      <Trophy className={`h-3 w-3 ${ACTIVITY_CONFIG.mission_complete.textClass}`} />
-                                      {m.metadata?.missionName || 'Mission'}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-muted-foreground">No activity found</div>
-          )}
+          <ActivityTimeline dateGroups={groupedActivities} />
         </TabsContent>
 
         {/* Rewards Tab */}
