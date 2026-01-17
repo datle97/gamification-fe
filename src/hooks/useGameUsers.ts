@@ -135,3 +135,16 @@ export function useUserActivities(gameId: string, userId: string, page = 1, limi
     enabled: !!gameId && !!userId,
   })
 }
+
+export function useUpdateUserAttributes(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (attributes: Record<string, unknown>) =>
+      gameUsersService.updateAttributes(gameId, userId, attributes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: gameUsersKeys.detail(gameId, userId),
+      })
+    },
+  })
+}

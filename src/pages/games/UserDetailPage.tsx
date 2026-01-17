@@ -22,6 +22,8 @@ import {
   ChevronDown,
   Check,
   X,
+  Pencil,
+  UserCog,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -34,6 +36,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
   useGameUserDetail,
   useUserTurns,
   useUserRewards,
@@ -44,6 +53,7 @@ import {
   useResetMissionProgress,
   useResetAllMissionsProgress,
   useRevokeUserReward,
+  useUpdateUserAttributes,
 } from '@/hooks/useGameUsers'
 import { useAdminTestingTools } from '@/stores/settingsStore'
 import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
@@ -408,6 +418,7 @@ export function UserDetailPage() {
   const resetMission = useResetMissionProgress(gameId!, userId!)
   const resetAllMissions = useResetAllMissionsProgress(gameId!, userId!)
   const revokeReward = useRevokeUserReward(gameId!, userId!)
+  const updateAttributes = useUpdateUserAttributes(gameId!, userId!)
 
   // Admin state
   const [grantTurnsOpen, setGrantTurnsOpen] = useState(false)
@@ -420,6 +431,8 @@ export function UserDetailPage() {
   const [clientInputJson, setClientInputJson] = useState('')
   const [eligibilityResults, setEligibilityResults] = useState<RewardEligibilityResult[] | null>(null)
   const [eligibilityOpen, setEligibilityOpen] = useState(false)
+  const [attributesDialogOpen, setAttributesDialogOpen] = useState(false)
+  const [editingAttributes, setEditingAttributes] = useState<{ key: string; value: string }[]>([])
 
   // Reset admin state when userId changes
   useEffect(() => {
@@ -434,6 +447,8 @@ export function UserDetailPage() {
     setEligibilityOpen(false)
     setShowClientInput(false)
     setClientInputJson('')
+    setAttributesDialogOpen(false)
+    setEditingAttributes([])
   }, [userId])
 
   const handleGrantTurns = () => {
@@ -846,6 +861,137 @@ export function UserDetailPage() {
         </span>
       </div>
 
+      {/* User Attributes */}
+      {userGame.attributes && Object.keys(userGame.attributes).length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {/* <span className="text-xs text-muted-foreground uppercase tracking-wider mr-1">Attributes:</span> */}
+          {Object.entries(userGame.attributes).map(([key, value]) => (
+            <Badge
+              key={key}
+              variant="outline"
+              className="font-normal text-xs py-0.5 px-2"
+            >
+              <span className="text-muted-foreground mr-1">{key}:</span>
+              <span className="font-medium">
+                {typeof value === 'boolean'
+                  ? value ? 'Yes' : 'No'
+                  : typeof value === 'object'
+                    ? JSON.stringify(value)
+                    : String(value)}
+              </span>
+            </Badge>
+          ))}
+          {isDevMode && (
+            <Dialog open={attributesDialogOpen} onOpenChange={setAttributesDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => {
+                    const attrs = userGame.attributes || {}
+                    setEditingAttributes(
+                      Object.entries(attrs).map(([key, value]) => ({
+                        key,
+                        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+                      }))
+                    )
+                  }}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Edit User Attributes</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="text-sm text-muted-foreground">
+                    Edit attributes for this user. These are used for reward eligibility conditions.
+                  </div>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {editingAttributes.map((attr, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Input
+                          value={attr.key}
+                          onChange={(e) => {
+                            const updated = [...editingAttributes]
+                            updated[idx] = { ...updated[idx], key: e.target.value }
+                            setEditingAttributes(updated)
+                          }}
+                          placeholder="Key"
+                          className="w-32 text-sm"
+                        />
+                        <Input
+                          value={attr.value}
+                          onChange={(e) => {
+                            const updated = [...editingAttributes]
+                            updated[idx] = { ...updated[idx], value: e.target.value }
+                            setEditingAttributes(updated)
+                          }}
+                          placeholder="Value"
+                          className="flex-1 text-sm"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            setEditingAttributes(editingAttributes.filter((_, i) => i !== idx))
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {editingAttributes.length === 0 && (
+                      <div className="text-sm text-muted-foreground text-center py-4">
+                        No attributes. Click "Add" to create one.
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setEditingAttributes([...editingAttributes, { key: '', value: '' }])}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Attribute
+                  </Button>
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Button variant="outline" onClick={() => setAttributesDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={updateAttributes.isPending}
+                      onClick={() => {
+                        // Convert key-value array to object, parsing JSON values if possible
+                        const attrs: Record<string, unknown> = {}
+                        for (const { key, value } of editingAttributes) {
+                          if (!key.trim()) continue
+                          try {
+                            attrs[key.trim()] = JSON.parse(value)
+                          } catch {
+                            attrs[key.trim()] = value
+                          }
+                        }
+                        updateAttributes.mutate(attrs, {
+                          onSuccess: () => setAttributesDialogOpen(false),
+                        })
+                      }}
+                    >
+                      {updateAttributes.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList>
@@ -1062,19 +1208,29 @@ export function UserDetailPage() {
                               </div>
                               {result.checks.length > 0 && (
                                 <div className="mt-1.5 space-y-0.5">
-                                  {result.checks.map((check, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="flex items-center gap-1 text-xs text-muted-foreground"
-                                    >
-                                      {check.passed ? (
-                                        <Check className="h-3 w-3 text-primary shrink-0" />
-                                      ) : (
-                                        <X className="h-3 w-3 text-destructive shrink-0" />
-                                      )}
-                                      <span className="truncate">{formatConditionCheck(check)}</span>
-                                    </div>
-                                  ))}
+                                  {result.checks.map((check, idx) => {
+                                    const isAttributeCheck = check.name === 'userAttributes'
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className={`flex items-center gap-1 text-xs ${
+                                          isAttributeCheck
+                                            ? 'bg-chart-2/10 rounded px-1.5 py-0.5 -mx-1.5'
+                                            : ''
+                                        } text-muted-foreground`}
+                                      >
+                                        {check.passed ? (
+                                          <Check className="h-3 w-3 text-primary shrink-0" />
+                                        ) : (
+                                          <X className="h-3 w-3 text-destructive shrink-0" />
+                                        )}
+                                        {isAttributeCheck && (
+                                          <UserCog className="h-3 w-3 text-chart-2 shrink-0" />
+                                        )}
+                                        <span className="truncate">{formatConditionCheck(check)}</span>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
                               )}
                             </div>

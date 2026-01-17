@@ -245,4 +245,12 @@ export const gameUsersService = {
       })
       .json<ApiResponse<UserActivitiesResponse>>()
       .then((res) => res.data),
+
+  updateAttributes: (gameId: string, userId: string, attributes: Record<string, unknown>) =>
+    api
+      .put(`gamification/admin/games/${gameId}/users/${userId}/attributes`, {
+        json: { attributes },
+      })
+      .json<ApiResponse<{ updated: boolean }>>()
+      .then((res) => res.data),
 }
