@@ -1045,8 +1045,8 @@ export function UserDetailPage() {
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className={`h-10 w-10 rounded flex items-center justify-center shrink-0 ${
-                                result.isEligible ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'
+                              className={`flex items-center justify-center shrink-0 ${
+                                result.isEligible ? 'text-primary' : 'text-destructive'
                               }`}
                             >
                               {result.isEligible ? (
