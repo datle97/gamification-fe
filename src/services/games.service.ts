@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { Game, CreateGameInput, UpdateGameInput } from '@/schemas/game.schema'
+import type { Game, CreateGameInput, UpdateGameInput, CloneGameInput } from '@/schemas/game.schema'
 import type {
   LeaderboardResponse,
   HistoricalPeriods,
@@ -36,6 +36,12 @@ export const gamesService = {
       .then((res) => res.data),
 
   delete: (id: string) => api.delete(`gamification/admin/games/${id}`),
+
+  clone: (id: string, data: CloneGameInput) =>
+    api
+      .post(`gamification/admin/games/${id}/clone`, { json: data })
+      .json<ApiResponse<Game>>()
+      .then((res) => res.data),
 
   // Stats methods
   getGameStats: (gameId: string) =>

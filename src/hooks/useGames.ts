@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gamesService } from '@/services/games.service'
-import type { CreateGameInput, UpdateGameInput } from '@/schemas/game.schema'
+import type { CreateGameInput, UpdateGameInput, CloneGameInput } from '@/schemas/game.schema'
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
 export const gamesKeys = {
@@ -57,6 +57,18 @@ export function useDeleteGame() {
 
   return useMutation({
     mutationFn: (id: string) => gamesService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: gamesKeys.all })
+    },
+  })
+}
+
+export function useCloneGame() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CloneGameInput }) =>
+      gamesService.clone(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: gamesKeys.all })
     },

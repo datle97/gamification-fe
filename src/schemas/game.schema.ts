@@ -80,6 +80,16 @@ export const gameSchema = z.object({
 export const createGameSchema = gameSchema.omit({ gameId: true })
 export const updateGameSchema = gameSchema.partial().omit({ gameId: true })
 
+export const cloneGameSchema = z.object({
+  newCode: z
+    .string()
+    .min(1, 'Code is required')
+    .regex(/^[a-z0-9-]+$/, 'Code must be lowercase alphanumeric with dashes'),
+  newName: z.string().min(1, 'Name is required'),
+  includeMissions: z.boolean().optional(),
+  includeRewards: z.boolean().optional(),
+})
+
 export type Game = z.infer<typeof gameSchema> & {
   createdAt: string
   updatedAt: string
@@ -87,3 +97,4 @@ export type Game = z.infer<typeof gameSchema> & {
 
 export type CreateGameInput = z.infer<typeof createGameSchema>
 export type UpdateGameInput = z.infer<typeof updateGameSchema>
+export type CloneGameInput = z.infer<typeof cloneGameSchema>
