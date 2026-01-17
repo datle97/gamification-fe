@@ -163,6 +163,45 @@ export interface UserActivitiesResponse {
   hasMore: boolean
 }
 
+export interface ResetStateResult {
+  turnsDeleted: number
+  rewardsDeleted: number
+  missionsDeleted: number
+  leaderboardScoresDeleted: number
+  transactionLogsDeleted: number
+  gameSessionsDeleted: number
+}
+
+export interface TestPlayInput {
+  clientInput?: Record<string, unknown>
+  attributeOverrides?: Record<string, unknown>
+}
+
+export interface RewardData {
+  rewardId: string
+  name: string
+  imageUrl?: string
+  description?: string
+  rewardType?: string
+  rewardValue?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface TestPlayResult {
+  success: boolean
+  rewards: RewardData[]
+  remainingTurns: number
+  message?: string
+  scoreAdded?: number
+}
+
+export interface SandboxUser {
+  userId: string
+  displayName: string
+  attributes: Record<string, unknown>
+  remainingTurns: number
+}
+
 export const gameUsersService = {
   listByGame: (params: ListGameUsersParams) => {
     const { gameId, ...searchParams } = params
@@ -252,5 +291,26 @@ export const gameUsersService = {
         json: { attributes },
       })
       .json<ApiResponse<{ updated: boolean }>>()
+      .then((res) => res.data),
+
+  resetState: (gameId: string, userId: string) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/reset-state`)
+      .json<ApiResponse<ResetStateResult>>()
+      .then((res) => res.data),
+
+  // Test Sandbox methods
+  getSandboxUser: (gameId: string) =>
+    api
+      .get(`gamification/admin/games/${gameId}/sandbox`)
+      .json<ApiResponse<SandboxUser>>()
+      .then((res) => res.data),
+
+  testPlay: (gameId: string, userId: string, input?: TestPlayInput) =>
+    api
+      .post(`gamification/admin/games/${gameId}/users/${userId}/test-play`, {
+        json: input || {},
+      })
+      .json<ApiResponse<TestPlayResult>>()
       .then((res) => res.data),
 }

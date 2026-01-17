@@ -4,6 +4,7 @@ import {
   type CheckEligibilityInput,
   type GrantTurnsInput,
   type ListGameUsersParams,
+  type TestPlayInput,
 } from '@/services/game-users.service'
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
@@ -144,6 +145,70 @@ export function useUpdateUserAttributes(gameId: string, userId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: gameUsersKeys.detail(gameId, userId),
+      })
+    },
+  })
+}
+
+export function useResetUserState(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => gameUsersService.resetState(gameId, userId),
+    onSuccess: () => {
+      // Invalidate sandbox user query to refresh remaining turns
+      queryClient.invalidateQueries({
+        queryKey: ['sandbox-user', gameId],
+      })
+      // Invalidate all user-related queries
+      queryClient.invalidateQueries({
+        queryKey: gameUsersKeys.detail(gameId, userId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'turns'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'rewards'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'missions'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'activities'],
+      })
+    },
+  })
+}
+
+// Test Sandbox hooks
+export function useSandboxUser(gameId: string) {
+  return useQuery({
+    queryKey: ['sandbox-user', gameId] as const,
+    queryFn: () => gameUsersService.getSandboxUser(gameId),
+    enabled: !!gameId,
+  })
+}
+
+export function useTestPlay(gameId: string, userId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input?: TestPlayInput) => gameUsersService.testPlay(gameId, userId, input),
+    onSuccess: () => {
+      // Invalidate sandbox user query to refresh remaining turns
+      queryClient.invalidateQueries({
+        queryKey: ['sandbox-user', gameId],
+      })
+      // Invalidate user-related queries after test play
+      queryClient.invalidateQueries({
+        queryKey: gameUsersKeys.detail(gameId, userId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'turns'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'rewards'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: [...gameUsersKeys.detail(gameId, userId), 'activities'],
       })
     },
   })

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router'
-import { ArrowLeft, Loader2, Info, Settings, Trophy, Users, Target, Gift, Copy } from 'lucide-react'
+import { ArrowLeft, Loader2, Info, Settings, Trophy, Users, Target, Gift, Copy, FlaskConical } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,9 @@ import { GameMissionsTab } from './components/GameMissionsTab'
 import { GameRewardsTab } from './components/GameRewardsTab'
 import { GameUsersTab } from './components/GameUsersTab'
 import { GameLeaderboardTab } from './components/GameLeaderboardTab'
+import { TestSandboxTab } from './components/TestSandboxTab'
 
-type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards' | 'leaderboard'
+type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards' | 'leaderboard' | 'sandbox'
 
 export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>()
@@ -140,6 +141,10 @@ export function GameDetailPage() {
                 <Gift className="h-4 w-4" />
                 Rewards
               </TabsTrigger>
+              <TabsTrigger value="sandbox" className="gap-2">
+                <FlaskConical className="h-4 w-4" />
+                Sandbox
+              </TabsTrigger>
             </TabsList>
           </div>
         </div>
@@ -166,6 +171,10 @@ export function GameDetailPage() {
 
         <TabsContent value="rewards" className="mt-6">
           <GameRewardsTab gameId={game.gameId} />
+        </TabsContent>
+
+        <TabsContent value="sandbox" className="mt-6">
+          <TestSandboxTab gameId={game.gameId} />
         </TabsContent>
       </Tabs>
 
