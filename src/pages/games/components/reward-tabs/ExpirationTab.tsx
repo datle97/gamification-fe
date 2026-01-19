@@ -161,8 +161,12 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                     return
                   }
 
-                  // Always set time to 00:00:00
-                  const updatedDate = dayjs(date).hour(0).minute(0).second(0)
+                  // Preserve current time from existing config, default to 00:00:00
+                  const currentTime = config?.date ? dayjs(config.date) : dayjs().hour(0).minute(0)
+                  const updatedDate = dayjs(date)
+                    .hour(currentTime.hour())
+                    .minute(currentTime.minute())
+                    .second(0)
 
                   updateExpirationConfig({
                     mode: 'fixed',

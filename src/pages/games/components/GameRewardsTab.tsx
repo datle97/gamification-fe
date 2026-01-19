@@ -324,7 +324,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       </Card>
 
       <Dialog open={dialogMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 sm:top-[5%] sm:translate-y-0">
+        <DialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>
               {isCreate ? 'Create Reward' : `Edit: ${selectedReward?.name}`}
