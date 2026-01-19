@@ -54,10 +54,10 @@ import {
   useResetAllMissionsProgress,
   useRevokeUserReward,
   useUpdateUserAttributes,
+  useGame,
 } from '@/hooks/queries'
 import { useAdminTestingTools } from '@/stores/settingsStore'
 import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
-import { useGame } from '@/hooks/queries'
 import { useFormatDate } from '@/hooks/useFormatDate'
 import type { ActivityType } from '@/services/game-users.service'
 import {
