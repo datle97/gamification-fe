@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useUpdateGame } from '@/hooks/useGames'
+import { useUpdateGame } from '@/hooks/queries'
 import type { Game, GameStatus, GameType } from '@/schemas/game.schema'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch']

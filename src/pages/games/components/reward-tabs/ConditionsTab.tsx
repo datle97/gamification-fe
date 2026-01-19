@@ -22,7 +22,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { ConditionBuilder } from '@/components/common/ConditionBuilder'
-import { useRewardsByGame } from '@/hooks/useRewards'
+import { useRewardsByGame } from '@/hooks/queries'
 import type { RequiresRewardsCondition, RewardConditions } from '@/schemas/reward.schema'
 import type { Conditions } from '@/types/conditions'
 import { ChevronDown, ChevronRight, ChevronsUpDown, X } from 'lucide-react'

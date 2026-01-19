@@ -17,7 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { useApps, useCreateApp, useUpdateApp } from '@/hooks/useApps'
+import { useApps, useCreateApp, useUpdateApp } from '@/hooks/queries'
 import type { App, CreateAppInput } from '@/schemas/app.schema'
 
 const columns: ColumnDef<App>[] = [

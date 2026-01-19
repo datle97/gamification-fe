@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useUpdateGame } from '@/hooks/useGames'
+import { useUpdateGame } from '@/hooks/queries'
 import type { Game, PeriodType } from '@/schemas/game.schema'
 
 interface GameConfigTabProps {

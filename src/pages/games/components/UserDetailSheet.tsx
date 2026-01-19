@@ -29,7 +29,7 @@ import {
   useResetMissionProgress,
   useResetAllMissionsProgress,
   useRevokeUserReward,
-} from '@/hooks/useGameUsers'
+} from '@/hooks/queries'
 import type { RewardEligibilityResult, ActivityType } from '@/services/game-users.service'
 import {
   Loader2,

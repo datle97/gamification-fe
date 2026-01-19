@@ -20,7 +20,7 @@ import {
   useUpdateReward,
   useDeleteReward,
   useBatchUpdateRewards,
-} from '@/hooks/useRewards'
+} from '@/hooks/queries'
 import type {
   Reward,
   RewardCategory,

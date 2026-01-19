@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useGame, useCloneGame } from '@/hooks/useGames'
+import { useGame, useCloneGame } from '@/hooks/queries'
 import { cloneGameSchema, type CloneGameInput } from '@/schemas/game.schema'
 import { GameInfoTab } from './components/GameInfoTab'
 import { GameConfigTab } from './components/GameConfigTab'

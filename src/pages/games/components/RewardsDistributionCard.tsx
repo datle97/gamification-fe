@@ -10,7 +10,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { useRewardDistribution } from '@/hooks/useRewards'
+import { useRewardDistribution } from '@/hooks/queries'
 
 interface RewardsDistributionCardProps {
   gameId: string

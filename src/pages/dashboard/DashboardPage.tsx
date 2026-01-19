@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { useDashboardStats } from '@/hooks/useDashboard'
+import { useDashboardStats } from '@/hooks/queries'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNavigate } from 'react-router'
 

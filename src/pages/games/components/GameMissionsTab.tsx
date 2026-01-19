@@ -31,7 +31,7 @@ import {
   useCreateMission,
   useUpdateMission,
   useDeleteMission,
-} from '@/hooks/useMissions'
+} from '@/hooks/queries'
 import type {
   Mission,
   MissionType,

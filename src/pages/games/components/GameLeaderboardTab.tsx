@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { useLeaderboard, useLeaderboardPeriods } from '@/hooks/useGames'
+import { useLeaderboard, useLeaderboardPeriods } from '@/hooks/queries'
 import type { Game } from '@/schemas/game.schema'
 
 interface GameLeaderboardTabProps {

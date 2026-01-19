@@ -26,7 +26,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateGame, useGames } from '@/hooks/useGames'
+import { useCreateGame, useGames } from '@/hooks/queries'
 import type { CreateGameInput, Game, GameStatus, GameType } from '@/schemas/game.schema'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']

@@ -32,9 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useApps } from '@/hooks/useApps'
-import { useGames } from '@/hooks/useGames'
-import { useLinks, useCreateLink, useDeleteLink } from '@/hooks/useLinks'
+import { useApps, useGames, useLinks, useCreateLink, useDeleteLink } from '@/hooks/queries'
 import type { Link } from '@/schemas/link.schema'
 import type { GameStatus } from '@/schemas/game.schema'
 
