@@ -24,6 +24,11 @@ interface ProbabilityManagerDialogProps {
 
 type DistributeMode = 'equal' | 'proportional'
 
+// Round to 6 decimal places for precision
+const roundProbability = (value: number): number => {
+  return Math.round(value * 1000000) / 1000000
+}
+
 export function ProbabilityManagerDialog({
   open,
   onOpenChange,
@@ -100,7 +105,7 @@ export function ProbabilityManagerDialog({
   const setProbability = (rewardId: string, value: number) => {
     setProbabilities((prev) => {
       const next = new Map(prev)
-      next.set(rewardId, Math.max(0, Math.min(100, value)))
+      next.set(rewardId, roundProbability(Math.max(0, Math.min(100, value))))
       return next
     })
   }
@@ -115,7 +120,7 @@ export function ProbabilityManagerDialog({
 
     if (distributeMode === 'equal') {
       // Distribute equally among selected
-      const perReward = target / selected.length
+      const perReward = roundProbability(target / selected.length)
       selected.forEach((id) => {
         newProbs.set(id, perReward)
       })
@@ -128,11 +133,11 @@ export function ProbabilityManagerDialog({
         const scale = target / currentSelectedTotal
         selected.forEach((id) => {
           const current = probabilities.get(id) || 0
-          newProbs.set(id, current * scale)
+          newProbs.set(id, roundProbability(current * scale))
         })
       } else {
         // If all selected are 0, fallback to equal
-        const perReward = target / selected.length
+        const perReward = roundProbability(target / selected.length)
         selected.forEach((id) => {
           newProbs.set(id, perReward)
         })
@@ -143,7 +148,7 @@ export function ProbabilityManagerDialog({
   }
 
   const setAllEqual = () => {
-    const perReward = 100 / rewards.length
+    const perReward = roundProbability(100 / rewards.length)
     setProbabilities(new Map(rewards.map((r) => [r.rewardId, perReward])))
   }
 
@@ -158,7 +163,7 @@ export function ProbabilityManagerDialog({
   const handleApply = () => {
     const updates = Array.from(probabilities.entries()).map(([rewardId, probability]) => ({
       rewardId,
-      probability: Math.round(probability * 1000000) / 1000000, // Round to 6 decimals
+      probability,
     }))
     onApply(updates)
     onOpenChange(false)
