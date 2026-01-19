@@ -1,9 +1,6 @@
 import { api } from '@/lib/api'
-import type { Game, CreateGameInput, UpdateGameInput, CloneGameInput } from '@/schemas/game.schema'
-import type {
-  LeaderboardResponse,
-  HistoricalPeriods,
-} from '@/schemas/leaderboard.schema'
+import type { CloneGameInput, CreateGameInput, Game, UpdateGameInput } from '@/schemas/game.schema'
+import type { HistoricalPeriods, LeaderboardResponse } from '@/schemas/leaderboard.schema'
 
 interface ApiResponse<T> {
   data: T
@@ -70,4 +67,61 @@ export const gamesService = {
       .get(`gamification/admin/games/${gameId}/leaderboard/periods`)
       .json<ApiResponse<HistoricalPeriods>>()
       .then((res) => res.data),
+
+  // Dashboard stats (aggregated endpoint with caching)
+  getDashboardStats: () =>
+    api
+      .get('gamification/admin/dashboard/stats')
+      .json<ApiResponse<DashboardStats>>()
+      .then((res) => res.data),
+}
+
+// Dashboard stats types
+export interface DashboardGameStats {
+  gameId: string
+  code: string
+  name: string
+  type: string
+  status: string
+  totalUsers: number
+  activeToday: number
+  activeLast7Days: number
+  isActive: boolean
+}
+
+export interface DashboardRecentWinner {
+  gameId: string
+  gameName: string
+  gameCode: string
+  userId: string
+  userName: string | null
+  score: number
+  period: string
+  periodType: string
+}
+
+export interface DashboardRewardDistributionItem {
+  gameId: string
+  gameName: string
+  gameCode: string
+  count: number
+  quota: number | null
+  quotaUsage: number | null
+}
+
+export interface DashboardRewardsDistribution {
+  totalDistributed: number
+  byGame: DashboardRewardDistributionItem[]
+}
+
+export interface DashboardStats {
+  totalGames: number
+  activeGames: number
+  totalApps: number
+  totalUsers: number
+  activeUsersToday: number
+  activeUsersLast7Days: number
+  topGames: DashboardGameStats[]
+  recentWinners: DashboardRecentWinner[]
+  rewardsDistribution: DashboardRewardsDistribution
 }
