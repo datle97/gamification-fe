@@ -51,17 +51,15 @@ export function AppsPage() {
 
   const columns = useMemo(
     () => [
-      columnHelper.editable.text('name', 'Name', (row, value) => handleUpdate(row, 'name', value), {
-        variant: 'primary',
+      columnHelper.editable.stacked('app', 'App', (row, value) => handleUpdate(row, 'name', value), {
+        primary: (row) => row.name,
+        secondary: (row) => row.appId,
       }),
-      columnHelper.text('appId', 'App ID', { variant: 'secondary' }),
       columnHelper.editable.number('portalId', 'Portal ID', (row, value) => handleUpdate(row, 'portalId', value), {
         min: 0,
       }),
-      columnHelper.editable.toggle('isActive', 'Status', (row, value) => handleUpdate(row, 'isActive', value), {
-        defaultValue: true,
-      }),
       columnHelper.date('createdAt', 'Created'),
+      columnHelper.editable.toggle('isActive', 'Status', (row, value) => handleUpdate(row, 'isActive', value)),
     ],
     [handleUpdate]
   )

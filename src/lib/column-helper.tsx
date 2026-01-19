@@ -6,6 +6,8 @@ import {
   EditableNumberCell,
   EditableToggleCell,
   EditableSelectCell,
+  EditableDateRangeCell,
+  EditableStackedCell,
 } from '@/components/common/editable-cells'
 
 type UpdateFn<T, V> = (row: T, value: V) => Promise<void>
@@ -197,6 +199,47 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
                   {options.labels[value]}
                 </Badge>
               )}
+            />
+          </div>
+        ),
+      }),
+
+      stacked: (
+        id: string,
+        header: string,
+        onUpdate: UpdateFn<TData, string>,
+        options: {
+          primary: (row: TData) => string | undefined | null
+          secondary: (row: TData) => string | undefined | null
+        }
+      ): ColumnDef<TData> => ({
+        id,
+        header,
+        cell: ({ row }) => (
+          <EditableStackedCell
+            primary={options.primary(row.original) || ''}
+            secondary={options.secondary(row.original)}
+            onSave={(value) => onUpdate(row.original, value)}
+          />
+        ),
+      }),
+
+      dateRange: <TStartKey extends keyof TData & string, TEndKey extends keyof TData & string>(
+        startKey: TStartKey,
+        endKey: TEndKey,
+        header: string,
+        onUpdate: (row: TData, startAt: string | null, endAt: string | null) => Promise<void>,
+        options?: { showTime?: boolean }
+      ): ColumnDef<TData> => ({
+        id: `${startKey}_${endKey}`,
+        header,
+        cell: ({ row }) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <EditableDateRangeCell
+              startAt={row.original[startKey] as string}
+              endAt={row.original[endKey] as string}
+              onSave={(startAt, endAt) => onUpdate(row.original, startAt, endAt)}
+              showTime={options?.showTime}
             />
           </div>
         ),

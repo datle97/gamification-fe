@@ -44,14 +44,14 @@ export function DateRangePicker({
         ? dayjs(range.to)
             .hour(value.to ? dayjs(value.to).hour() : 23)
             .minute(value.to ? dayjs(value.to).minute() : 59)
-            .second(0)
+            .endOf('minute')
             .toDate()
         : undefined
       onChange?.({ from, to })
     } else if (showTime) {
       // Default times for new datetime selection
       const from = range.from ? dayjs(range.from).hour(0).minute(0).second(0).toDate() : undefined
-      const to = range.to ? dayjs(range.to).hour(23).minute(59).second(0).toDate() : undefined
+      const to = range.to ? dayjs(range.to).hour(23).minute(59).endOf('minute').toDate() : undefined
       onChange?.({ from, to })
     } else {
       onChange?.(range)
@@ -72,7 +72,7 @@ export function DateRangePicker({
     if (!timeValue || !value?.to) return
 
     const [hours, minutes] = timeValue.split(':').map(Number)
-    const updatedTo = dayjs(value.to).hour(hours).minute(minutes).second(0).toDate()
+    const updatedTo = dayjs(value.to).hour(hours).minute(minutes).endOf('minute').toDate()
     onChange?.({ ...value, to: updatedTo })
   }
 

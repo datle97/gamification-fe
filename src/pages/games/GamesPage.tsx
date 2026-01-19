@@ -105,20 +105,32 @@ export function GamesPage() {
     [updateGame]
   )
 
+  const handleUpdateSchedule = useCallback(
+    async (row: Game, startAt: string | null, endAt: string | null) => {
+      await updateGame.mutateAsync({
+        id: row.gameId,
+        data: { startAt, endAt },
+      })
+    },
+    [updateGame]
+  )
+
   const columns = useMemo(
     () => [
-      columnHelper.text('name', 'Name', { variant: 'primary' }),
-      columnHelper.text('code', 'Code', { variant: 'secondary' }),
+      columnHelper.stacked('game', 'Game', {
+        primary: (row) => row.name,
+        secondary: (row) => row.code,
+      }),
       columnHelper.badge('type', 'Type', { labels: gameTypeLabels }),
+      columnHelper.editable.dateRange('startAt', 'endAt', 'Schedule', handleUpdateSchedule),
+      columnHelper.link('templateUrl', 'Template'),
       columnHelper.editable.select('status', 'Status', handleUpdateStatus, {
         options: statusOptions,
         labels: gameStatusLabels,
         variants: statusVariants,
       }),
-      columnHelper.dateRange('startAt', 'endAt', 'Schedule', { showTime: true }),
-      columnHelper.link('templateUrl', 'Template'),
     ],
-    [handleUpdateStatus]
+    [handleUpdateStatus, handleUpdateSchedule]
   )
 
   const handleOpenCreate = () => {
@@ -178,11 +190,7 @@ export function GamesPage() {
               <p>No games yet. Create your first game template.</p>
             </div>
           ) : (
-            <DataTable
-              columns={columns}
-              data={games}
-              onRowClick={handleRowClick}
-            />
+            <DataTable columns={columns} data={games} onRowClick={handleRowClick} />
           )}
         </CardContent>
       </Card>
