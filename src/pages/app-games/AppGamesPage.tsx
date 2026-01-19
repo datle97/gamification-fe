@@ -1,7 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import dayjs from 'dayjs'
 import { Plus, Loader2, Trash2 } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/ui/data-table'
@@ -32,9 +31,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { createColumnHelper } from '@/lib/column-helper'
 import { useApps, useGames, useLinks, useCreateLink, useDeleteLink } from '@/hooks/queries'
 import type { Link } from '@/schemas/link.schema'
 import type { GameStatus } from '@/schemas/game.schema'
+
+const columnHelper = createColumnHelper<Link>()
 
 const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   active: 'default',
@@ -42,74 +44,6 @@ const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | '
   paused: 'secondary',
   ended: 'destructive',
 }
-
-const columns: ColumnDef<Link>[] = [
-  {
-    accessorKey: 'app',
-    header: 'App',
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.app?.name || '-'}</div>
-        <div className="text-xs text-muted-foreground font-mono">{row.original.appId}</div>
-      </div>
-    ),
-  },
-  {
-    accessorKey: 'game',
-    header: 'Game',
-    cell: ({ row }) => (
-      <div>
-        <div className="font-medium">{row.original.game?.name || '-'}</div>
-        <div className="text-xs text-muted-foreground font-mono">
-          {row.original.game?.code || row.original.gameId}
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: 'gameStatus',
-    header: 'Game Status',
-    cell: ({ row }) => {
-      const status = row.original.game?.status as GameStatus | undefined
-      return status ? (
-        <Badge variant={statusVariants[status]} className="capitalize">
-          {status}
-        </Badge>
-      ) : (
-        <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-  {
-    id: 'gameSchedule',
-    header: 'Schedule',
-    cell: ({ row }) => {
-      const game = row.original.game
-      if (!game?.startAt && !game?.endAt) {
-        return <span className="text-muted-foreground">-</span>
-      }
-      return (
-        <div className="text-sm text-muted-foreground">
-          {game.startAt ? dayjs(game.startAt).format('YYYY-MM-DD') : '∞'}
-          {' → '}
-          {game.endAt ? dayjs(game.endAt).format('YYYY-MM-DD') : '∞'}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'createdAt',
-    header: 'Linked At',
-    cell: ({ row }) => {
-      const date = row.getValue('createdAt') as string
-      return (
-        <span className="text-muted-foreground">
-          {date ? dayjs(date).format('YYYY-MM-DD') : '-'}
-        </span>
-      )
-    },
-  },
-]
 
 type SheetMode = 'closed' | 'create' | 'view'
 
@@ -119,6 +53,21 @@ export function AppGamesPage() {
   const { data: games = [], isLoading: gamesLoading } = useGames()
   const createLink = useCreateLink()
   const deleteLink = useDeleteLink()
+
+  const columns = useMemo(
+    () => [
+      columnHelper.stacked('app', 'App', {
+        primary: (row) => row.app?.name,
+        secondary: (row) => row.appId,
+      }),
+      columnHelper.stacked('game', 'Game', {
+        primary: (row) => row.game?.name,
+        secondary: (row) => row.game?.code,
+      }),
+      columnHelper.date('createdAt', 'Linked At'),
+    ],
+    []
+  )
 
   const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
   const [selectedLink, setSelectedLink] = useState<Link | null>(null)

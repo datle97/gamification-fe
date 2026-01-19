@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gamesService } from '@/services/games.service'
-import type { CreateGameInput, UpdateGameInput, CloneGameInput } from '@/schemas/game.schema'
+import type { CreateGameInput, UpdateGameInput, CloneGameInput, Game } from '@/schemas/game.schema'
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 
 export const gamesKeys = {
@@ -45,7 +45,36 @@ export function useUpdateGame() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateGameInput }) =>
       gamesService.update(id, data),
-    onSuccess: (_, { id }) => {
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: gamesKeys.all })
+      await queryClient.cancelQueries({ queryKey: gamesKeys.detail(id) })
+
+      // Snapshot the previous value
+      const previousGames = queryClient.getQueryData(gamesKeys.all)
+      const previousGame = queryClient.getQueryData(gamesKeys.detail(id))
+
+      // Optimistically update the cache
+      queryClient.setQueryData(gamesKeys.all, (old: Game[] | undefined) =>
+        old?.map((g) => (g.gameId === id ? { ...g, ...data } : g))
+      )
+      queryClient.setQueryData(gamesKeys.detail(id), (old: Game | undefined) =>
+        old ? { ...old, ...data } : old
+      )
+
+      return { previousGames, previousGame, id }
+    },
+    onError: (_, { id }, context) => {
+      // Rollback on error
+      if (context?.previousGames) {
+        queryClient.setQueryData(gamesKeys.all, context.previousGames)
+      }
+      if (context?.previousGame) {
+        queryClient.setQueryData(gamesKeys.detail(id), context.previousGame)
+      }
+    },
+    onSettled: (_, __, { id }) => {
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: gamesKeys.all })
       queryClient.invalidateQueries({ queryKey: gamesKeys.detail(id) })
     },

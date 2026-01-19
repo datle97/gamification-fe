@@ -1,14 +1,10 @@
-import { useState } from 'react'
-import dayjs from 'dayjs'
+import { useState, useMemo, useCallback } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
   SheetContent,
@@ -17,64 +13,22 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { createColumnHelper } from '@/lib/column-helper'
 import { useApps, useCreateApp, useUpdateApp } from '@/hooks/queries'
 import type { App, CreateAppInput } from '@/schemas/app.schema'
 
-const columns: ColumnDef<App>[] = [
-  {
-    accessorKey: 'appId',
-    header: 'App ID',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('appId')}</span>,
-  },
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
-  },
-  {
-    accessorKey: 'portalId',
-    header: 'Portal ID',
-  },
-  {
-    accessorKey: 'isActive',
-    header: 'Status',
-    cell: ({ row }) => {
-      const isActive = row.getValue('isActive') as boolean
-      return (
-        <Badge variant={isActive ? 'default' : 'secondary'}>
-          {isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: 'createdAt',
-    header: 'Created',
-    cell: ({ row }) => {
-      const date = row.getValue('createdAt') as string
-      return (
-        <span className="text-muted-foreground">
-          {date ? dayjs(date).format('YYYY-MM-DD') : '-'}
-        </span>
-      )
-    },
-  },
-]
-
-type SheetMode = 'closed' | 'create' | 'edit'
+const columnHelper = createColumnHelper<App>()
 
 interface FormData {
   appId: string
   name: string
   portalId: number
-  isActive: boolean
 }
 
 const initialFormData: FormData = {
   appId: '',
   name: '',
   portalId: 0,
-  isActive: true,
 }
 
 export function AppsPage() {
@@ -82,58 +36,57 @@ export function AppsPage() {
   const createApp = useCreateApp()
   const updateApp = useUpdateApp()
 
-  const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
-  const [selectedApp, setSelectedApp] = useState<App | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
 
-  const handleOpenCreate = () => {
-    setSheetMode('create')
-    setSelectedApp(null)
-    setFormData(initialFormData)
-  }
+  const handleUpdate = useCallback(
+    async (row: App, field: keyof App, value: string | number | boolean) => {
+      await updateApp.mutateAsync({
+        id: row.appId,
+        data: { [field]: value },
+      })
+    },
+    [updateApp]
+  )
 
-  const handleRowClick = (app: App) => {
-    setSheetMode('edit')
-    setSelectedApp(app)
-    setFormData({
-      appId: app.appId,
-      name: app.name,
-      portalId: app.portalId,
-      isActive: app.isActive ?? true,
-    })
+  const columns = useMemo(
+    () => [
+      columnHelper.editable.text('name', 'Name', (row, value) => handleUpdate(row, 'name', value), {
+        variant: 'primary',
+      }),
+      columnHelper.text('appId', 'App ID', { variant: 'secondary' }),
+      columnHelper.editable.number('portalId', 'Portal ID', (row, value) => handleUpdate(row, 'portalId', value), {
+        min: 0,
+      }),
+      columnHelper.editable.toggle('isActive', 'Status', (row, value) => handleUpdate(row, 'isActive', value), {
+        defaultValue: true,
+      }),
+      columnHelper.date('createdAt', 'Created'),
+    ],
+    [handleUpdate]
+  )
+
+  const handleOpenCreate = () => {
+    setFormData(initialFormData)
+    setSheetOpen(true)
   }
 
   const handleClose = () => {
-    setSheetMode('closed')
-    setSelectedApp(null)
+    setSheetOpen(false)
     setFormData(initialFormData)
   }
 
-  const handleSave = async () => {
+  const handleCreate = async () => {
     if (!formData.appId || !formData.name) return
 
-    if (sheetMode === 'create') {
-      await createApp.mutateAsync({
-        appId: formData.appId,
-        name: formData.name,
-        portalId: formData.portalId,
-      } as CreateAppInput)
-    } else if (sheetMode === 'edit' && selectedApp) {
-      await updateApp.mutateAsync({
-        id: selectedApp.appId,
-        data: {
-          name: formData.name,
-          portalId: formData.portalId,
-          isActive: formData.isActive,
-        },
-      })
-    }
+    await createApp.mutateAsync({
+      appId: formData.appId,
+      name: formData.name,
+      portalId: formData.portalId,
+    } as CreateAppInput)
 
     handleClose()
   }
-
-  const isPending = createApp.isPending || updateApp.isPending
-  const isCreate = sheetMode === 'create'
 
   if (error) {
     return (
@@ -170,18 +123,17 @@ export function AppsPage() {
               <p>No apps yet. Create your first app.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={apps} onRowClick={handleRowClick} />
+            <DataTable columns={columns} data={apps} />
           )}
         </CardContent>
       </Card>
 
-      <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
+      {/* Create Sheet - only for new apps */}
+      <Sheet open={sheetOpen} onOpenChange={(open) => !open && handleClose()}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{isCreate ? 'Create App' : 'Edit App'}</SheetTitle>
-            <SheetDescription>
-              {isCreate ? 'Create a new app to link games to' : `Editing: ${selectedApp?.appId}`}
-            </SheetDescription>
+            <SheetTitle>Create App</SheetTitle>
+            <SheetDescription>Create a new app to link games to</SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
             <div className="space-y-2">
@@ -193,12 +145,9 @@ export function AppsPage() {
                 placeholder="e.g., my-app-001"
                 value={formData.appId}
                 onChange={(e) => setFormData({ ...formData, appId: e.target.value })}
-                disabled={!isCreate}
                 className="font-mono"
               />
-              {isCreate && (
-                <p className="text-xs text-muted-foreground">Unique identifier for the app</p>
-              )}
+              <p className="text-xs text-muted-foreground">Unique identifier for the app</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">
@@ -223,34 +172,17 @@ export function AppsPage() {
                 }
               />
             </div>
-            {!isCreate && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: !!checked })}
-                />
-                <Label htmlFor="isActive" className="cursor-pointer">
-                  Active
-                </Label>
-              </div>
-            )}
-            {!isCreate && selectedApp?.createdAt && (
-              <div className="space-y-2">
-                <Label>Created</Label>
-                <p className="text-sm text-muted-foreground">
-                  {dayjs(selectedApp.createdAt).format('MMMM D, YYYY')}
-                </p>
-              </div>
-            )}
           </div>
           <SheetFooter>
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!formData.appId || !formData.name || isPending}>
-              {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isCreate ? 'Create App' : 'Save changes'}
+            <Button
+              onClick={handleCreate}
+              disabled={!formData.appId || !formData.name || createApp.isPending}
+            >
+              {createApp.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create App
             </Button>
           </SheetFooter>
         </SheetContent>

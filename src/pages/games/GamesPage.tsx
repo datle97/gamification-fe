@@ -1,9 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import dayjs from 'dayjs'
-import type { ColumnDef } from '@tanstack/react-table'
-import { ExternalLink, Loader2, Plus } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -26,8 +24,11 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
-import { useCreateGame, useGames } from '@/hooks/queries'
+import { createColumnHelper } from '@/lib/column-helper'
+import { useCreateGame, useGames, useUpdateGame } from '@/hooks/queries'
 import type { CreateGameInput, Game, GameStatus, GameType } from '@/schemas/game.schema'
+
+const columnHelper = createColumnHelper<Game>()
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
@@ -56,85 +57,10 @@ const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | '
   ended: 'destructive',
 }
 
-const columns: ColumnDef<Game>[] = [
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('name')}</span>,
-  },
-  {
-    accessorKey: 'code',
-    header: 'Code',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('code')}</span>,
-  },
-  {
-    accessorKey: 'type',
-    header: 'Type',
-    cell: ({ row }) => {
-      const type = row.getValue('type') as GameType
-      return type ? (
-        <Badge variant="secondary">
-          {gameTypeLabels[type]}
-        </Badge>
-      ) : (
-        <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as GameStatus
-      return status ? (
-        <Badge variant={statusVariants[status]}>
-          {gameStatusLabels[status]}
-        </Badge>
-      ) : (
-        <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-  {
-    id: 'schedule',
-    header: 'Schedule',
-    cell: ({ row }) => {
-      const startAt = row.original.startAt
-      const endAt = row.original.endAt
-      if (!startAt && !endAt) {
-        return <span className="text-muted-foreground">-</span>
-      }
-      return (
-        <div className="text-sm text-muted-foreground">
-          {startAt ? dayjs(startAt).format('YYYY-MM-DD') : '∞'}
-          {' → '}
-          {endAt ? dayjs(endAt).format('YYYY-MM-DD') : '∞'}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'templateUrl',
-    header: 'Template',
-    cell: ({ row }) => {
-      const url = row.getValue('templateUrl') as string
-      return url ? (
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ExternalLink className="h-3 w-3 mr-1" />
-          Open
-        </a>
-      ) : (
-        <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-]
+const statusOptions = gameStatuses.map((status) => ({
+  value: status,
+  label: gameStatusLabels[status],
+}))
 
 interface FormData {
   code: string
@@ -164,9 +90,36 @@ export function GamesPage() {
   const navigate = useNavigate()
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
+  const updateGame = useUpdateGame()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+
+  const handleUpdateStatus = useCallback(
+    async (row: Game, status: GameStatus) => {
+      await updateGame.mutateAsync({
+        id: row.gameId,
+        data: { status },
+      })
+    },
+    [updateGame]
+  )
+
+  const columns = useMemo(
+    () => [
+      columnHelper.text('name', 'Name', { variant: 'primary' }),
+      columnHelper.text('code', 'Code', { variant: 'secondary' }),
+      columnHelper.badge('type', 'Type', { labels: gameTypeLabels }),
+      columnHelper.editable.select('status', 'Status', handleUpdateStatus, {
+        options: statusOptions,
+        labels: gameStatusLabels,
+        variants: statusVariants,
+      }),
+      columnHelper.dateRange('startAt', 'endAt', 'Schedule', { showTime: true }),
+      columnHelper.link('templateUrl', 'Template'),
+    ],
+    [handleUpdateStatus]
+  )
 
   const handleOpenCreate = () => {
     setFormData(initialFormData)
@@ -225,7 +178,11 @@ export function GamesPage() {
               <p>No games yet. Create your first game template.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={games} onRowClick={handleRowClick} />
+            <DataTable
+              columns={columns}
+              data={games}
+              onRowClick={handleRowClick}
+            />
           )}
         </CardContent>
       </Card>

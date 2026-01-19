@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { appsService } from '@/services/apps.service'
-import type { CreateAppInput, UpdateAppInput } from '@/schemas/app.schema'
+import type { CreateAppInput, UpdateAppInput, App } from '@/schemas/app.schema'
 
 export const appsKeys = {
   all: ['apps'] as const,
@@ -39,7 +39,36 @@ export function useUpdateApp() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateAppInput }) =>
       appsService.update(id, data),
-    onSuccess: (_, { id }) => {
+    onMutate: async ({ id, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: appsKeys.all })
+      await queryClient.cancelQueries({ queryKey: appsKeys.detail(id) })
+
+      // Snapshot the previous value
+      const previousApps = queryClient.getQueryData(appsKeys.all)
+      const previousApp = queryClient.getQueryData(appsKeys.detail(id))
+
+      // Optimistically update the cache
+      queryClient.setQueryData(appsKeys.all, (old: App[] | undefined) =>
+        old?.map((a) => (a.appId === id ? { ...a, ...data } : a))
+      )
+      queryClient.setQueryData(appsKeys.detail(id), (old: App | undefined) =>
+        old ? { ...old, ...data } : old
+      )
+
+      return { previousApps, previousApp, id }
+    },
+    onError: (_, { id }, context) => {
+      // Rollback on error
+      if (context?.previousApps) {
+        queryClient.setQueryData(appsKeys.all, context.previousApps)
+      }
+      if (context?.previousApp) {
+        queryClient.setQueryData(appsKeys.detail(id), context.previousApp)
+      }
+    },
+    onSettled: (_, __, { id }) => {
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: appsKeys.all })
       queryClient.invalidateQueries({ queryKey: appsKeys.detail(id) })
     },
