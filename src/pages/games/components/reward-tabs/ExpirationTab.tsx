@@ -148,57 +148,21 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
       {mode === 'fixed' && (
         <div className="space-y-4">
           <h4 className="text-sm font-semibold">Fixed Expiration Date</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>
-                Date <span className="text-destructive">*</span>
-              </Label>
-              <DatePicker
-                value={config?.date ? dayjs(config.date).toDate() : undefined}
-                onChange={(date) => {
-                  if (!date) {
-                    updateExpirationConfig({ mode: 'fixed', date: undefined })
-                    return
-                  }
-
-                  // Preserve current time from existing config, default to 00:00:00
-                  const currentTime = config?.date ? dayjs(config.date) : dayjs().hour(0).minute(0)
-                  const updatedDate = dayjs(date)
-                    .hour(currentTime.hour())
-                    .minute(currentTime.minute())
-                    .second(0)
-
-                  updateExpirationConfig({
-                    mode: 'fixed',
-                    date: updatedDate.toISOString(),
-                  })
-                }}
-                placeholder="Select date"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fixedTime">
-                Time <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="fixedTime"
-                type="time"
-                value={config?.date ? dayjs(config.date).format('HH:mm') : '00:00'}
-                onChange={(e) => {
-                  const timeValue = e.target.value
-                  if (!timeValue) return
-
-                  const [hours, minutes] = timeValue.split(':').map(Number)
-                  const date = config?.date ? dayjs(config.date) : dayjs()
-                  const updatedDate = date.hour(hours).minute(minutes).second(0)
-
-                  updateExpirationConfig({
-                    mode: 'fixed',
-                    date: updatedDate.toISOString(),
-                  })
-                }}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>
+              Date & Time <span className="text-destructive">*</span>
+            </Label>
+            <DatePicker
+              value={config?.date ? dayjs(config.date).toDate() : undefined}
+              onChange={(date) => {
+                updateExpirationConfig({
+                  mode: 'fixed',
+                  date: date ? dayjs(date).toISOString() : undefined,
+                })
+              }}
+              placeholder="Select date and time"
+              showTime
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             All rewards will expire on this specific date and time, regardless of when they were

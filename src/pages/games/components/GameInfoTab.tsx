@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DatePicker } from '@/components/ui/date-picker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -157,33 +157,22 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Start Date</Label>
-            <DatePicker
-              value={formData.startAt ? dayjs(formData.startAt).toDate() : undefined}
-              onChange={(date) =>
-                setFormData({
-                  ...formData,
-                  startAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
-                })
-              }
-              placeholder="Select start date"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>End Date</Label>
-            <DatePicker
-              value={formData.endAt ? dayjs(formData.endAt).toDate() : undefined}
-              onChange={(date) =>
-                setFormData({
-                  ...formData,
-                  endAt: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
-                })
-              }
-              placeholder="Select end date"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label>Duration</Label>
+          <DateRangePicker
+            value={{
+              from: formData.startAt ? dayjs(formData.startAt).toDate() : undefined,
+              to: formData.endAt ? dayjs(formData.endAt).toDate() : undefined,
+            }}
+            onChange={(range) =>
+              setFormData({
+                ...formData,
+                startAt: range?.from ? dayjs(range.from).toISOString() : null,
+                endAt: range?.to ? dayjs(range.to).toISOString() : null,
+              })
+            }
+            placeholder="Select date range"
+          />
         </div>
 
         <div className="space-y-2">

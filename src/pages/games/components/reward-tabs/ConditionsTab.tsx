@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -673,51 +674,24 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             <p className="text-sm text-muted-foreground">
               Unlock this reward only during specific time windows
             </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="datetime-local"
-                  value={
-                    conds.timeWindow?.startDate
-                      ? dayjs(conds.timeWindow.startDate).format('YYYY-MM-DDTHH:mm')
-                      : ''
-                  }
-                  onChange={(e) =>
-                    updateConditions({
-                      timeWindow: {
-                        ...conds.timeWindow,
-                        startDate: e.target.value
-                          ? dayjs(e.target.value).toISOString()
-                          : undefined,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="datetime-local"
-                  value={
-                    conds.timeWindow?.endDate
-                      ? dayjs(conds.timeWindow.endDate).format('YYYY-MM-DDTHH:mm')
-                      : ''
-                  }
-                  onChange={(e) =>
-                    updateConditions({
-                      timeWindow: {
-                        ...conds.timeWindow,
-                        endDate: e.target.value
-                          ? dayjs(e.target.value).toISOString()
-                          : undefined,
-                      },
-                    })
-                  }
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Date Range</Label>
+              <DateRangePicker
+                value={{
+                  from: conds.timeWindow?.startDate ? dayjs(conds.timeWindow.startDate).toDate() : undefined,
+                  to: conds.timeWindow?.endDate ? dayjs(conds.timeWindow.endDate).toDate() : undefined,
+                }}
+                onChange={(range) =>
+                  updateConditions({
+                    timeWindow: {
+                      ...conds.timeWindow,
+                      startDate: range?.from ? dayjs(range.from).toISOString() : undefined,
+                      endDate: range?.to ? dayjs(range.to).toISOString() : undefined,
+                    },
+                  })
+                }
+                placeholder="Select date range"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

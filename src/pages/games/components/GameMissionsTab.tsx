@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
-import { DatePicker } from '@/components/ui/date-picker'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Sheet,
@@ -574,33 +574,22 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
             {/* Schedule */}
             <div className="space-y-4 pt-4 border-t">
               <h4 className="text-sm font-medium text-muted-foreground">Schedule</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <DatePicker
-                    value={formData.startDate ? dayjs(formData.startDate).toDate() : undefined}
-                    onChange={(date) =>
-                      setFormData({
-                        ...formData,
-                        startDate: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
-                      })
-                    }
-                    placeholder="Select start date"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <DatePicker
-                    value={formData.endDate ? dayjs(formData.endDate).toDate() : undefined}
-                    onChange={(date) =>
-                      setFormData({
-                        ...formData,
-                        endDate: date ? dayjs(date).format('YYYY-MM-DDTHH:mm:ss[Z]') : null,
-                      })
-                    }
-                    placeholder="Select end date"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>Duration</Label>
+                <DateRangePicker
+                  value={{
+                    from: formData.startDate ? dayjs(formData.startDate).toDate() : undefined,
+                    to: formData.endDate ? dayjs(formData.endDate).toDate() : undefined,
+                  }}
+                  onChange={(range) =>
+                    setFormData({
+                      ...formData,
+                      startDate: range?.from ? dayjs(range.from).toISOString() : null,
+                      endDate: range?.to ? dayjs(range.to).toISOString() : null,
+                    })
+                  }
+                  placeholder="Select date range"
+                />
               </div>
             </div>
 
