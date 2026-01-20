@@ -11,6 +11,8 @@ import { createColumnHelper } from '@/lib/column-helper'
 import { useGameUsers, useGameStats } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useNavigate } from 'react-router'
+import { useAnalytics } from '@/stores/settingsStore'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import type { GameUser } from '@/services/game-users.service'
 
 dayjs.extend(relativeTime)
@@ -23,6 +25,7 @@ interface GameUsersTabProps {
 
 export function GameUsersTab({ gameId }: GameUsersTabProps) {
   const navigate = useNavigate()
+  const showAnalytics = useAnalytics()
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
   const limit = 20
@@ -92,52 +95,56 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="text-2xl font-bold text-muted-foreground">...</div>
-            ) : (
-              <div className="text-2xl font-bold">{stats?.totalUsers.toLocaleString() || 0}</div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Stats Cards - show AnalyticsDisabledCard when analytics disabled */}
+      {showAnalytics ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold text-muted-foreground">...</div>
+              ) : (
+                <div className="text-2xl font-bold">{stats?.totalUsers.toLocaleString() || 0}</div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Today</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="text-2xl font-bold text-muted-foreground">...</div>
-            ) : (
-              <div className="text-2xl font-bold">{stats?.activeToday.toLocaleString() || 0}</div>
-            )}
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Today</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold text-muted-foreground">...</div>
+              ) : (
+                <div className="text-2xl font-bold">{stats?.activeToday.toLocaleString() || 0}</div>
+              )}
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Last 7 Days</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <div className="text-2xl font-bold text-muted-foreground">...</div>
-            ) : (
-              <div className="text-2xl font-bold">
-                {stats?.activeLast7Days.toLocaleString() || 0}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Last 7 Days</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <div className="text-2xl font-bold text-muted-foreground">...</div>
+              ) : (
+                <div className="text-2xl font-bold">
+                  {stats?.activeLast7Days.toLocaleString() || 0}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <AnalyticsDisabledCard description="Enable analytics to see user statistics like total users, active today, and weekly active users." />
+      )}
 
       {/* Users Table */}
       <Card>
@@ -184,7 +191,6 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
           />
         </CardContent>
       </Card>
-
     </div>
   )
 }

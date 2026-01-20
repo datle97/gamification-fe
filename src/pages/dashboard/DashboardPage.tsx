@@ -83,6 +83,19 @@ export function DashboardPage() {
     []
   )
 
+  // Show analytics disabled card when analytics is off
+  if (!showAnalytics) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of your gamification system</p>
+        </div>
+        <AnalyticsDisabledCard description="Enable analytics to see dashboard statistics, recent winners, rewards distribution, and top games." />
+      </div>
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -160,7 +173,7 @@ return (
       </div>
 
       {/* Stats Cards */}
-      <div className={`grid gap-4 ${showAnalytics ? 'grid-cols-4' : 'grid-cols-3'}`}>
+      <div className="grid gap-4 grid-cols-4">
         <Card className="relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-br from-primary/10 to-primary/5 rounded-bl-full" />
           <CardHeader className="pb-2">
@@ -209,155 +222,142 @@ return (
             <p className="text-3xl font-bold tabular-nums">
               {stats.totalUsers.toLocaleString()}
             </p>
-            {showAnalytics && (
-              <p className="text-sm text-muted-foreground mt-1">
-                <span className="text-primary font-medium">{stats.activeUsersToday}</span> active today
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground mt-1">
+              <span className="text-primary font-medium">{stats.activeUsersToday}</span> active today
+            </p>
           </CardContent>
         </Card>
 
-        {showAnalytics && (
-          <Card className="relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-br from-primary/10 to-primary/5 rounded-bl-full" />
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <CardDescription className="font-medium">Active (7 days)</CardDescription>
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-br from-primary/10 to-primary/5 rounded-bl-full" />
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Calendar className="h-5 w-5 text-primary" />
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold tabular-nums">
-                {stats.activeUsersLast7Days.toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">users in last week</p>
-            </CardContent>
-          </Card>
-        )}
+              <CardDescription className="font-medium">Active (7 days)</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold tabular-nums">
+              {stats.activeUsersLast7Days.toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">users in last week</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Analytics Disabled Placeholder */}
-      {!showAnalytics && (
-        <AnalyticsDisabledCard description="Enable analytics to see recent winners, rewards distribution, top games, and active user stats." />
-      )}
-
       {/* Recent Winners & Rewards Distribution */}
-      {showAnalytics && (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Recent Winners */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Recent Winners</CardTitle>
-                  <CardDescription>Current period leaders across games</CardDescription>
-                </div>
-                <Trophy className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <DataTable
-                columns={winnerColumns}
-                data={stats.recentWinners.slice(0, 5)}
-                emptyMessage="No leaderboard data available"
-                onRowClick={(winner) => navigate(`/games/${winner.gameId}?tab=leaderboard`)}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Rewards Distribution */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Rewards Distribution</CardTitle>
-                  <CardDescription>Top games by rewards distributed</CardDescription>
-                </div>
-                <Gift className="h-5 w-5 text-muted-foreground" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {stats.rewardsDistribution.totalDistributed === 0 ? (
-                <div className="text-center py-6 text-muted-foreground text-sm">
-                  No rewards distributed yet
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold tabular-nums">
-                      {stats.rewardsDistribution.totalDistributed.toLocaleString()}
-                    </span>
-                    <span className="text-sm text-muted-foreground">total rewards</span>
-                  </div>
-                  <div className="space-y-2">
-                    {stats.rewardsDistribution.byGame.map((game) => (
-                      <div
-                        key={game.gameId}
-                        className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
-                        onClick={() => navigate(`/games/${game.gameId}?tab=rewards`)}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{game.gameName}</span>
-                            <div className="text-sm text-right">
-                              <span className="tabular-nums font-medium">
-                                {game.count.toLocaleString()}
-                              </span>
-                              <span className="text-muted-foreground ml-1">
-                                / {game.quota !== null ? game.quota.toLocaleString() : 'Unlimited'}
-                                {game.quotaUsage !== null && ` (${game.quotaUsage}%)`}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-                            <div
-                              className={`h-full rounded-full transition-all ${
-                                game.quotaUsage === null
-                                  ? 'bg-primary/50'
-                                  : game.quotaUsage >= 90
-                                    ? 'bg-destructive'
-                                    : game.quotaUsage >= 70
-                                      ? 'bg-yellow-500'
-                                      : 'bg-primary'
-                              }`}
-                              style={{ width: game.quotaUsage !== null ? `${Math.min(game.quotaUsage, 100)}%` : '100%' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Top Games Table */}
-      {showAnalytics && (
+      <div className="grid grid-cols-2 gap-4">
+        {/* Recent Winners */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Top Games by Users</CardTitle>
-                <CardDescription>Most popular games ranked by total users</CardDescription>
+                <CardTitle>Recent Winners</CardTitle>
+                <CardDescription>Current period leaders across games</CardDescription>
               </div>
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              <Trophy className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardHeader>
           <CardContent>
             <DataTable
-              columns={topGameColumns}
-              data={stats.topGames}
-              emptyMessage="No games available"
-              onRowClick={(game) => navigate(`/games/${game.gameId}`)}
+              columns={winnerColumns}
+              data={stats.recentWinners.slice(0, 5)}
+              emptyMessage="No leaderboard data available"
+              onRowClick={(winner) => navigate(`/games/${winner.gameId}?tab=leaderboard`)}
             />
           </CardContent>
         </Card>
-      )}
+
+        {/* Rewards Distribution */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Rewards Distribution</CardTitle>
+                <CardDescription>Top games by rewards distributed</CardDescription>
+              </div>
+              <Gift className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {stats.rewardsDistribution.totalDistributed === 0 ? (
+              <div className="text-center py-6 text-muted-foreground text-sm">
+                No rewards distributed yet
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tabular-nums">
+                    {stats.rewardsDistribution.totalDistributed.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-muted-foreground">total rewards</span>
+                </div>
+                <div className="space-y-2">
+                  {stats.rewardsDistribution.byGame.map((game) => (
+                    <div
+                      key={game.gameId}
+                      className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                      onClick={() => navigate(`/games/${game.gameId}?tab=rewards`)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{game.gameName}</span>
+                          <div className="text-sm text-right">
+                            <span className="tabular-nums font-medium">
+                              {game.count.toLocaleString()}
+                            </span>
+                            <span className="text-muted-foreground ml-1">
+                              / {game.quota !== null ? game.quota.toLocaleString() : 'Unlimited'}
+                              {game.quotaUsage !== null && ` (${game.quotaUsage}%)`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              game.quotaUsage === null
+                                ? 'bg-primary/50'
+                                : game.quotaUsage >= 90
+                                  ? 'bg-destructive'
+                                  : game.quotaUsage >= 70
+                                    ? 'bg-yellow-500'
+                                    : 'bg-primary'
+                            }`}
+                            style={{ width: game.quotaUsage !== null ? `${Math.min(game.quotaUsage, 100)}%` : '100%' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Games Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Top Games by Users</CardTitle>
+              <CardDescription>Most popular games ranked by total users</CardDescription>
+            </div>
+            <TrendingUp className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={topGameColumns}
+            data={stats.topGames}
+            emptyMessage="No games available"
+            onRowClick={(game) => navigate(`/games/${game.gameId}`)}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

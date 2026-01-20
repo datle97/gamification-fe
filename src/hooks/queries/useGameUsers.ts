@@ -7,6 +7,7 @@ import {
   type TestPlayInput,
 } from '@/services/game-users.service'
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
+import { useAnalytics } from '@/stores/settingsStore'
 
 export const gameUsersKeys = {
   all: ['game-users'] as const,
@@ -28,10 +29,11 @@ export function useGameUsers(params: ListGameUsersParams) {
 
 export function useGameStats(gameId: string) {
   const refetchInterval = useRefetchInterval()
+  const showAnalytics = useAnalytics()
   return useQuery({
     queryKey: gameUsersKeys.stats(gameId),
     queryFn: () => gameUsersService.getStats(gameId),
-    enabled: !!gameId,
+    enabled: !!gameId && showAnalytics,
     refetchInterval,
   })
 }

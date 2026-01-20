@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { rewardsService } from '@/services/rewards.service'
+import { useAnalytics } from '@/stores/settingsStore'
 import type { CreateRewardInput, UpdateRewardInput, Reward } from '@/schemas/reward.schema'
 
 export const rewardsKeys = {
@@ -80,9 +81,10 @@ export function useDeleteReward() {
 }
 
 export function useRewardDistribution(gameId: string) {
+  const showAnalytics = useAnalytics()
   return useQuery({
     queryKey: rewardsKeys.distribution(gameId),
     queryFn: () => rewardsService.getDistribution(gameId),
-    enabled: !!gameId,
+    enabled: !!gameId && showAnalytics,
   })
 }

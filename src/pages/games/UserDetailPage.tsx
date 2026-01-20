@@ -57,6 +57,7 @@ import {
   useGame,
 } from '@/hooks/queries'
 import { useDevMode, useAnalytics } from '@/stores/settingsStore'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
 import { useFormatDate } from '@/hooks/useFormatDate'
 import type { ActivityType } from '@/services/game-users.service'
@@ -1027,7 +1028,7 @@ export function UserDetailPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Activity Over Time Chart */}
-          {showAnalytics && (
+          {showAnalytics ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Plays & Rewards (14 Days)</CardTitle>
@@ -1086,6 +1087,8 @@ export function UserDetailPage() {
                 )}
               </CardContent>
             </Card>
+          ) : (
+            <AnalyticsDisabledCard description="Enable analytics to see user activity charts." />
           )}
 
           {/* Recent Activity */}
