@@ -7,7 +7,8 @@ export type AutoRefreshInterval = 0 | 30 | 60 | 120 | 300 // 0 = disabled, secon
 interface SettingsState {
   // Feature flags
   features: {
-    adminTestingTools: boolean // grant turns, reset missions, revoke rewards
+    devMode: boolean // grant turns, reset missions, revoke rewards
+    analytics: boolean // charts, heavy queries
   }
 
   // UI preferences
@@ -29,11 +30,16 @@ interface SettingsState {
 
 // Default values based on environment
 export const getDefaultFeatures = () => ({
-  adminTestingTools: import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_FEATURES === 'true',
+  devMode:
+    import.meta.env.VITE_DEV_MODE === 'true' ||
+    (import.meta.env.VITE_DEV_MODE !== 'false' && import.meta.env.VITE_ENV !== 'production'),
+  analytics:
+    import.meta.env.VITE_ANALYTICS === 'true' ||
+    (import.meta.env.VITE_ANALYTICS !== 'false' && import.meta.env.VITE_ENV !== 'production'),
 })
 
 export const getDefaultUI = () => ({
-  darkMode: localStorage.getItem('theme') === 'dark',
+  darkMode: localStorage.getItem('theme') !== 'light',
   compactTables: false,
   dateFormat: 'DD/MM/YYYY' as DateFormat,
   autoRefreshInterval: 0 as AutoRefreshInterval,
@@ -73,8 +79,19 @@ export const useSettingsStore = create<SettingsState>()(
 )
 
 // Selector hooks for convenience
-export const useAdminTestingTools = () =>
-  useSettingsStore((state) => state.features.adminTestingTools)
+export const useDevMode = () => {
+  const fromSettings = useSettingsStore((state) => state.features.devMode)
+  // Never allow on production, regardless of settings
+  if (import.meta.env.VITE_ENV === 'production') return false
+  return fromSettings
+}
+
+export const useAnalytics = () => {
+  const fromSettings = useSettingsStore((state) => state.features.analytics)
+  // Never allow on production, regardless of settings
+  if (import.meta.env.VITE_ENV === 'production') return false
+  return fromSettings
+}
 
 export const useTablePageSize = () => useSettingsStore((state) => state.ui.tablePageSize)
 

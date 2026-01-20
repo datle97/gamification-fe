@@ -52,7 +52,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useAdminTestingTools } from '@/stores/settingsStore'
+import { useDevMode } from '@/stores/settingsStore'
 import { Badge } from '@/components/ui/badge'
 import parse from 'html-react-parser'
 import { useFormatDate } from '@/hooks/useFormatDate'
@@ -210,7 +210,7 @@ interface UserDetailSheetProps {
 
 export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDetailSheetProps) {
   const navigate = useNavigate()
-  const isDevMode = useAdminTestingTools()
+  const isDevMode = useDevMode()
   const { formatDate, formatDateTime } = useFormatDate()
   const { data: userGame, isLoading } = useGameUserDetail(gameId, userId || '')
   const { data: turns } = useUserTurns(gameId, userId || '')

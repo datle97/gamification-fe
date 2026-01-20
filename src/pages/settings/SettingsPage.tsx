@@ -27,12 +27,15 @@ import {
   Calendar,
   RefreshCw,
   Table,
+  Wrench,
+  BarChart3,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 interface LocalSettings {
   features: {
-    adminTestingTools: boolean
+    devMode: boolean
+    analytics: boolean
   }
   ui: {
     darkMode: boolean
@@ -64,7 +67,8 @@ export function SettingsPage() {
   // Check if there are unsaved changes
   const hasChanges = useMemo(() => {
     return (
-      local.features.adminTestingTools !== features.adminTestingTools ||
+      local.features.devMode !== features.devMode ||
+      local.features.analytics !== features.analytics ||
       local.ui.darkMode !== ui.darkMode ||
       local.ui.compactTables !== ui.compactTables ||
       local.ui.dateFormat !== ui.dateFormat ||
@@ -146,18 +150,40 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="adminTestingTools" className="text-base">
-                  Admin Testing Tools
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Show testing tools like grant turns, reset missions, and revoke rewards
-                </p>
+              <div className="flex items-center gap-3">
+                <Wrench className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="devMode" className="text-base">
+                    Dev Mode
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show testing tools like grant turns, reset missions, and revoke rewards
+                  </p>
+                </div>
               </div>
               <Switch
-                id="adminTestingTools"
-                checked={local.features.adminTestingTools}
-                onCheckedChange={(checked) => setFeature('adminTestingTools', checked)}
+                id="devMode"
+                checked={local.features.devMode}
+                onCheckedChange={(checked) => setFeature('devMode', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <div className="space-y-0.5">
+                  <Label htmlFor="analytics" className="text-base">
+                    Analytics
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show charts and analytics visualizations
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="analytics"
+                checked={local.features.analytics}
+                onCheckedChange={(checked) => setFeature('analytics', checked)}
               />
             </div>
           </CardContent>

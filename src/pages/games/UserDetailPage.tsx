@@ -56,7 +56,7 @@ import {
   useUpdateUserAttributes,
   useGame,
 } from '@/hooks/queries'
-import { useAdminTestingTools } from '@/stores/settingsStore'
+import { useDevMode, useAnalytics } from '@/stores/settingsStore'
 import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
 import { useFormatDate } from '@/hooks/useFormatDate'
 import type { ActivityType } from '@/services/game-users.service'
@@ -412,7 +412,8 @@ export function UserDetailPage() {
 
   const currentTab = (searchParams.get('tab') as TabValue) || 'overview'
 
-  const isDevMode = useAdminTestingTools()
+  const isDevMode = useDevMode()
+  const showAnalytics = useAnalytics()
 
   // Data fetching
   const { data: game } = useGame(gameId!)
@@ -1026,7 +1027,8 @@ export function UserDetailPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Activity Over Time Chart */}
-          <Card>
+          {showAnalytics && (
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Plays & Rewards (14 Days)</CardTitle>
               </CardHeader>
@@ -1084,6 +1086,7 @@ export function UserDetailPage() {
                 )}
               </CardContent>
             </Card>
+          )}
 
           {/* Recent Activity */}
           <Card>

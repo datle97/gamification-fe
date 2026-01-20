@@ -20,6 +20,7 @@ import {
   useDeleteReward,
   useBatchUpdateRewards,
 } from '@/hooks/queries'
+import { useAnalytics } from '@/stores/settingsStore'
 import {
   rewardCategoryLabels,
   handlerTypeLabels,
@@ -84,6 +85,7 @@ interface GameRewardsTabProps {
 }
 
 export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
+  const showAnalytics = useAnalytics()
   const { data: rewards = [], isLoading } = useRewardsByGame(gameId)
   const createReward = useCreateReward()
   const updateReward = useUpdateReward()
@@ -246,7 +248,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
 
   return (
     <div className="space-y-6">
-      <RewardsDistributionCard gameId={gameId} />
+      {showAnalytics && <RewardsDistributionCard gameId={gameId} />}
 
       <Card>
         <CardHeader>
