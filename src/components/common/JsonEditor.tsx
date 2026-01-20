@@ -9,9 +9,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { memo, useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
+import { Check, ChevronDown, ChevronRight, Code, Pencil, Plus, Trash2, TreeDeciduous, X } from 'lucide-react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Lazy load heavy RichTextEditor
 const RichTextEditor = lazy(() =>
@@ -139,7 +140,7 @@ interface TypeSelectorProps {
 const TypeSelector = memo(function TypeSelector({ value, onChange }: TypeSelectorProps) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as ValueType)}>
-      <SelectTrigger className="h-7 w-24 text-xs">
+      <SelectTrigger className="h-8! w-24 text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -416,11 +417,11 @@ const JsonNode = memo(function JsonNode({
   }, [keyName])
 
   return (
-    <div className="group">
-      <div className={cn('flex items-center gap-1', isEditing ? 'py-1' : 'py-0.5')}>
+    <div>
+      <div className={cn('group/node flex items-center gap-1', isEditing ? 'py-1' : 'py-0.5')}>
         {/* Collapse toggle for collections */}
         <div className="w-5 flex-shrink-0 flex items-center justify-center">
-          {isCollection && (
+          {isCollection && !isEditing && (
             <button
               onClick={() => setCollapsed(!collapsed)}
               className="p-0.5 hover:bg-muted rounded"
@@ -461,33 +462,20 @@ const JsonNode = memo(function JsonNode({
 
         {/* Value */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
-          {isCollection ? (
-            <span className="inline-flex items-center gap-2">
-              <TypeBadge type={currentType} />
-              <span className="text-sm text-muted-foreground">
-                {currentType === 'object' ? '{' : '['}
-                {collapsed && (
-                  <span className="ml-1">
-                    {currentType === 'object'
-                      ? `${Object.keys(value as JsonObject).length} items`
-                      : `${(value as JsonArray).length} items`}
-                  </span>
-                )}
-                {collapsed && (currentType === 'object' ? '}' : ']')}
-              </span>
-            </span>
-          ) : isEditing ? (
-            <div className="flex items-start gap-2 flex-1">
+          {isEditing ? (
+            <div className="flex items-center gap-2 flex-1">
               <TypeSelector value={editType} onChange={handleTypeChange} />
-              <div className="flex-1">
-                <ValueEditor
-                  value={value}
-                  type={editType}
-                  onChange={handleValueChange}
-                  onCancel={() => setIsEditing(false)}
-                  autoFocus
-                />
-              </div>
+              {editType !== 'object' && editType !== 'array' && (
+                <div className="flex-1">
+                  <ValueEditor
+                    value={value}
+                    type={editType}
+                    onChange={handleValueChange}
+                    onCancel={() => setIsEditing(false)}
+                    autoFocus
+                  />
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -505,27 +493,52 @@ const JsonNode = memo(function JsonNode({
                 <X className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
+          ) : isCollection ? (
+            <span
+              className="inline-flex items-center gap-2 cursor-pointer"
+              onDoubleClick={() => {
+                setEditType(currentType)
+                setIsEditing(true)
+              }}
+            >
+              <TypeBadge type={currentType} />
+              <span className="text-sm text-muted-foreground">
+                {currentType === 'object' ? '{' : '['}
+                {collapsed && (
+                  <span className="ml-1">
+                    {currentType === 'object'
+                      ? `${Object.keys(value as JsonObject).length} items`
+                      : `${(value as JsonArray).length} items`}
+                  </span>
+                )}
+                {collapsed && (currentType === 'object' ? '}' : ']')}
+              </span>
+            </span>
           ) : (
             <ValueDisplay
               value={value}
               type={currentType}
-              onDoubleClick={() => setIsEditing(true)}
+              onDoubleClick={() => {
+                setEditType(currentType)
+                setIsEditing(true)
+              }}
             />
           )}
 
           {/* Actions */}
           {!isEditing && (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              {!isCollection && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </Button>
-              )}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => {
+                  setEditType(currentType)
+                  setIsEditing(true)
+                }}
+              >
+                <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+              </Button>
               {isCollection && (
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAddChild}>
                   <Plus className="h-3 w-3 text-muted-foreground hover:text-foreground" />
@@ -587,7 +600,13 @@ const JsonNode = memo(function JsonNode({
 // Main Component
 // ============================================================================
 
+type EditorMode = 'visual' | 'code'
+
 export function JsonEditor({ value, onChange, className }: JsonEditorProps) {
+  const [mode, setMode] = useState<EditorMode>('visual')
+  const [codeValue, setCodeValue] = useState(value)
+  const [codeError, setCodeError] = useState<string | null>(null)
+
   // Track the last value we sent to parent to detect external changes
   const lastSentValueRef = useRef(value)
   const [data, setData] = useState<JsonObject>(() => parseJson(value))
@@ -622,9 +641,19 @@ export function JsonEditor({ value, onChange, className }: JsonEditorProps) {
       const parsed = parseJson(value)
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setData(parsed)
+      setCodeValue(value)
       lastSentValueRef.current = value
     }
   }, [value])
+
+  // Sync code value when switching to code mode
+  useEffect(() => {
+    if (mode === 'code') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCodeValue(JSON.stringify(data, null, 2))
+      setCodeError(null)
+    }
+  }, [mode, data])
 
   const handleValueChange = useCallback(
     (path: string[], newValue: JsonValue) => {
@@ -676,48 +705,105 @@ export function JsonEditor({ value, onChange, className }: JsonEditorProps) {
     })
   }, [debouncedOnChange])
 
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setCodeValue(newCode)
+      try {
+        const parsed = JSON.parse(newCode || '{}')
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          setCodeError(null)
+          setData(parsed)
+          debouncedOnChange(newCode)
+        } else {
+          setCodeError('Must be a JSON object')
+        }
+      } catch (e) {
+        setCodeError((e as Error).message)
+      }
+    },
+    [debouncedOnChange]
+  )
+
   const isEmpty = Object.keys(data).length === 0
 
   return (
-    <div className={cn('rounded-md border p-3', className)}>
-      {isEmpty ? (
-        <div className="flex items-center justify-center py-6">
-          <Button variant="outline" size="sm" onClick={handleAddRoot} className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Add field
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="text-sm text-muted-foreground">{'{'}</div>
-          <div className="ml-2">
-            {Object.entries(data).map(([key, val]) => (
-              <JsonNode
-                key={key}
-                keyName={key}
-                value={val}
-                path={[key]}
-                onValueChange={handleValueChange}
-                onDelete={handleDelete}
-                onRename={handleRename}
-                level={0}
-              />
-            ))}
+    <div className={cn('rounded-md border', className)}>
+      {/* Mode toggle */}
+      <div className="flex items-center justify-end gap-1 px-2 py-1.5 border-b bg-muted/30">
+        <Button
+          variant={mode === 'visual' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-6 px-2 text-xs gap-1"
+          onClick={() => setMode('visual')}
+        >
+          <TreeDeciduous className="h-3 w-3" />
+          Visual
+        </Button>
+        <Button
+          variant={mode === 'code' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-6 px-2 text-xs gap-1"
+          onClick={() => setMode('code')}
+        >
+          <Code className="h-3 w-3" />
+          Code
+        </Button>
+      </div>
+
+      {/* Editor content */}
+      <div className="p-3">
+        {mode === 'code' ? (
+          <div className="space-y-2">
+            <Textarea
+              value={codeValue}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              className={cn(
+                'font-mono text-sm min-h-[200px] resize-y',
+                codeError && 'border-destructive focus-visible:ring-destructive'
+              )}
+              placeholder='{"key": "value"}'
+            />
+            {codeError && <p className="text-xs text-destructive">{codeError}</p>}
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">{'}'}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleAddRoot}
-              className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Plus className="h-3 w-3" />
+        ) : isEmpty ? (
+          <div className="flex items-center justify-center py-6">
+            <Button variant="outline" size="sm" onClick={handleAddRoot} className="gap-1.5">
+              <Plus className="h-4 w-4" />
               Add field
             </Button>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="text-sm text-muted-foreground">{'{'}</div>
+            <div className="ml-2">
+              {Object.entries(data).map(([key, val]) => (
+                <JsonNode
+                  key={key}
+                  keyName={key}
+                  value={val}
+                  path={[key]}
+                  onValueChange={handleValueChange}
+                  onDelete={handleDelete}
+                  onRename={handleRename}
+                  level={0}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{'}'}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAddRoot}
+                className="h-6 gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3 w-3" />
+                Add field
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
