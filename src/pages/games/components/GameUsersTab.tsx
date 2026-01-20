@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { createColumnHelper } from '@/lib/column-helper'
 import { useGameUsers, useGameStats } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
-import { UserDetailSheet } from './UserDetailSheet'
+import { useNavigate } from 'react-router'
 import type { GameUser } from '@/services/game-users.service'
 
 dayjs.extend(relativeTime)
@@ -22,10 +22,9 @@ interface GameUsersTabProps {
 }
 
 export function GameUsersTab({ gameId }: GameUsersTabProps) {
+  const navigate = useNavigate()
   const [searchInput, setSearchInput] = useState('')
   const [page, setPage] = useState(1)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [sheetOpen, setSheetOpen] = useState(false)
   const limit = 20
 
   const debouncedSearch = useDebounce(searchInput, 300)
@@ -56,8 +55,7 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
   }
 
   const handleRowClick = (userId: string) => {
-    setSelectedUserId(userId)
-    setSheetOpen(true)
+    navigate(`/games/${gameId}/users/${userId}`)
   }
 
   const columns = useMemo(
@@ -187,13 +185,6 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
         </CardContent>
       </Card>
 
-      {/* User Detail Sheet */}
-      <UserDetailSheet
-        gameId={gameId}
-        userId={selectedUserId}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </div>
   )
 }
