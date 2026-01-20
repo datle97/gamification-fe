@@ -1,3 +1,4 @@
+import { MetadataEditor } from '@/components/common/MetadataEditor'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -78,17 +79,12 @@ export function BasicTab({ formData, onChange, isCreate, selectedReward }: Basic
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="metadata">Metadata (JSON)</Label>
-          <Textarea
-            id="metadata"
-            placeholder='{"tnc": "Terms and conditions..."}'
+          <Label>Metadata</Label>
+          <MetadataEditor
             value={formData.metadata}
-            onChange={(e) => onChange({ metadata: e.target.value })}
-            className="min-h-20 font-mono text-sm"
+            onChange={(value) => onChange({ metadata: value })}
+            placeholder="Add custom metadata fields for frontend display"
           />
-          <p className="text-xs text-muted-foreground">
-            Custom metadata for frontend display (e.g., terms, icons, extra info)
-          </p>
         </div>
       </div>
 
