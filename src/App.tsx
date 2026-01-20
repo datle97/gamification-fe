@@ -2,14 +2,29 @@ import { AuthGuard, ThemeProvider } from '@/components/common'
 import { MainLayout } from '@/components/layouts'
 import { Toaster } from '@/components/ui/sonner'
 import { queryClient } from '@/lib/query-client'
-import { AppGamesPage } from '@/pages/app-games'
-import { AppsPage } from '@/pages/apps'
-import { DashboardPage } from '@/pages/dashboard'
-import { GameDetailPage, GamesPage, UserDetailPage } from '@/pages/games'
-import { LoginPage } from '@/pages/login'
-import { SettingsPage } from '@/pages/settings'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { lazy, Suspense } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router'
+
+// Lazy load pages
+const LoginPage = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
+const DashboardPage = lazy(() =>
+  import('@/pages/dashboard').then((m) => ({ default: m.DashboardPage }))
+)
+const GamesPage = lazy(() => import('@/pages/games').then((m) => ({ default: m.GamesPage })))
+const GameDetailPage = lazy(() =>
+  import('@/pages/games').then((m) => ({ default: m.GameDetailPage }))
+)
+const UserDetailPage = lazy(() =>
+  import('@/pages/games').then((m) => ({ default: m.UserDetailPage }))
+)
+const AppsPage = lazy(() => import('@/pages/apps').then((m) => ({ default: m.AppsPage })))
+const AppGamesPage = lazy(() =>
+  import('@/pages/app-games').then((m) => ({ default: m.AppGamesPage }))
+)
+const SettingsPage = lazy(() =>
+  import('@/pages/settings').then((m) => ({ default: m.SettingsPage }))
+)
 
 function App() {
   return (
@@ -17,7 +32,8 @@ function App() {
       <ThemeProvider>
         <Toaster position="bottom-left" />
         <HashRouter>
-          <Routes>
+          <Suspense>
+            <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
 
@@ -37,7 +53,8 @@ function App() {
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
-          </Routes>
+            </Routes>
+          </Suspense>
         </HashRouter>
       </ThemeProvider>
     </QueryClientProvider>
