@@ -4,14 +4,17 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 interface EditableNumberCellProps {
-  value: number
-  onSave: (value: number) => Promise<void>
+  value: number | null | undefined
+  onSave: (value: number | null) => Promise<void>
   min?: number
   max?: number
   placeholder?: string
+  emptyDisplay?: string
   className?: string
   disabled?: boolean
 }
+
+const toEditString = (v: number | null | undefined) => v?.toString() ?? ''
 
 export function EditableNumberCell({
   value,
@@ -19,16 +22,17 @@ export function EditableNumberCell({
   min,
   max,
   placeholder = '0',
+  emptyDisplay = '-',
   className,
   disabled,
 }: EditableNumberCellProps) {
   const [isEditing, setIsEditing] = useState(false)
-  const [editValue, setEditValue] = useState(value.toString())
+  const [editValue, setEditValue] = useState(() => toEditString(value))
   const [isSaving, setIsSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setEditValue(value.toString())
+    setEditValue(toEditString(value))
   }, [value])
 
   useEffect(() => {
@@ -39,31 +43,28 @@ export function EditableNumberCell({
   }, [isEditing])
 
   const handleSave = async () => {
-    // If empty, cancel instead of saving 0
-    if (editValue.trim() === '') {
-      handleCancel()
-      return
-    }
+    const trimmed = editValue.trim()
+    const newValue = trimmed === '' ? null : parseFloat(trimmed)
 
-    const numValue = parseFloat(editValue)
-    if (isNaN(numValue) || numValue === value) {
+    // Invalid number or no change
+    if ((newValue !== null && isNaN(newValue)) || newValue === (value ?? null)) {
       setIsEditing(false)
       return
     }
 
     setIsSaving(true)
     try {
-      await onSave(numValue)
+      await onSave(newValue)
       setIsEditing(false)
     } catch {
-      setEditValue(value.toString())
+      setEditValue(toEditString(value))
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleCancel = () => {
-    setEditValue(value.toString())
+    setEditValue(toEditString(value))
     setIsEditing(false)
   }
 
@@ -106,10 +107,11 @@ export function EditableNumberCell({
       className={cn(
         'cursor-pointer hover:bg-muted/50 px-1 -mx-1 rounded transition-colors tabular-nums',
         disabled && 'cursor-default hover:bg-transparent',
+        value == null && 'text-muted-foreground',
         className
       )}
     >
-      {value}
+      {value ?? emptyDisplay}
     </span>
   )
 }

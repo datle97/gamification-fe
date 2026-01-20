@@ -383,6 +383,16 @@ function ActivityTimeline({
                         ))}
                       </div>
                     )}
+                    {/* Show "No Reward" when turn was spent but no reward earned */}
+                    {(group.primaryType === 'turn_spend' || group.primaryType === 'game_play') &&
+                      rewards.length === 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2 ml-6">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-muted-foreground bg-muted">
+                            <Gift className="h-3 w-3" />
+                            No Reward
+                          </span>
+                        </div>
+                      )}
                   </div>
                 </div>
               )

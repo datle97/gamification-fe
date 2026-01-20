@@ -194,17 +194,18 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
       number: <TKey extends keyof TData & string>(
         key: TKey,
         header: string,
-        onUpdate: UpdateFn<TData, number>,
-        options?: { min?: number; max?: number }
+        onUpdate: UpdateFn<TData, number | null>,
+        options?: { min?: number; max?: number; emptyDisplay?: string }
       ): ColumnDef<TData> => ({
         accessorKey: key,
         header,
         cell: ({ row }) => (
           <EditableNumberCell
-            value={row.original[key] as number}
+            value={row.original[key] as number | null}
             onSave={(value) => onUpdate(row.original, value)}
             min={options?.min}
             max={options?.max}
+            emptyDisplay={options?.emptyDisplay}
           />
         ),
       }),

@@ -46,7 +46,7 @@ export function AppsPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData)
 
   const handleUpdate = useCallback(
-    async (row: App, field: keyof App, value: string | number | boolean) => {
+    async (row: App, field: keyof App, value: string | number | boolean | null) => {
       await updateApp.mutateAsync({
         id: row.appId,
         data: { [field]: value },

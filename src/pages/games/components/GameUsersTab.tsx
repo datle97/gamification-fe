@@ -91,6 +91,7 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
   // Reset to page 1 when search changes
   useEffect(() => {
     if (debouncedSearch !== searchInput) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1)
   }, [debouncedSearch, searchInput])
 
