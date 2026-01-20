@@ -25,6 +25,7 @@ import { GameRewardsTab } from './components/GameRewardsTab'
 import { GameUsersTab } from './components/GameUsersTab'
 import { GameLeaderboardTab } from './components/GameLeaderboardTab'
 import { TestSandboxTab } from './components/TestSandboxTab'
+import { useDevMode } from '@/stores/settingsStore'
 
 type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards' | 'leaderboard' | 'sandbox'
 
@@ -33,6 +34,7 @@ export function GameDetailPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false)
+  const isDevMode = useDevMode()
 
   const currentTab = (searchParams.get('tab') as TabValue) || 'info'
   const { data: game, isLoading, error } = useGame(gameId!)
@@ -141,10 +143,12 @@ export function GameDetailPage() {
                 <Gift className="h-4 w-4" />
                 Rewards
               </TabsTrigger>
-              <TabsTrigger value="sandbox" className="gap-2">
-                <FlaskConical className="h-4 w-4" />
-                Sandbox
-              </TabsTrigger>
+              {isDevMode && (
+                <TabsTrigger value="sandbox" className="gap-2">
+                  <FlaskConical className="h-4 w-4" />
+                  Sandbox
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
         </div>
@@ -173,9 +177,11 @@ export function GameDetailPage() {
           <GameRewardsTab gameId={game.gameId} />
         </TabsContent>
 
-        <TabsContent value="sandbox" className="mt-6">
-          <TestSandboxTab gameId={game.gameId} />
-        </TabsContent>
+        {isDevMode && (
+          <TabsContent value="sandbox" className="mt-6">
+            <TestSandboxTab gameId={game.gameId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Clone Dialog */}

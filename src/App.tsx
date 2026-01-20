@@ -9,14 +9,14 @@ import { GameDetailPage, GamesPage, UserDetailPage } from '@/pages/games'
 import { LoginPage } from '@/pages/login'
 import { SettingsPage } from '@/pages/settings'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { HashRouter, Navigate, Route, Routes } from 'react-router'
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Toaster position="bottom-left" />
-        <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <HashRouter>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -38,7 +38,7 @@ function App() {
               </Route>
             </Route>
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
       </ThemeProvider>
     </QueryClientProvider>
   )
