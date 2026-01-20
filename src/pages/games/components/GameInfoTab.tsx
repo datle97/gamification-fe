@@ -1,3 +1,4 @@
+import { MetadataEditor } from '@/components/common/MetadataEditor'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -188,12 +189,9 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
 
         <div className="space-y-2">
           <Label htmlFor="metadata">Metadata (JSON)</Label>
-          <Textarea
-            id="metadata"
-            placeholder='{"key": "value"}'
+          <MetadataEditor
             value={formData.metadata}
-            onChange={(e) => setFormData({ ...formData, metadata: e.target.value })}
-            className="min-h-24 font-mono text-sm"
+            onChange={(value) => setFormData({ ...formData, metadata: value })}
           />
           <p className="text-xs text-muted-foreground">
             Custom metadata for frontend display (e.g., icons, labels, extra info)

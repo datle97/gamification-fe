@@ -301,13 +301,18 @@ const ValueDisplay = memo(function ValueDisplay({ value, type, onDoubleClick }: 
     const strVal = String(value)
     return (
       <span
-        className="inline-flex items-center gap-2 cursor-pointer min-w-0"
+        className="inline-flex items-center gap-2 cursor-pointer min-w-0 flex-1"
         onDoubleClick={onDoubleClick}
       >
         <TypeBadge type={type} />
-        <span className="text-sm text-muted-foreground truncate">
-          {strVal || <span className="italic">empty</span>}
-        </span>
+        {strVal ? (
+          <span
+            className="text-sm prose prose-sm max-w-none [&>*]:my-0 line-clamp-1"
+            dangerouslySetInnerHTML={{ __html: strVal }}
+          />
+        ) : (
+          <span className="text-sm text-muted-foreground italic">empty</span>
+        )}
       </span>
     )
   }
