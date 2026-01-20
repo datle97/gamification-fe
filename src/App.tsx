@@ -6,24 +6,30 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { lazy, Suspense } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router'
 
-// Lazy load pages
-const LoginPage = lazy(() => import('@/pages/login').then((m) => ({ default: m.LoginPage })))
-const DashboardPage = lazy(() =>
-  import('@/pages/dashboard').then((m) => ({ default: m.DashboardPage }))
+// Lazy load pages (direct imports for better code splitting)
+const LoginPage = lazy(() =>
+  import('@/pages/login/LoginPage').then((m) => ({ default: m.LoginPage }))
 )
-const GamesPage = lazy(() => import('@/pages/games').then((m) => ({ default: m.GamesPage })))
+const DashboardPage = lazy(() =>
+  import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage }))
+)
+const GamesPage = lazy(() =>
+  import('@/pages/games/GamesPage').then((m) => ({ default: m.GamesPage }))
+)
 const GameDetailPage = lazy(() =>
-  import('@/pages/games').then((m) => ({ default: m.GameDetailPage }))
+  import('@/pages/games/GameDetailPage').then((m) => ({ default: m.GameDetailPage }))
 )
 const UserDetailPage = lazy(() =>
-  import('@/pages/games').then((m) => ({ default: m.UserDetailPage }))
+  import('@/pages/games/UserDetailPage').then((m) => ({ default: m.UserDetailPage }))
 )
-const AppsPage = lazy(() => import('@/pages/apps').then((m) => ({ default: m.AppsPage })))
+const AppsPage = lazy(() =>
+  import('@/pages/apps/AppsPage').then((m) => ({ default: m.AppsPage }))
+)
 const AppGamesPage = lazy(() =>
-  import('@/pages/app-games').then((m) => ({ default: m.AppGamesPage }))
+  import('@/pages/app-games/AppGamesPage').then((m) => ({ default: m.AppGamesPage }))
 )
 const SettingsPage = lazy(() =>
-  import('@/pages/settings').then((m) => ({ default: m.SettingsPage }))
+  import('@/pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
 )
 
 function App() {
