@@ -16,7 +16,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <Toaster position="bottom-left" />
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
