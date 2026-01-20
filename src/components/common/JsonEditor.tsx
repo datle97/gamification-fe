@@ -358,26 +358,43 @@ const JsonNode = memo(function JsonNode({
   const [isEditing, setIsEditing] = useState(false)
   const [editingKey, setEditingKey] = useState(false)
   const [localKey, setLocalKey] = useState(keyName)
+  const [localValue, setLocalValue] = useState<JsonValue>(value)
   const [collapsed, setCollapsed] = useState(level > 1)
   const [editType, setEditType] = useState<ValueType>(() => detectType(value))
 
   const currentType = detectType(value)
   const isCollection = currentType === 'object' || currentType === 'array'
 
-  const handleValueChange = useCallback(
-    (newValue: JsonValue) => {
-      onValueChange(path, newValue)
-    },
-    [onValueChange, path]
-  )
+  // Start editing - initialize local value
+  const startEditing = useCallback(() => {
+    setLocalValue(value)
+    setEditType(detectType(value))
+    setIsEditing(true)
+  }, [value])
+
+  // Confirm edit - commit local value to parent
+  const confirmEdit = useCallback(() => {
+    onValueChange(path, localValue)
+    setIsEditing(false)
+  }, [onValueChange, path, localValue])
+
+  // Cancel edit - discard local value
+  const cancelEdit = useCallback(() => {
+    setLocalValue(value) // Reset to original
+    setIsEditing(false)
+  }, [value])
 
   const handleTypeChange = useCallback(
     (newType: ValueType) => {
       setEditType(newType)
       const newValue = getDefaultValue(newType)
-      onValueChange(path, newValue)
       if (newType === 'object' || newType === 'array') {
+        // For collections, commit immediately
+        onValueChange(path, newValue)
         setIsEditing(false)
+      } else {
+        // For primitives, update local value
+        setLocalValue(newValue)
       }
     },
     [onValueChange, path]
@@ -473,10 +490,10 @@ const JsonNode = memo(function JsonNode({
               {editType !== 'object' && editType !== 'array' && editType !== 'html' && (
                 <div className="flex-1">
                   <ValueEditor
-                    value={value}
+                    value={localValue}
                     type={editType}
-                    onChange={handleValueChange}
-                    onCancel={() => setIsEditing(false)}
+                    onChange={setLocalValue}
+                    onCancel={cancelEdit}
                     autoFocus
                   />
                 </div>
@@ -485,7 +502,7 @@ const JsonNode = memo(function JsonNode({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setIsEditing(false)}
+                onClick={confirmEdit}
               >
                 <Check className="h-4 w-4 text-foreground" />
               </Button>
@@ -493,7 +510,7 @@ const JsonNode = memo(function JsonNode({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => setIsEditing(false)}
+                onClick={cancelEdit}
               >
                 <X className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -501,10 +518,7 @@ const JsonNode = memo(function JsonNode({
           ) : isCollection ? (
             <span
               className="inline-flex items-center gap-2 cursor-pointer"
-              onDoubleClick={() => {
-                setEditType(currentType)
-                setIsEditing(true)
-              }}
+              onDoubleClick={startEditing}
             >
               <TypeBadge type={currentType} />
               <span className="text-sm text-muted-foreground">
@@ -523,10 +537,7 @@ const JsonNode = memo(function JsonNode({
             <ValueDisplay
               value={value}
               type={currentType}
-              onDoubleClick={() => {
-                setEditType(currentType)
-                setIsEditing(true)
-              }}
+              onDoubleClick={startEditing}
             />
           )}
 
@@ -537,10 +548,7 @@ const JsonNode = memo(function JsonNode({
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                onClick={() => {
-                  setEditType(currentType)
-                  setIsEditing(true)
-                }}
+                onClick={startEditing}
               >
                 <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </Button>
@@ -561,10 +569,10 @@ const JsonNode = memo(function JsonNode({
       {isEditing && editType === 'html' && (
         <div className="ml-5 mt-1 mb-2">
           <ValueEditor
-            value={value}
+            value={localValue}
             type={editType}
-            onChange={handleValueChange}
-            onCancel={() => setIsEditing(false)}
+            onChange={setLocalValue}
+            onCancel={cancelEdit}
             autoFocus
           />
         </div>
