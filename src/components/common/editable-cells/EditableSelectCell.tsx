@@ -43,7 +43,7 @@ export function EditableSelectCell<T extends string>({
     : options.find((o) => o.value === value)?.label || value
 
   return (
-    <div className={cn('flex items-center gap-1', className)}>
+    <div className={cn('flex items-center gap-1', className)} onClick={(e) => e.stopPropagation()}>
       <Select
         value={value}
         onValueChange={(v) => handleChange(v as T)}

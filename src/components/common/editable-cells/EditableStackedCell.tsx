@@ -67,7 +67,7 @@ export function EditableStackedCell({
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         <Input
           ref={inputRef}
           value={editValue}
@@ -84,7 +84,13 @@ export function EditableStackedCell({
   }
 
   return (
-    <div onClick={() => !disabled && setIsEditing(true)} className="cursor-pointer">
+    <div
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!disabled) setIsEditing(true)
+      }}
+      className="cursor-pointer"
+    >
       <span
         className={cn(
           'font-medium hover:bg-muted/50 px-1 -mx-1 rounded transition-colors',

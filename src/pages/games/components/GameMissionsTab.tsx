@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import dayjs from 'dayjs'
 import { Plus, Loader2 } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { createColumnHelper } from '@/lib/column-helper'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -102,75 +101,7 @@ const triggerEventLabels: Record<TriggerEvent, string> = {
   'points:earn': 'Points Earn',
 }
 
-const columns: ColumnDef<Mission>[] = [
-  {
-    accessorKey: 'code',
-    header: 'Code',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
-  },
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
-  },
-  {
-    accessorKey: 'triggerEvent',
-    header: 'Trigger',
-    cell: ({ row }) => {
-      const trigger = row.getValue('triggerEvent') as TriggerEvent
-      return (
-        <Badge variant="outline" className="font-mono text-xs">
-          {trigger}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: 'missionType',
-    header: 'Type',
-    cell: ({ row }) => {
-      const type = row.getValue('missionType') as MissionType
-      return (
-        <Badge variant="secondary">
-          {missionTypeLabels[type]}
-        </Badge>
-      )
-    },
-  },
-  {
-    id: 'target',
-    header: 'Target',
-    cell: ({ row }) => (
-      <span className="text-sm">
-        {row.original.targetValue}
-        {row.original.maxCompletions && (
-          <span className="text-muted-foreground"> (max {row.original.maxCompletions})</span>
-        )}
-      </span>
-    ),
-  },
-  {
-    id: 'reward',
-    header: 'Reward',
-    cell: ({ row }) => (
-      <span className="text-sm">
-        {row.original.rewardValue} {row.original.rewardType}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'isActive',
-    header: 'Status',
-    cell: ({ row }) => {
-      const isActive = row.getValue('isActive') as boolean
-      return (
-        <Badge variant={isActive ? 'default' : 'secondary'}>
-          {isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      )
-    },
-  },
-]
+const columnHelper = createColumnHelper<Mission>()
 
 type SheetMode = 'closed' | 'create' | 'edit'
 
@@ -229,6 +160,35 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+
+  const handleInlineUpdate = useCallback(
+    async (mission: Mission, field: string, value: unknown) => {
+      await updateMission.mutateAsync({
+        id: mission.missionId,
+        data: { [field]: value },
+      })
+    },
+    [updateMission]
+  )
+
+  const columns = useMemo(
+    () => [
+      columnHelper.text('name', 'Name', { variant: 'primary' }),
+      columnHelper.badge('triggerEvent', 'Trigger', {
+        labels: triggerEventLabels,
+      }),
+      columnHelper.badge('missionType', 'Type', {
+        labels: missionTypeLabels,
+      }),
+      columnHelper.text('rewardValue', 'Reward', {
+        render: (row) => `${row.rewardValue} ${row.rewardType}`,
+      }),
+      columnHelper.editable.toggle('isActive', 'Active', (row, value) =>
+        handleInlineUpdate(row, 'isActive', value)
+      ),
+    ],
+    [handleInlineUpdate]
+  )
 
   const handleOpenCreate = () => {
     setSheetMode('create')

@@ -824,7 +824,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                 <Label htmlFor="phoneNumbers">Whitelist Phone Numbers (comma-separated)</Label>
                 <Input
                   id="phoneNumbers"
-                  placeholder="+84901234567, +84912345678"
+                  placeholder="0901234567, 0912345678"
                   value={conds.requiresUserSegment?.phoneNumbers?.join(', ') ?? ''}
                   onChange={(e) => {
                     const value = e.target.value
@@ -874,7 +874,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                 </Label>
                 <Input
                   id="excludePhoneNumbers"
-                  placeholder="+84923456789"
+                  placeholder="0923456789"
                   value={conds.requiresUserSegment?.excludePhoneNumbers?.join(', ') ?? ''}
                   onChange={(e) => {
                     const value = e.target.value

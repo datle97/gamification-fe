@@ -69,7 +69,7 @@ export function EditableTextCell({
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         <Input
           ref={inputRef}
           value={editValue}
@@ -87,7 +87,10 @@ export function EditableTextCell({
 
   return (
     <span
-      onClick={() => !disabled && setIsEditing(true)}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!disabled) setIsEditing(true)
+      }}
       className={cn(
         'cursor-pointer hover:bg-muted/50 px-1 -mx-1 rounded transition-colors',
         disabled && 'cursor-default hover:bg-transparent',

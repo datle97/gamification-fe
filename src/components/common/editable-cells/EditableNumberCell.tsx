@@ -39,8 +39,14 @@ export function EditableNumberCell({
   }, [isEditing])
 
   const handleSave = async () => {
-    const numValue = parseFloat(editValue) || 0
-    if (numValue === value) {
+    // If empty, cancel instead of saving 0
+    if (editValue.trim() === '') {
+      handleCancel()
+      return
+    }
+
+    const numValue = parseFloat(editValue)
+    if (isNaN(numValue) || numValue === value) {
       setIsEditing(false)
       return
     }
@@ -72,7 +78,7 @@ export function EditableNumberCell({
 
   if (isEditing) {
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         <Input
           ref={inputRef}
           type="number"
@@ -93,7 +99,10 @@ export function EditableNumberCell({
 
   return (
     <span
-      onClick={() => !disabled && setIsEditing(true)}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (!disabled) setIsEditing(true)
+      }}
       className={cn(
         'cursor-pointer hover:bg-muted/50 px-1 -mx-1 rounded transition-colors tabular-nums',
         disabled && 'cursor-default hover:bg-transparent',

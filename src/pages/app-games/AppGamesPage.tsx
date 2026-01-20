@@ -138,7 +138,7 @@ export function AppGamesPage() {
             <div>
               <CardTitle>App Games</CardTitle>
               <CardDescription>
-                Link games to apps. Game settings (status, schedule) are managed in the Games page.
+                Link games to apps.
               </CardDescription>
             </div>
             <Button onClick={handleOpenCreate}>

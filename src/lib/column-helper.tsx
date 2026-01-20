@@ -1,6 +1,13 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
-import { TextCell, DateCell, DateRangeCell, LinkCell, BadgeCell } from '@/components/common/cells'
+import {
+  TextCell,
+  DateCell,
+  DateRangeCell,
+  LinkCell,
+  BadgeCell,
+  StackedCell,
+} from '@/components/common/cells'
 import {
   EditableTextCell,
   EditableNumberCell,
@@ -14,13 +21,14 @@ type UpdateFn<T, V> = (row: T, value: V) => Promise<void>
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 
 // Text column variants
-type TextVariant = 'default' | 'primary' | 'secondary' | 'muted'
+type TextVariant = 'default' | 'primary' | 'secondary' | 'muted' | 'tabular'
 
 const textVariantStyles: Record<TextVariant, string> = {
   default: '',
   primary: 'font-medium',
   secondary: 'text-sm text-muted-foreground',
   muted: 'text-muted-foreground',
+  tabular: 'tabular-nums',
 }
 
 interface EditableSelectOptions<T extends string> {
@@ -35,16 +43,26 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
     text: <TKey extends keyof TData & string>(
       key: TKey,
       header: string,
-      options?: { variant?: TextVariant }
+      options?: {
+        variant?: TextVariant
+        format?: (value: TData[TKey]) => string
+        render?: (row: TData) => string | null | undefined
+      }
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
-      cell: ({ row }) => (
-        <TextCell
-          value={row.original[key] as string}
-          className={textVariantStyles[options?.variant ?? 'default']}
-        />
-      ),
+      cell: ({ row }) => {
+        const rawValue = row.original[key] as string | number | null | undefined
+        let value: string | number | null | undefined
+        if (options?.render) {
+          value = options.render(row.original)
+        } else if (options?.format && rawValue != null) {
+          value = options.format(row.original[key])
+        } else {
+          value = rawValue
+        }
+        return <TextCell value={value} className={textVariantStyles[options?.variant ?? 'default']} />
+      },
     }),
 
     date: <TKey extends keyof TData & string>(
@@ -113,18 +131,45 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
       options: {
         primary: (row: TData) => string | undefined | null
         secondary: (row: TData) => string | undefined | null
+        href?: (row: TData) => string
+        onClick?: (row: TData) => void
       }
     ): ColumnDef<TData> => ({
       id,
       header,
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{options.primary(row.original) || '-'}</div>
-          <div className="text-xs text-muted-foreground">
-            {options.secondary(row.original) || '-'}
-          </div>
-        </div>
+        <StackedCell
+          primary={options.primary(row.original)}
+          secondary={options.secondary(row.original)}
+          href={options.href?.(row.original)}
+          onClick={options.onClick ? () => options.onClick!(row.original) : undefined}
+        />
       ),
+    }),
+
+    // Boolean status as badge (e.g., Active/Inactive)
+    status: <TKey extends keyof TData & string>(
+      key: TKey,
+      header: string,
+      options?: {
+        trueLabel?: string
+        falseLabel?: string
+        trueVariant?: BadgeVariant
+        falseVariant?: BadgeVariant
+      }
+    ): ColumnDef<TData> => ({
+      accessorKey: key,
+      header,
+      cell: ({ row }) => {
+        const value = row.original[key] as boolean
+        const label = value
+          ? (options?.trueLabel ?? 'Active')
+          : (options?.falseLabel ?? 'Inactive')
+        const variant = value
+          ? (options?.trueVariant ?? 'default')
+          : (options?.falseVariant ?? 'secondary')
+        return <Badge variant={variant}>{label}</Badge>
+      },
     }),
 
     // Editable columns
@@ -189,18 +234,16 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
         accessorKey: key,
         header,
         cell: ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <EditableSelectCell
-              value={row.original[key] as TValue}
-              options={options.options}
-              onSave={(value) => onUpdate(row.original, value)}
-              renderValue={(value) => (
-                <Badge variant={options.variants?.[value] ?? 'secondary'}>
-                  {options.labels[value]}
-                </Badge>
-              )}
-            />
-          </div>
+          <EditableSelectCell
+            value={row.original[key] as TValue}
+            options={options.options}
+            onSave={(value) => onUpdate(row.original, value)}
+            renderValue={(value) => (
+              <Badge variant={options.variants?.[value] ?? 'secondary'}>
+                {options.labels[value]}
+              </Badge>
+            )}
+          />
         ),
       }),
 
@@ -234,14 +277,12 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
         id: `${startKey}_${endKey}`,
         header,
         cell: ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <EditableDateRangeCell
-              startAt={row.original[startKey] as string}
-              endAt={row.original[endKey] as string}
-              onSave={(startAt, endAt) => onUpdate(row.original, startAt, endAt)}
-              showTime={options?.showTime}
-            />
-          </div>
+          <EditableDateRangeCell
+            startAt={row.original[startKey] as string}
+            endAt={row.original[endKey] as string}
+            onSave={(startAt, endAt) => onUpdate(row.original, startAt, endAt)}
+            showTime={options?.showTime}
+          />
         ),
       }),
     },

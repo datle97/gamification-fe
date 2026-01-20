@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router'
 import dayjs from 'dayjs'
 import { Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -87,7 +86,6 @@ const initialFormData: FormData = {
 }
 
 export function GamesPage() {
-  const navigate = useNavigate()
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
   const updateGame = useUpdateGame()
@@ -120,6 +118,7 @@ export function GamesPage() {
       columnHelper.stacked('game', 'Game', {
         primary: (row) => row.name,
         secondary: (row) => row.code,
+        href: (row) => `/games/${row.gameId}`,
       }),
       columnHelper.badge('type', 'Type', { labels: gameTypeLabels }),
       columnHelper.editable.dateRange('startAt', 'endAt', 'Schedule', handleUpdateSchedule),
@@ -136,10 +135,6 @@ export function GamesPage() {
   const handleOpenCreate = () => {
     setFormData(initialFormData)
     setSheetOpen(true)
-  }
-
-  const handleRowClick = (game: Game) => {
-    navigate(`/games/${game.gameId}`)
   }
 
   const handleClose = () => {
@@ -190,7 +185,7 @@ export function GamesPage() {
               <p>No games yet. Create your first game template.</p>
             </div>
           ) : (
-            <DataTable columns={columns} data={games} onRowClick={handleRowClick} />
+            <DataTable columns={columns} data={games} />
           )}
         </CardContent>
       </Card>

@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Plus, Loader2, Sliders } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { createColumnHelper } from '@/lib/column-helper'
 import { DataTable } from '@/components/ui/data-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -47,82 +46,17 @@ const rewardCategoryLabels: Record<RewardCategory, string> = {
   other: 'Other',
 }
 
-const columns: ColumnDef<Reward>[] = [
-  {
-    accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
-  },
-  {
-    accessorKey: 'rewardType',
-    header: 'Category',
-    cell: ({ row }) => {
-      const type = row.getValue('rewardType') as RewardCategory | null
-      return type ? (
-        <Badge variant="secondary" className="capitalize">
-          {rewardCategoryLabels[type] || type}
-        </Badge>
-      ) : (
-        <span className="text-muted-foreground">-</span>
-      )
-    },
-  },
-  {
-    accessorKey: 'handlerType',
-    header: 'Handler',
-    cell: ({ row }) => {
-      const type = row.getValue('handlerType') as HandlerType
-      return (
-        <Badge variant="outline" className="font-mono text-xs">
-          {type}
-        </Badge>
-      )
-    },
-  },
-  {
-    accessorKey: 'probability',
-    header: 'Probability',
-    cell: ({ row }) => {
-      const prob = row.getValue('probability') as number
-      return <span className="text-sm tabular-nums">{prob}%</span>
-    },
-  },
-  {
-    id: 'quota',
-    header: 'Quota',
-    cell: ({ row }) => {
-      const quota = row.original.quota
-      const used = row.original.quotaUsed
-      if (quota === null || quota === undefined) {
-        return <span className="text-muted-foreground">Unlimited</span>
-      }
-      return (
-        <span className="text-sm tabular-nums">
-          {used} / {quota}
-        </span>
-      )
-    },
-  },
-  {
-    accessorKey: 'displayOrder',
-    header: 'Order',
-    cell: ({ row }) => (
-      <span className="text-sm tabular-nums">{row.getValue('displayOrder')}</span>
-    ),
-  },
-  {
-    accessorKey: 'isActive',
-    header: 'Status',
-    cell: ({ row }) => {
-      const isActive = row.getValue('isActive') as boolean
-      return (
-        <Badge variant={isActive ? 'default' : 'secondary'}>
-          {isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      )
-    },
-  },
-]
+const handlerTypeLabels: Record<HandlerType, string> = {
+  api: 'API',
+  system: 'System',
+  turn: 'Turn',
+  no_reward: 'No Reward',
+  collection: 'Collection',
+  script: 'Script',
+  journey: 'Journey',
+}
+
+const columnHelper = createColumnHelper<Reward>()
 
 type DialogMode = 'closed' | 'create' | 'edit'
 
@@ -180,6 +114,50 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [activeTab, setActiveTab] = useState('basic')
   const [probabilityDialogOpen, setProbabilityDialogOpen] = useState(false)
+
+  const handleInlineUpdate = useCallback(
+    async (reward: Reward, field: string, value: unknown) => {
+      await updateReward.mutateAsync({
+        id: reward.rewardId,
+        data: { [field]: value },
+      })
+    },
+    [updateReward]
+  )
+
+  const columns = useMemo(
+    () => [
+      columnHelper.text('name', 'Name', { variant: 'primary' }),
+      columnHelper.badge('rewardType', 'Category', { labels: rewardCategoryLabels }),
+      columnHelper.badge('handlerType', 'Handler', {
+        labels: handlerTypeLabels,
+        variants: { api: 'outline', script: 'outline' },
+      }),
+      columnHelper.editable.number(
+        'probability',
+        'Probability',
+        (row, value) => handleInlineUpdate(row, 'probability', value),
+        { min: 0, max: 100 }
+      ),
+      columnHelper.text('quotaUsed', 'Used', { variant: 'tabular' }),
+      columnHelper.editable.number(
+        'quota',
+        'Quota',
+        (row, value) => handleInlineUpdate(row, 'quota', value),
+        { min: 0 }
+      ),
+      columnHelper.editable.number(
+        'displayOrder',
+        'Order',
+        (row, value) => handleInlineUpdate(row, 'displayOrder', value),
+        { min: 0 }
+      ),
+      columnHelper.editable.toggle('isActive', 'Active', (row, value) =>
+        handleInlineUpdate(row, 'isActive', value)
+      ),
+    ],
+    [handleInlineUpdate]
+  )
 
   const handleOpenCreate = () => {
     setDialogMode('create')
@@ -297,7 +275,11 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
               <CardDescription>Manage rewards for this game</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setProbabilityDialogOpen(true)} disabled={rewards.length === 0}>
+              <Button
+                variant="outline"
+                onClick={() => setProbabilityDialogOpen(true)}
+                disabled={rewards.length === 0}
+              >
                 <Sliders className="h-4 w-4 mr-2" />
                 Manage Probabilities
               </Button>

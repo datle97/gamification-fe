@@ -128,7 +128,7 @@ export function EditableDateRangeCell({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
       <Popover open={isOpen} onOpenChange={handleOpen}>
         <PopoverTrigger asChild disabled={disabled}>
           <button

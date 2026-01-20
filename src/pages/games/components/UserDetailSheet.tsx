@@ -490,7 +490,7 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                     </Label>
                     <Input
                       id="clientInput"
-                      placeholder='{"utm_source": "facebook", "storeId": "store-001"}'
+                      placeholder='{"utm_source": "facebook", "store_id": "store-001"}'
                       value={clientInputJson}
                       onChange={(e) => setClientInputJson(e.target.value)}
                       className="mt-2 font-mono text-sm"
