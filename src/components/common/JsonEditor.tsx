@@ -470,7 +470,7 @@ const JsonNode = memo(function JsonNode({
           {isEditing ? (
             <div className="flex items-center gap-2 flex-1">
               <TypeSelector value={editType} onChange={handleTypeChange} />
-              {editType !== 'object' && editType !== 'array' && (
+              {editType !== 'object' && editType !== 'array' && editType !== 'html' && (
                 <div className="flex-1">
                   <ValueEditor
                     value={value}
@@ -556,6 +556,19 @@ const JsonNode = memo(function JsonNode({
           )}
         </div>
       </div>
+
+      {/* HTML Editor - full width below key row */}
+      {isEditing && editType === 'html' && (
+        <div className="ml-5 mt-1 mb-2">
+          <ValueEditor
+            value={value}
+            type={editType}
+            onChange={handleValueChange}
+            onCancel={() => setIsEditing(false)}
+            autoFocus
+          />
+        </div>
+      )}
 
       {/* Children */}
       {isCollection && !collapsed && (

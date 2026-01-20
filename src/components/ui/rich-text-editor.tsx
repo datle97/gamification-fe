@@ -1,11 +1,28 @@
 import { Toggle } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
+import Color from '@tiptap/extension-color'
+import Highlight from '@tiptap/extension-highlight'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import TextAlign from '@tiptap/extension-text-align'
+import { TextStyle } from '@tiptap/extension-text-style'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { Bold, Italic, Link as LinkIcon, List, ListOrdered, Redo, Undo } from 'lucide-react'
-import { useEffect } from 'react'
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Highlighter,
+  Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Palette,
+  Redo,
+  Undo,
+} from 'lucide-react'
+import { useEffect, useRef } from 'react'
 
 interface RichTextEditorProps {
   value: string
@@ -22,17 +39,28 @@ export function RichTextEditor({
   className,
   disabled = false,
 }: RichTextEditorProps) {
+  const colorInputRef = useRef<HTMLInputElement>(null)
+  const highlightInputRef = useRef<HTMLInputElement>(null)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         bulletList: {
           keepMarks: true,
-          keepAttributes: false,
+          keepAttributes: true,
         },
         orderedList: {
           keepMarks: true,
-          keepAttributes: false,
+          keepAttributes: true,
         },
+      }),
+      TextStyle,
+      Color,
+      Highlight.configure({
+        multicolor: true,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
       Link.configure({
         openOnClick: false,
@@ -48,12 +76,10 @@ export function RichTextEditor({
     editable: !disabled,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
-      // Return empty string if content is just an empty paragraph
       onChange(html === '<p></p>' ? '' : html)
     },
   })
 
-  // Sync external value changes
   useEffect(() => {
     if (editor && value !== editor.getHTML() && value !== (editor.getHTML() === '<p></p>' ? '' : editor.getHTML())) {
       editor.commands.setContent(value || '')
@@ -68,9 +94,7 @@ export function RichTextEditor({
     const previousUrl = editor.getAttributes('link').href
     const url = window.prompt('URL', previousUrl)
 
-    if (url === null) {
-      return
-    }
+    if (url === null) return
 
     if (url === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -79,6 +103,9 @@ export function RichTextEditor({
 
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }
+
+  const currentColor = editor.getAttributes('textStyle').color || '#000000'
+  const currentHighlight = editor.getAttributes('highlight').color || '#FFFF00'
 
   return (
     <div
@@ -90,6 +117,7 @@ export function RichTextEditor({
     >
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 border-b p-1">
+        {/* Text formatting */}
         <Toggle
           size="sm"
           pressed={editor.isActive('bold')}
@@ -111,6 +139,76 @@ export function RichTextEditor({
 
         <div className="w-px h-4 bg-border mx-1" />
 
+        {/* Color */}
+        <div className="relative">
+          <input
+            ref={colorInputRef}
+            type="color"
+            value={currentColor}
+            onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={disabled}
+          />
+          <Toggle size="sm" pressed={false} disabled={disabled} aria-label="Text color" className="pointer-events-none">
+            <Palette className="h-4 w-4" style={{ color: currentColor }} />
+          </Toggle>
+        </div>
+
+        {/* Highlight */}
+        <div className="relative">
+          <input
+            ref={highlightInputRef}
+            type="color"
+            value={currentHighlight}
+            onChange={(e) => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={disabled}
+          />
+          <Toggle
+            size="sm"
+            pressed={editor.isActive('highlight')}
+            disabled={disabled}
+            aria-label="Highlight"
+            className="pointer-events-none"
+          >
+            <Highlighter className="h-4 w-4" />
+          </Toggle>
+        </div>
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        {/* Text align */}
+        <Toggle
+          size="sm"
+          pressed={editor.isActive({ textAlign: 'left' })}
+          onPressedChange={() => editor.chain().focus().setTextAlign('left').run()}
+          disabled={disabled}
+          aria-label="Align left"
+        >
+          <AlignLeft className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive({ textAlign: 'center' })}
+          onPressedChange={() => editor.chain().focus().setTextAlign('center').run()}
+          disabled={disabled}
+          aria-label="Align center"
+        >
+          <AlignCenter className="h-4 w-4" />
+        </Toggle>
+        <Toggle
+          size="sm"
+          pressed={editor.isActive({ textAlign: 'right' })}
+          onPressedChange={() => editor.chain().focus().setTextAlign('right').run()}
+          disabled={disabled}
+          aria-label="Align right"
+        >
+          <AlignRight className="h-4 w-4" />
+        </Toggle>
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        {/* Lists */}
         <Toggle
           size="sm"
           pressed={editor.isActive('bulletList')}
@@ -132,6 +230,7 @@ export function RichTextEditor({
 
         <div className="w-px h-4 bg-border mx-1" />
 
+        {/* Link */}
         <Toggle
           size="sm"
           pressed={editor.isActive('link')}
@@ -144,6 +243,7 @@ export function RichTextEditor({
 
         <div className="flex-1" />
 
+        {/* Undo/Redo */}
         <Toggle
           size="sm"
           pressed={false}
