@@ -21,6 +21,7 @@ import {
   Palette,
   Redo,
   Undo,
+  X,
 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
@@ -106,6 +107,20 @@ export function RichTextEditor({
 
   const currentColor = editor.getAttributes('textStyle').color || '#000000'
   const currentHighlight = editor.getAttributes('highlight').color || '#FFFF00'
+  const hasColor = !!editor.getAttributes('textStyle').color
+
+  // Toggle alignment - if already active, unset (back to left default)
+  const toggleAlign = (align: 'left' | 'center' | 'right') => {
+    if (editor.isActive({ textAlign: align })) {
+      editor.chain().focus().unsetTextAlign().run()
+    } else {
+      editor.chain().focus().setTextAlign(align).run()
+    }
+  }
+
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    editor.chain().focus().setColor(e.target.value).run()
+  }
 
   return (
     <div
@@ -140,39 +155,69 @@ export function RichTextEditor({
         <div className="w-px h-4 bg-border mx-1" />
 
         {/* Color */}
-        <div className="relative">
-          <input
-            ref={colorInputRef}
-            type="color"
-            value={currentColor}
-            onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={disabled}
-          />
-          <Toggle size="sm" pressed={false} disabled={disabled} aria-label="Text color" className="pointer-events-none">
-            <Palette className="h-4 w-4" style={{ color: currentColor }} />
-          </Toggle>
+        <div className="flex items-center">
+          <div className="relative">
+            <input
+              ref={colorInputRef}
+              type="color"
+              value={currentColor}
+              onChange={handleColorChange}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={disabled}
+            />
+            <Toggle
+              size="sm"
+              pressed={hasColor}
+              disabled={disabled}
+              aria-label="Text color"
+              className="pointer-events-none"
+            >
+              <Palette className="h-4 w-4" style={{ color: hasColor ? currentColor : undefined }} />
+            </Toggle>
+          </div>
+          {hasColor && (
+            <button
+              onClick={() => editor.chain().focus().unsetColor().run()}
+              className="h-5 w-5 -ml-1 flex items-center justify-center rounded hover:bg-muted"
+              disabled={disabled}
+              aria-label="Clear color"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
         </div>
 
         {/* Highlight */}
-        <div className="relative">
-          <input
-            ref={highlightInputRef}
-            type="color"
-            value={currentHighlight}
-            onChange={(e) => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={disabled}
-          />
-          <Toggle
-            size="sm"
-            pressed={editor.isActive('highlight')}
-            disabled={disabled}
-            aria-label="Highlight"
-            className="pointer-events-none"
-          >
-            <Highlighter className="h-4 w-4" />
-          </Toggle>
+        <div className="flex items-center">
+          <div className="relative">
+            <input
+              ref={highlightInputRef}
+              type="color"
+              value={currentHighlight}
+              onChange={(e) => editor.chain().focus().setHighlight({ color: e.target.value }).run()}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={disabled}
+            />
+            <Toggle
+              size="sm"
+              pressed={editor.isActive('highlight')}
+              disabled={disabled}
+              aria-label="Highlight"
+              className="pointer-events-none"
+            >
+              <Highlighter className="h-4 w-4" />
+            </Toggle>
+          </div>
+          {editor.isActive('highlight') && (
+            <button
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+              className="h-5 w-5 -ml-1 flex items-center justify-center rounded hover:bg-muted"
+              disabled={disabled}
+              aria-label="Clear highlight"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
         </div>
 
         <div className="w-px h-4 bg-border mx-1" />
@@ -181,7 +226,7 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive({ textAlign: 'left' })}
-          onPressedChange={() => editor.chain().focus().setTextAlign('left').run()}
+          onPressedChange={() => toggleAlign('left')}
           disabled={disabled}
           aria-label="Align left"
         >
@@ -190,7 +235,7 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive({ textAlign: 'center' })}
-          onPressedChange={() => editor.chain().focus().setTextAlign('center').run()}
+          onPressedChange={() => toggleAlign('center')}
           disabled={disabled}
           aria-label="Align center"
         >
@@ -199,7 +244,7 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive({ textAlign: 'right' })}
-          onPressedChange={() => editor.chain().focus().setTextAlign('right').run()}
+          onPressedChange={() => toggleAlign('right')}
           disabled={disabled}
           aria-label="Align right"
         >
