@@ -37,6 +37,7 @@ import { SharingTab } from './reward-tabs/SharingTab'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 import { RewardsDistributionCard } from './RewardsDistributionCard'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 
 const columnHelper = createColumnHelper<Reward>()
 
@@ -248,7 +249,11 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
 
   return (
     <div className="space-y-6">
-      {showAnalytics && <RewardsDistributionCard gameId={gameId} />}
+      {showAnalytics ? (
+        <RewardsDistributionCard gameId={gameId} />
+      ) : (
+        <AnalyticsDisabledCard description="Enable analytics to see rewards distribution chart." />
+      )}
 
       <Card>
         <CardHeader>
