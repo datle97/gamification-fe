@@ -10,17 +10,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/ui/data-table'
 import { useLeaderboard, useLeaderboardPeriods } from '@/hooks/queries'
+import { createColumnHelper } from '@/lib/column-helper'
 import type { Game } from '@/schemas/game.schema'
+
+interface LeaderboardEntry {
+  userId: string
+  userName?: string
+  rank: number
+  score: number
+  plays: number
+  lastActiveAt?: string
+}
+
+const columnHelper = createColumnHelper<LeaderboardEntry>()
 
 interface GameLeaderboardTabProps {
   game: Game
@@ -28,6 +33,41 @@ interface GameLeaderboardTabProps {
 
 export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('current')
+
+  const columns = useMemo(
+    () => [
+      columnHelper.custom('rank', 'Rank', ({ row }) => (
+        <div className="flex items-center gap-2">
+          {row.original.rank <= 3 && (
+            <Trophy
+              className={`h-4 w-4 ${
+                row.original.rank === 1
+                  ? 'text-yellow-500'
+                  : row.original.rank === 2
+                    ? 'text-gray-400'
+                    : 'text-orange-600'
+              }`}
+            />
+          )}
+          <Badge variant={row.original.rank <= 3 ? 'default' : 'secondary'}>
+            #{row.original.rank}
+          </Badge>
+        </div>
+      )),
+      columnHelper.stacked('user', 'User', {
+        primary: (row) => row.userName || 'Unknown User',
+        secondary: (row) => row.userId,
+      }),
+      columnHelper.text('score', 'Score', {
+        variant: 'tabular',
+      }),
+      columnHelper.text('plays', 'Plays', {
+        variant: 'tabular',
+      }),
+      columnHelper.date('lastActiveAt', 'Last Active', { showTime: true }),
+    ],
+    []
+  )
 
   const { data: leaderboard, isLoading, refetch, isFetching } = useLeaderboard(
     game.gameId,
@@ -248,62 +288,11 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {leaderboard.entries.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No players have participated in this period yet
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Rank</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
-                  <TableHead className="text-right">Plays</TableHead>
-                  <TableHead className="text-right">Last Active</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leaderboard.entries.map((entry) => (
-                  <TableRow key={entry.userId}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {entry.rank <= 3 && (
-                          <Trophy
-                            className={`h-4 w-4 ${
-                              entry.rank === 1
-                                ? 'text-yellow-500'
-                                : entry.rank === 2
-                                  ? 'text-gray-400'
-                                  : 'text-orange-600'
-                            }`}
-                          />
-                        )}
-                        <Badge variant={entry.rank <= 3 ? 'default' : 'secondary'}>
-                          #{entry.rank}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{entry.userName || 'Unknown User'}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{entry.userId}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {entry.score}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{entry.plays}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">
-                      {entry.lastActiveAt
-                        ? dayjs(entry.lastActiveAt).format('MMM D, HH:mm')
-                        : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={columns}
+            data={leaderboard.entries}
+            emptyMessage="No players have participated in this period yet"
+          />
         </CardContent>
       </Card>
         </>

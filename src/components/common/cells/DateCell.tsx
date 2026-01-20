@@ -1,19 +1,32 @@
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import { cn } from '@/lib/utils'
 import { useDateFormat } from '@/stores/settingsStore'
+
+dayjs.extend(relativeTime)
 
 interface DateCellProps {
   value: string | Date | null | undefined
   showTime?: boolean
+  relative?: boolean
   className?: string
 }
 
-export function DateCell({ value, showTime, className }: DateCellProps) {
+export function DateCell({ value, showTime, relative, className }: DateCellProps) {
   const dateFormat = useDateFormat()
   const format = showTime ? `${dateFormat} HH:mm` : dateFormat
 
   if (!value) {
     return <span className="text-muted-foreground">-</span>
+  }
+
+  if (relative) {
+    return (
+      <div className={cn('flex flex-col', className)}>
+        <span className="text-sm">{dayjs(value).format(format)}</span>
+        <span className="text-xs text-muted-foreground">{dayjs(value).fromNow()}</span>
+      </div>
+    )
   }
 
   return (

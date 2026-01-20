@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { RewardCategory, Reward } from '@/schemas/reward.schema'
+import { rewardCategoryLabels, type RewardCategory, type Reward } from '@/schemas/reward.schema'
 
 const rewardCategories: RewardCategory[] = [
   'voucher',
@@ -22,17 +22,6 @@ const rewardCategories: RewardCategory[] = [
   'no_reward',
   'other',
 ]
-
-const rewardCategoryLabels: Record<RewardCategory, string> = {
-  voucher: 'Voucher',
-  collectable: 'Collectable',
-  coins: 'Coins',
-  points: 'Points',
-  turn: 'Turn',
-  physical: 'Physical',
-  no_reward: 'No Reward',
-  other: 'Other',
-}
 
 interface FormData {
   name: string

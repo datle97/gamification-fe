@@ -153,17 +153,12 @@ export function AppsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : apps.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-              <p>No apps yet. Create your first app.</p>
-            </div>
-          ) : (
-            <DataTable columns={columns} data={apps} />
-          )}
+          <DataTable
+            columns={columns}
+            data={apps}
+            loading={isLoading}
+            emptyMessage="No apps yet. Create your first app."
+          />
         </CardContent>
       </Card>
 

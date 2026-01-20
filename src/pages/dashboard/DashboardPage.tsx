@@ -1,22 +1,84 @@
+import { useMemo } from 'react'
 import { Gamepad2, Package, Calendar, Users, TrendingUp, Activity, Trophy, Gift } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { DataTable } from '@/components/ui/data-table'
 import { useDashboardStats } from '@/hooks/queries'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useNavigate } from 'react-router'
+import { createColumnHelper } from '@/lib/column-helper'
+import { gameTypeLabels } from '@/schemas/game.schema'
+
+// Types for dashboard tables
+interface RecentWinner {
+  gameId: string
+  gameName: string
+  gameCode: string
+  userName: string | null
+  score: number
+}
+
+interface TopGame {
+  gameId: string
+  name: string
+  code: string
+  type: string | null
+  totalUsers: number
+  activeToday: number
+  activeLast7Days: number
+  isActive: boolean
+}
+
+const winnerColumnHelper = createColumnHelper<RecentWinner>()
+const topGameColumnHelper = createColumnHelper<TopGame>()
 
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { data: stats, isLoading } = useDashboardStats()
+
+  const winnerColumns = useMemo(
+    () => [
+      winnerColumnHelper.stacked('game', 'Game', {
+        primary: (row) => row.gameName,
+        secondary: (row) => row.gameCode,
+      }),
+      winnerColumnHelper.custom('userName', 'Winner', ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Trophy className="h-3 w-3 text-yellow-500" />
+          <span className="text-sm">{row.original.userName || 'Unknown'}</span>
+        </div>
+      )),
+      winnerColumnHelper.text('score', 'Score', {
+        format: (v) => v.toLocaleString(),
+      }),
+    ],
+    []
+  )
+
+  const topGameColumns = useMemo(
+    () => [
+      topGameColumnHelper.stacked('game', 'Game', {
+        primary: (row) => row.name,
+        secondary: (row) => row.code,
+      }),
+      topGameColumnHelper.badge('type', 'Type', { labels: gameTypeLabels }),
+      topGameColumnHelper.text('totalUsers', 'Total Users', {
+        variant: 'tabular',
+        format: (v) => v.toLocaleString(),
+      }),
+      topGameColumnHelper.custom('activeToday', 'Active Today', ({ row }) => (
+        <div className="flex items-center gap-1">
+          <Activity className="h-3 w-3 text-primary" />
+          <span className="tabular-nums">{row.original.activeToday}</span>
+        </div>
+      )),
+      topGameColumnHelper.text('activeLast7Days', 'Active (7 days)', {
+        variant: 'tabular',
+      }),
+      topGameColumnHelper.status('isActive', 'Status'),
+    ],
+    []
+  )
 
   if (isLoading) {
     return (
@@ -183,48 +245,12 @@ return (
             </div>
           </CardHeader>
           <CardContent>
-            {stats.recentWinners.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground text-sm">
-                No leaderboard data available
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Game</TableHead>
-                    <TableHead>Winner</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.recentWinners.slice(0, 5).map((winner) => (
-                    <TableRow
-                      key={winner.gameId}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/games/${winner.gameId}?tab=leaderboard`)}
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm">{winner.gameName}</p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {winner.gameCode}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Trophy className="h-3 w-3 text-yellow-500" />
-                          <span className="text-sm">{winner.userName || 'Unknown'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">
-                        {winner.score.toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <DataTable
+              columns={winnerColumns}
+              data={stats.recentWinners.slice(0, 5)}
+              emptyMessage="No leaderboard data available"
+              onRowClick={(winner) => navigate(`/games/${winner.gameId}?tab=leaderboard`)}
+            />
           </CardContent>
         </Card>
 
@@ -308,64 +334,12 @@ return (
           </div>
         </CardHeader>
         <CardContent>
-          {stats.topGames.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No games available</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">#</TableHead>
-                  <TableHead>Game</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Total Users</TableHead>
-                  <TableHead className="text-right">Active Today</TableHead>
-                  <TableHead className="text-right">Active (7 days)</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.topGames.map((game, index) => (
-                  <TableRow
-                    key={game.gameId}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/games/${game.gameId}`)}
-                  >
-                    <TableCell className="font-medium text-muted-foreground">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{game.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{game.code}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {game.type || 'Standard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">
-                      {game.totalUsers.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <div className="flex items-center justify-end gap-1">
-                        <Activity className="h-3 w-3 text-primary" />
-                        {game.activeToday}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {game.activeLast7Days}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={game.isActive ? 'default' : 'secondary'}>
-                        {game.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={topGameColumns}
+            data={stats.topGames}
+            emptyMessage="No games available"
+            onRowClick={(game) => navigate(`/games/${game.gameId}`)}
+          />
         </CardContent>
       </Card>
     </div>

@@ -31,6 +31,43 @@ export type TriggerEvent = z.infer<typeof triggerEventEnum>
 export type MissionPeriod = z.infer<typeof missionPeriodEnum>
 export type MissionRewardType = z.infer<typeof missionRewardTypeEnum>
 
+// Labels for UI display
+export const missionTypeLabels: Record<MissionType, string> = {
+  single: 'Single',
+  count: 'Count',
+  streak: 'Streak',
+  cumulative: 'Cumulative',
+}
+
+export const missionPeriodLabels: Record<MissionPeriod, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  weekly_mon: 'Weekly (Monday)',
+  weekly_sun: 'Weekly (Sunday)',
+  weekly_fri: 'Weekly (Friday)',
+  monthly: 'Monthly',
+  all_time: 'All Time',
+}
+
+export const missionRewardTypeLabels: Record<MissionRewardType, string> = {
+  turns: 'Turns',
+  score: 'Score',
+}
+
+export const triggerEventLabels: Record<TriggerEvent, string> = {
+  'user:login': 'User Login',
+  'zma:checkin': 'ZMA Checkin',
+  'game:play': 'Game Play',
+  'game:share': 'Game Share',
+  'share:reward': 'Share Reward',
+  'share:position': 'Share Position',
+  'bill:payment': 'Bill Payment',
+  'booking:create': 'Booking Create',
+  'coupon:redeem': 'Coupon Redeem',
+  'tier:upgrade': 'Tier Upgrade',
+  'points:earn': 'Points Earn',
+}
+
 // Mission conditions (optional JSONB field)
 export const missionConditionsSchema = z.record(z.string(), z.any()).optional()
 

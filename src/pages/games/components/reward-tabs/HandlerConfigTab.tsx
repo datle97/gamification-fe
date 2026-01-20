@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { HandlerType } from '@/schemas/reward.schema'
+import { handlerTypeLabels, type HandlerType } from '@/schemas/reward.schema'
 import { SystemHandlerForm } from '../reward-forms/SystemHandlerForm'
 import { TurnHandlerForm } from '../reward-forms/TurnHandlerForm'
 import { JourneyHandlerForm } from '../reward-forms/JourneyHandlerForm'
@@ -24,16 +24,6 @@ const handlerTypes: HandlerType[] = [
   'collection',
   'api',
 ]
-
-const handlerTypeLabels: Record<HandlerType, string> = {
-  api: 'API',
-  system: 'System',
-  turn: 'Turn',
-  no_reward: 'No Reward',
-  collection: 'Collection',
-  script: 'Script',
-  journey: 'Journey',
-}
 
 const handlerTypeDescriptions: Record<HandlerType, string> = {
   system: 'Allocate rewards internally without external API calls',

@@ -34,16 +34,9 @@ import {
 import { createColumnHelper } from '@/lib/column-helper'
 import { useApps, useGames, useLinks, useCreateLink, useDeleteLink } from '@/hooks/queries'
 import type { Link } from '@/schemas/link.schema'
-import type { GameStatus } from '@/schemas/game.schema'
+import { gameStatusVariants, type GameStatus } from '@/schemas/game.schema'
 
 const columnHelper = createColumnHelper<Link>()
-
-const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  active: 'default',
-  draft: 'outline',
-  paused: 'secondary',
-  ended: 'destructive',
-}
 
 type SheetMode = 'closed' | 'create' | 'view'
 
@@ -148,17 +141,13 @@ export function AppGamesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : links.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-              <p>No app-game links yet. Link a game to an app to create a campaign.</p>
-            </div>
-          ) : (
-            <DataTable columns={columns} data={links} onRowClick={handleRowClick} />
-          )}
+          <DataTable
+            columns={columns}
+            data={links}
+            loading={isLoading}
+            emptyMessage="No app-game links yet. Link a game to an app to create a campaign."
+            onRowClick={handleRowClick}
+          />
         </CardContent>
       </Card>
 
@@ -246,7 +235,7 @@ export function AppGamesPage() {
                       <Label className="text-muted-foreground">Game Status</Label>
                       <div>
                         <Badge
-                          variant={statusVariants[selectedLink.game.status as GameStatus]}
+                          variant={gameStatusVariants[selectedLink.game.status as GameStatus]}
                           className="capitalize"
                         >
                           {selectedLink.game.status}

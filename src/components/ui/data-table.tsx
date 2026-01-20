@@ -1,13 +1,12 @@
+import { useState, type ReactNode } from 'react'
 import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
-  type PaginationState,
 } from '@tanstack/react-table'
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
 import {
   Table,
@@ -21,11 +20,21 @@ import { Button } from '@/components/ui/button'
 import { useCompactTables, useTablePageSize } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
 
+interface ServerPagination {
+  page: number
+  pageSize: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   pageSize?: number
   onRowClick?: (row: TData) => void
+  loading?: boolean
+  emptyMessage?: ReactNode
+  pagination?: ServerPagination
 }
 
 export function DataTable<TData, TValue>({
@@ -33,26 +42,57 @@ export function DataTable<TData, TValue>({
   data,
   pageSize,
   onRowClick,
+  loading,
+  emptyMessage = 'No results.',
+  pagination: serverPagination,
 }: DataTableProps<TData, TValue>) {
   const compactTables = useCompactTables()
   const defaultPageSize = useTablePageSize()
-  const effectivePageSize = pageSize ?? defaultPageSize
+  const effectivePageSize = serverPagination?.pageSize ?? pageSize ?? defaultPageSize
 
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: effectivePageSize,
-  })
+  const isManualPagination = !!serverPagination
+
+  // Internal state for client-side pagination
+  const [clientPageIndex, setClientPageIndex] = useState(0)
 
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
+    // Only use client-side pagination when not manual
+    ...(isManualPagination
+      ? {
+          manualPagination: true,
+          pageCount: serverPagination.totalPages,
+        }
+      : {
+          getPaginationRowModel: getPaginationRowModel(),
+        }),
     state: {
-      pagination,
+      pagination: {
+        pageIndex: isManualPagination ? serverPagination.page - 1 : clientPageIndex,
+        pageSize: effectivePageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      if (typeof updater === 'function') {
+        const currentState = {
+          pageIndex: isManualPagination ? serverPagination.page - 1 : clientPageIndex,
+          pageSize: effectivePageSize,
+        }
+        const newState = updater(currentState)
+
+        if (isManualPagination) {
+          serverPagination.onPageChange(newState.pageIndex + 1)
+        } else {
+          setClientPageIndex(newState.pageIndex)
+        }
+      }
     },
   })
+
+  const pageCount = table.getPageCount()
+  const currentPage = table.getState().pagination.pageIndex + 1
 
   return (
     <div className="space-y-4">
@@ -75,7 +115,13 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -95,8 +141,8 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             )}
@@ -104,11 +150,11 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination */}
-      {table.getPageCount() > 1 && (
+      {/* Unified Pagination */}
+      {pageCount > 1 && (
         <div className="flex items-center justify-between px-2">
           <div className="text-sm text-muted-foreground">
-            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+            Page {currentPage} of {pageCount}
           </div>
           <div className="flex items-center space-x-2">
             <Button

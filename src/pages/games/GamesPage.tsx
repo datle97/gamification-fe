@@ -25,36 +25,20 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { createColumnHelper } from '@/lib/column-helper'
 import { useCreateGame, useGames, useUpdateGame } from '@/hooks/queries'
-import type { CreateGameInput, Game, GameStatus, GameType } from '@/schemas/game.schema'
+import {
+  gameTypeLabels,
+  gameStatusLabels,
+  gameStatusVariants,
+  type CreateGameInput,
+  type Game,
+  type GameStatus,
+  type GameType,
+} from '@/schemas/game.schema'
 
 const columnHelper = createColumnHelper<Game>()
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
-
-const gameTypeLabels: Record<GameType, string> = {
-  spin: 'Spin Wheel',
-  scratch: 'Scratch Card',
-  quiz: 'Quiz',
-  puzzle: 'Puzzle',
-  match: 'Match Game',
-  lottery: 'Lottery',
-  catch: 'Catch',
-}
-
-const gameStatusLabels: Record<GameStatus, string> = {
-  draft: 'Draft',
-  active: 'Active',
-  paused: 'Paused',
-  ended: 'Ended',
-}
-
-const statusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  active: 'default',
-  draft: 'outline',
-  paused: 'secondary',
-  ended: 'destructive',
-}
 
 const statusOptions = gameStatuses.map((status) => ({
   value: status,
@@ -126,7 +110,7 @@ export function GamesPage() {
       columnHelper.editable.select('status', 'Status', handleUpdateStatus, {
         options: statusOptions,
         labels: gameStatusLabels,
-        variants: statusVariants,
+        variants: gameStatusVariants,
       }),
     ],
     [handleUpdateStatus, handleUpdateSchedule]
@@ -176,17 +160,12 @@ export function GamesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : games.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-              <p>No games yet. Create your first game template.</p>
-            </div>
-          ) : (
-            <DataTable columns={columns} data={games} />
-          )}
+          <DataTable
+            columns={columns}
+            data={games}
+            loading={isLoading}
+            emptyMessage="No games yet. Create your first game template."
+          />
         </CardContent>
       </Card>
 

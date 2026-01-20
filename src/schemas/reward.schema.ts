@@ -26,6 +26,28 @@ export const handlerTypeEnum = z.enum([
 export type RewardCategory = z.infer<typeof rewardCategoryEnum>
 export type HandlerType = z.infer<typeof handlerTypeEnum>
 
+// Labels for UI display
+export const rewardCategoryLabels: Record<RewardCategory, string> = {
+  voucher: 'Voucher',
+  collectable: 'Collectable',
+  coins: 'Coins',
+  points: 'Points',
+  turn: 'Turn',
+  physical: 'Physical',
+  no_reward: 'No Reward',
+  other: 'Other',
+}
+
+export const handlerTypeLabels: Record<HandlerType, string> = {
+  api: 'API',
+  system: 'System',
+  turn: 'Turn',
+  no_reward: 'No Reward',
+  collection: 'Collection',
+  script: 'Script',
+  journey: 'Journey',
+}
+
 // Expiration config
 export const expirationConfigSchema = z
   .object({

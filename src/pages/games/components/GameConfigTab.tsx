@@ -13,20 +13,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useUpdateGame } from '@/hooks/queries'
-import type { Game, PeriodType } from '@/schemas/game.schema'
+import { periodTypeLabels, type Game, type PeriodType } from '@/schemas/game.schema'
 
 interface GameConfigTabProps {
   game: Game
-}
-
-const periodTypeLabels: Record<PeriodType, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly (Monday start)',
-  weekly_mon: 'Weekly (Monday start)',
-  weekly_sun: 'Weekly (Sunday start)',
-  weekly_fri: 'Weekly (Friday start)',
-  monthly: 'Monthly',
-  all_time: 'All-Time',
 }
 
 export function GameConfigTab({ game }: GameConfigTabProps) {

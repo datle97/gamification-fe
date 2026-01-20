@@ -20,11 +20,13 @@ import {
   useDeleteReward,
   useBatchUpdateRewards,
 } from '@/hooks/queries'
-import type {
-  Reward,
-  RewardCategory,
-  HandlerType,
-  CreateRewardInput,
+import {
+  rewardCategoryLabels,
+  handlerTypeLabels,
+  type Reward,
+  type RewardCategory,
+  type HandlerType,
+  type CreateRewardInput,
 } from '@/schemas/reward.schema'
 import { BasicTab } from './reward-tabs/BasicTab'
 import { ExpirationTab } from './reward-tabs/ExpirationTab'
@@ -34,27 +36,6 @@ import { SharingTab } from './reward-tabs/SharingTab'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 import { RewardsDistributionCard } from './RewardsDistributionCard'
-
-const rewardCategoryLabels: Record<RewardCategory, string> = {
-  voucher: 'Voucher',
-  collectable: 'Collectable',
-  coins: 'Coins',
-  points: 'Points',
-  turn: 'Turn',
-  physical: 'Physical',
-  no_reward: 'No Reward',
-  other: 'Other',
-}
-
-const handlerTypeLabels: Record<HandlerType, string> = {
-  api: 'API',
-  system: 'System',
-  turn: 'Turn',
-  no_reward: 'No Reward',
-  collection: 'Collection',
-  script: 'Script',
-  journey: 'Journey',
-}
 
 const columnHelper = createColumnHelper<Reward>()
 
@@ -291,17 +272,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : rewards.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-              <p>No rewards yet. Create your first reward for this game.</p>
-            </div>
-          ) : (
-            <DataTable columns={columns} data={rewards} onRowClick={handleRowClick} />
-          )}
+          <DataTable
+            columns={columns}
+            data={rewards}
+            loading={isLoading}
+            emptyMessage="No rewards yet. Create your first reward for this game."
+            onRowClick={handleRowClick}
+          />
         </CardContent>
       </Card>
 

@@ -1,83 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import { Users, Activity, TrendingUp, Search, X, Loader2 } from 'lucide-react'
-import type { ColumnDef } from '@tanstack/react-table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { createColumnHelper } from '@/lib/column-helper'
 import { useGameUsers, useGameStats } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
 import { UserDetailSheet } from './UserDetailSheet'
 import type { GameUser } from '@/services/game-users.service'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 
 dayjs.extend(relativeTime)
+
+const columnHelper = createColumnHelper<GameUser>()
 
 interface GameUsersTabProps {
   gameId: string
 }
-
-const getColumns = (onRowClick: (userId: string) => void): ColumnDef<GameUser>[] => [
-  {
-    accessorKey: 'userId',
-    header: 'User ID',
-    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('userId')}</span>,
-  },
-  {
-    id: 'displayName',
-    header: 'Display Name',
-    cell: ({ row }) => {
-      const user = row.original.user
-      return (
-        <div className="flex items-center gap-2">
-          {user?.avatar && (
-            <img src={user.avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
-          )}
-          <span>{user?.displayName || '-'}</span>
-        </div>
-      )
-    },
-  },
-  {
-    id: 'phone',
-    header: 'Phone',
-    cell: ({ row }) => {
-      const phone = row.original.user?.phone
-      return <span className="text-sm text-muted-foreground">{phone || '-'}</span>
-    },
-  },
-  {
-    accessorKey: 'joinedAt',
-    header: 'Joined',
-    cell: ({ row }) => {
-      const date = row.getValue('joinedAt') as string
-      return (
-        <div className="flex flex-col">
-          <span className="text-sm">{dayjs(date).format('MMM DD, YYYY')}</span>
-          <span className="text-xs text-muted-foreground">{dayjs(date).fromNow()}</span>
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'lastActiveAt',
-    header: 'Last Active',
-    cell: ({ row }) => {
-      const date = row.getValue('lastActiveAt') as string | null
-      if (!date) return <span className="text-muted-foreground">Never</span>
-
-      const isRecent = dayjs().diff(date, 'hour') < 24
-      return (
-        <div className="flex items-center gap-2">
-          {isRecent && <Badge variant="secondary" className="text-xs">Active</Badge>}
-          <span className="text-sm">{dayjs(date).fromNow()}</span>
-        </div>
-      )
-    },
-  },
-]
 
 export function GameUsersTab({ gameId }: GameUsersTabProps) {
   const [searchInput, setSearchInput] = useState('')
@@ -118,7 +60,37 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
     setSheetOpen(true)
   }
 
-  const columns = getColumns(handleRowClick)
+  const columns = useMemo(
+    () => [
+      columnHelper.text('userId', 'User ID', { variant: 'primary' }),
+      columnHelper.avatar('displayName', 'Display Name', {
+        name: (row) => row.user?.displayName,
+        avatar: (row) => row.user?.avatar,
+      }),
+      columnHelper.text('userId', 'Phone', {
+        variant: 'secondary',
+        render: (row) => row.user?.phone,
+      }),
+      columnHelper.date('joinedAt', 'Joined', { relative: true }),
+      columnHelper.custom('lastActiveAt', 'Last Active', ({ row }) => {
+        const date = row.original.lastActiveAt
+        if (!date) return <span className="text-muted-foreground">Never</span>
+
+        const isRecent = dayjs().diff(date, 'hour') < 24
+        return (
+          <div className="flex items-center gap-2">
+            {isRecent && (
+              <Badge variant="secondary" className="text-xs">
+                Active
+              </Badge>
+            )}
+            <span className="text-sm">{dayjs(date).fromNow()}</span>
+          </div>
+        )
+      }),
+    ],
+    []
+  )
 
   return (
     <div className="space-y-6">

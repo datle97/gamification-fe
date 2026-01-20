@@ -31,13 +31,17 @@ import {
   useUpdateMission,
   useDeleteMission,
 } from '@/hooks/queries'
-import type {
-  Mission,
-  MissionType,
-  TriggerEvent,
-  MissionPeriod,
-  MissionRewardType,
-  CreateMissionInput,
+import {
+  missionTypeLabels,
+  missionPeriodLabels,
+  missionRewardTypeLabels,
+  triggerEventLabels,
+  type Mission,
+  type MissionType,
+  type TriggerEvent,
+  type MissionPeriod,
+  type MissionRewardType,
+  type CreateMissionInput,
 } from '@/schemas/mission.schema'
 
 const missionTypes: MissionType[] = ['single', 'count', 'streak', 'cumulative']
@@ -64,42 +68,6 @@ const missionPeriods: MissionPeriod[] = [
   'all_time',
 ]
 const rewardTypes: MissionRewardType[] = ['turns', 'score']
-
-const missionTypeLabels: Record<MissionType, string> = {
-  single: 'Single',
-  count: 'Count',
-  streak: 'Streak',
-  cumulative: 'Cumulative',
-}
-
-const missionPeriodLabels: Record<MissionPeriod, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  weekly_mon: 'Weekly (Monday)',
-  weekly_sun: 'Weekly (Sunday)',
-  weekly_fri: 'Weekly (Friday)',
-  monthly: 'Monthly',
-  all_time: 'All Time',
-}
-
-const rewardTypeLabels: Record<MissionRewardType, string> = {
-  turns: 'Turns',
-  score: 'Score',
-}
-
-const triggerEventLabels: Record<TriggerEvent, string> = {
-  'user:login': 'User Login',
-  'zma:checkin': 'ZMA Checkin',
-  'game:play': 'Game Play',
-  'game:share': 'Game Share',
-  'share:reward': 'Share Reward',
-  'share:position': 'Share Position',
-  'bill:payment': 'Bill Payment',
-  'booking:create': 'Booking Create',
-  'coupon:redeem': 'Coupon Redeem',
-  'tier:upgrade': 'Tier Upgrade',
-  'points:earn': 'Points Earn',
-}
 
 const columnHelper = createColumnHelper<Mission>()
 
@@ -318,17 +286,13 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : missions.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground border border-dashed rounded-lg">
-            <p>No missions yet. Create your first mission for this game.</p>
-          </div>
-        ) : (
-          <DataTable columns={columns} data={missions} onRowClick={handleRowClick} />
-        )}
+        <DataTable
+          columns={columns}
+          data={missions}
+          loading={isLoading}
+          emptyMessage="No missions yet. Create your first mission for this game."
+          onRowClick={handleRowClick}
+        />
       </CardContent>
 
       <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
@@ -510,7 +474,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                     <SelectContent>
                       {rewardTypes.map((type) => (
                         <SelectItem key={type} value={type}>
-                          {rewardTypeLabels[type]}
+                          {missionRewardTypeLabels[type]}
                         </SelectItem>
                       ))}
                     </SelectContent>

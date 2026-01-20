@@ -17,6 +17,41 @@ export type GameStatus = z.infer<typeof gameStatusEnum>
 export type GameType = z.infer<typeof gameTypeEnum>
 export type PeriodType = z.infer<typeof periodTypeEnum>
 
+// Labels and variants for UI display
+export const gameTypeLabels: Record<GameType, string> = {
+  spin: 'Spin Wheel',
+  scratch: 'Scratch Card',
+  quiz: 'Quiz',
+  puzzle: 'Puzzle',
+  match: 'Match Game',
+  lottery: 'Lottery',
+  catch: 'Catch',
+}
+
+export const gameStatusLabels: Record<GameStatus, string> = {
+  draft: 'Draft',
+  active: 'Active',
+  paused: 'Paused',
+  ended: 'Ended',
+}
+
+export const gameStatusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  active: 'default',
+  draft: 'outline',
+  paused: 'secondary',
+  ended: 'destructive',
+}
+
+export const periodTypeLabels: Record<PeriodType, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly (Monday start)',
+  weekly_mon: 'Weekly (Monday start)',
+  weekly_sun: 'Weekly (Sunday start)',
+  weekly_fri: 'Weekly (Friday start)',
+  monthly: 'Monthly',
+  all_time: 'All-Time',
+}
+
 // Leaderboard config
 export const leaderboardConfigSchema = z.object({
   periodType: periodTypeEnum,

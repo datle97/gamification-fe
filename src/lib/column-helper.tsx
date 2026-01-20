@@ -7,6 +7,7 @@ import {
   LinkCell,
   BadgeCell,
   StackedCell,
+  AvatarCell,
 } from '@/components/common/cells'
 import {
   EditableTextCell,
@@ -37,7 +38,7 @@ interface EditableSelectOptions<T extends string> {
   variants?: Partial<Record<T, BadgeVariant>>
 }
 
-export function createColumnHelper<TData extends Record<string, unknown>>() {
+export function createColumnHelper<TData>() {
   return {
     // Display columns
     text: <TKey extends keyof TData & string>(
@@ -68,12 +69,16 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
     date: <TKey extends keyof TData & string>(
       key: TKey,
       header: string,
-      options?: { showTime?: boolean }
+      options?: { showTime?: boolean; relative?: boolean }
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
       cell: ({ row }) => (
-        <DateCell value={row.original[key] as string} showTime={options?.showTime} />
+        <DateCell
+          value={row.original[key] as string}
+          showTime={options?.showTime}
+          relative={options?.relative}
+        />
       ),
     }),
 
@@ -143,6 +148,26 @@ export function createColumnHelper<TData extends Record<string, unknown>>() {
           secondary={options.secondary(row.original)}
           href={options.href?.(row.original)}
           onClick={options.onClick ? () => options.onClick!(row.original) : undefined}
+        />
+      ),
+    }),
+
+    avatar: (
+      id: string,
+      header: string,
+      options: {
+        name: (row: TData) => string | undefined | null
+        avatar?: (row: TData) => string | undefined | null
+        subtitle?: (row: TData) => string | undefined | null
+      }
+    ): ColumnDef<TData> => ({
+      id,
+      header,
+      cell: ({ row }) => (
+        <AvatarCell
+          name={options.name(row.original)}
+          avatar={options.avatar?.(row.original)}
+          subtitle={options.subtitle?.(row.original)}
         />
       ),
     }),

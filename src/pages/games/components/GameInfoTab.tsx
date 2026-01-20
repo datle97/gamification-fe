@@ -15,27 +15,16 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useUpdateGame } from '@/hooks/queries'
-import type { Game, GameStatus, GameType } from '@/schemas/game.schema'
+import {
+  gameTypeLabels,
+  gameStatusLabels,
+  type Game,
+  type GameStatus,
+  type GameType,
+} from '@/schemas/game.schema'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
-
-const gameTypeLabels: Record<GameType, string> = {
-  spin: 'Spin Wheel',
-  scratch: 'Scratch Card',
-  quiz: 'Quiz',
-  puzzle: 'Puzzle',
-  match: 'Match Game',
-  lottery: 'Lottery',
-  catch: 'Catch Game',
-}
-
-const gameStatusLabels: Record<GameStatus, string> = {
-  draft: 'Draft',
-  active: 'Active',
-  paused: 'Paused',
-  ended: 'Ended',
-}
 
 interface GameInfoTabProps {
   game: Game
