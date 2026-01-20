@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { useEffect, type ReactNode } from 'react'
 
 interface ThemeProviderProps {
   children: ReactNode

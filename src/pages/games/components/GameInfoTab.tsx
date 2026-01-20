@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import dayjs from 'dayjs'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
@@ -16,12 +13,15 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useUpdateGame } from '@/hooks/queries'
 import {
-  gameTypeLabels,
   gameStatusLabels,
+  gameTypeLabels,
   type Game,
   type GameStatus,
   type GameType,
 } from '@/schemas/game.schema'
+import dayjs from 'dayjs'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']

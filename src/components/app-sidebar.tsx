@@ -1,5 +1,5 @@
+import { Gamepad2, LayoutDashboard, LayoutGrid, Link2, Settings } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
-import { Gamepad2, LayoutGrid, Link2, Settings, LayoutDashboard } from 'lucide-react'
 
 import {
   Sidebar,

@@ -1,22 +1,22 @@
-import type { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import {
-  TextCell,
+  AvatarCell,
+  BadgeCell,
   DateCell,
   DateRangeCell,
   LinkCell,
-  BadgeCell,
   StackedCell,
-  AvatarCell,
+  TextCell,
 } from '@/components/common/cells'
 import {
-  EditableTextCell,
-  EditableNumberCell,
-  EditableToggleCell,
-  EditableSelectCell,
   EditableDateRangeCell,
+  EditableNumberCell,
+  EditableSelectCell,
   EditableStackedCell,
+  EditableTextCell,
+  EditableToggleCell,
 } from '@/components/common/editable-cells'
+import { Badge } from '@/components/ui/badge'
+import type { ColumnDef } from '@tanstack/react-table'
 
 type UpdateFn<T, V> = (row: T, value: V) => Promise<void>
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
@@ -62,7 +62,9 @@ export function createColumnHelper<TData>() {
         } else {
           value = rawValue
         }
-        return <TextCell value={value} className={textVariantStyles[options?.variant ?? 'default']} />
+        return (
+          <TextCell value={value} className={textVariantStyles[options?.variant ?? 'default']} />
+        )
       },
     }),
 
@@ -106,9 +108,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
-      cell: ({ row }) => (
-        <LinkCell href={row.original[key] as string} label={options?.label} />
-      ),
+      cell: ({ row }) => <LinkCell href={row.original[key] as string} label={options?.label} />,
     }),
 
     badge: <TKey extends keyof TData & string, TValue extends string>(
@@ -187,9 +187,7 @@ export function createColumnHelper<TData>() {
       header,
       cell: ({ row }) => {
         const value = row.original[key] as boolean
-        const label = value
-          ? (options?.trueLabel ?? 'Active')
-          : (options?.falseLabel ?? 'Inactive')
+        const label = value ? (options?.trueLabel ?? 'Active') : (options?.falseLabel ?? 'Inactive')
         const variant = value
           ? (options?.trueVariant ?? 'default')
           : (options?.falseVariant ?? 'secondary')

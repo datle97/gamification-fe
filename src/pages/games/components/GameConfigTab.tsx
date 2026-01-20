@@ -1,10 +1,8 @@
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -14,6 +12,8 @@ import {
 } from '@/components/ui/select'
 import { useUpdateGame } from '@/hooks/queries'
 import { periodTypeLabels, type Game, type PeriodType } from '@/schemas/game.schema'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
 interface GameConfigTabProps {
   game: Game
@@ -32,9 +32,7 @@ export function GameConfigTab({ game }: GameConfigTabProps) {
   )
 
   // Play score state
-  const [playScore, setPlayScore] = useState<string>(
-    game.config?.playScore?.toString() || '1'
-  )
+  const [playScore, setPlayScore] = useState<string>(game.config?.playScore?.toString() || '1')
 
   const handleSave = async () => {
     const config = {
@@ -64,9 +62,7 @@ export function GameConfigTab({ game }: GameConfigTabProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Leaderboard Settings</CardTitle>
-              <CardDescription>
-                Configure leaderboard ranking and period tracking
-              </CardDescription>
+              <CardDescription>Configure leaderboard ranking and period tracking</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="enable-leaderboard" className="cursor-pointer">
@@ -137,7 +133,8 @@ export function GameConfigTab({ game }: GameConfigTabProps) {
               onChange={(e) => setPlayScore(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Score per play. Default: 1. Use 0 for games where points come only from rewards/sharing.
+              Score per play. Default: 1. Use 0 for games where points come only from
+              rewards/sharing.
             </p>
           </div>
         </CardContent>

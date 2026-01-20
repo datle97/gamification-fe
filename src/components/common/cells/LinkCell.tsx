@@ -1,5 +1,5 @@
-import { ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ExternalLink } from 'lucide-react'
 
 interface LinkCellProps {
   href: string | null | undefined
@@ -8,12 +8,7 @@ interface LinkCellProps {
   className?: string
 }
 
-export function LinkCell({
-  href,
-  label = 'Open',
-  external = true,
-  className,
-}: LinkCellProps) {
+export function LinkCell({ href, label = 'Open', external = true, className }: LinkCellProps) {
   if (!href) {
     return <span className="text-muted-foreground">-</span>
   }

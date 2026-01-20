@@ -1,15 +1,4 @@
-import { useState } from 'react'
-import { Plus, Trash2, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -18,7 +7,18 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import type { Conditions, ConditionGroup, Condition, ConditionOperator } from '@/types/conditions'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import type { Condition, ConditionGroup, ConditionOperator, Conditions } from '@/types/conditions'
+import { ChevronsUpDown, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 interface FieldDefinition {
   name: string
@@ -147,7 +147,14 @@ interface ConditionGroupBuilderProps {
   depth: number
 }
 
-function ConditionGroupBuilder({ group, availableFields, onAddField, onChange, onRemove, depth }: ConditionGroupBuilderProps) {
+function ConditionGroupBuilder({
+  group,
+  availableFields,
+  onAddField,
+  onChange,
+  onRemove,
+  depth,
+}: ConditionGroupBuilderProps) {
   const addCondition = () => {
     const newCondition: Condition = {
       field: '',
@@ -193,10 +200,7 @@ function ConditionGroupBuilder({ group, availableFields, onAddField, onChange, o
   }
 
   return (
-    <div
-      className="border rounded-lg p-4 space-y-3"
-      style={{ marginLeft: depth > 0 ? '1rem' : 0 }}
-    >
+    <div className="border rounded-lg p-4 space-y-3" style={{ marginLeft: depth > 0 ? '1rem' : 0 }}>
       {/* Group Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -210,7 +214,9 @@ function ConditionGroupBuilder({ group, availableFields, onAddField, onChange, o
             {group.mode}
           </Button>
           <span className="text-xs text-muted-foreground">
-            {group.mode === 'AND' ? 'All conditions must match' : 'At least one condition must match'}
+            {group.mode === 'AND'
+              ? 'All conditions must match'
+              : 'At least one condition must match'}
           </span>
         </div>
         {onRemove && depth > 0 && (
@@ -273,7 +279,13 @@ interface ConditionRowProps {
   onRemove: () => void
 }
 
-function ConditionRow({ condition, availableFields, onAddField, onChange, onRemove }: ConditionRowProps) {
+function ConditionRow({
+  condition,
+  availableFields,
+  onAddField,
+  onChange,
+  onRemove,
+}: ConditionRowProps) {
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
 
@@ -446,7 +458,10 @@ function ConditionRow({ condition, availableFields, onAddField, onChange, onRemo
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
-          <Command onKeyDown={handleKeyDown} className="[&_[data-slot=command-input-wrapper]_svg]:hidden">
+          <Command
+            onKeyDown={handleKeyDown}
+            className="[&_[data-slot=command-input-wrapper]_svg]:hidden"
+          >
             <CommandInput
               placeholder="Type field name..."
               value={searchValue}
@@ -456,7 +471,10 @@ function ConditionRow({ condition, availableFields, onAddField, onChange, onRemo
               <CommandEmpty className="text-center text-sm">
                 <div className="py-2 px-2 text-sm text-muted-foreground">
                   {searchValue.trim() ? (
-                    <>Press Enter to add "<span className="font-medium text-foreground">{searchValue}</span>"</>
+                    <>
+                      Press Enter to add "
+                      <span className="font-medium text-foreground">{searchValue}</span>"
+                    </>
                   ) : (
                     'Type field name and press Enter'
                   )}
@@ -465,15 +483,9 @@ function ConditionRow({ condition, availableFields, onAddField, onChange, onRemo
               {availableFields.length > 0 && (
                 <CommandGroup>
                   {availableFields.map((field) => (
-                    <CommandItem
-                      key={field.name}
-                      value={field.name}
-                      onSelect={handleFieldSelect}
-                    >
+                    <CommandItem key={field.name} value={field.name} onSelect={handleFieldSelect}>
                       <span>{field.label}</span>
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {field.type}
-                      </span>
+                      <span className="ml-auto text-xs text-muted-foreground">{field.type}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -485,10 +497,7 @@ function ConditionRow({ condition, availableFields, onAddField, onChange, onRemo
 
       {/* Datatype */}
       {condition.field && (
-        <Select
-          value={currentType}
-          onValueChange={handleTypeChange}
-        >
+        <Select value={currentType} onValueChange={handleTypeChange}>
           <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
@@ -502,7 +511,10 @@ function ConditionRow({ condition, availableFields, onAddField, onChange, onRemo
 
       {/* Operator */}
       {condition.field && (
-        <Select value={condition.op} onValueChange={(v: ConditionOperator) => onChange({ ...condition, op: v })}>
+        <Select
+          value={condition.op}
+          onValueChange={(v: ConditionOperator) => onChange({ ...condition, op: v })}
+        >
           <SelectTrigger className="w-44">
             <SelectValue />
           </SelectTrigger>

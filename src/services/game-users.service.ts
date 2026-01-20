@@ -12,6 +12,7 @@ export interface GameUser {
   externalUserId?: string
   joinedAt: string
   lastActiveAt: string | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes: Record<string, any>
   updatedAt: string
   user?: {

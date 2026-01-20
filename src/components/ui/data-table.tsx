@@ -1,13 +1,14 @@
-import { useState, type ReactNode } from 'react'
 import {
-  type ColumnDef,
   flexRender,
   getCoreRowModel,
-  useReactTable,
   getPaginationRowModel,
+  useReactTable,
+  type ColumnDef,
 } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -16,9 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { useCompactTables, useTablePageSize } from '@/stores/settingsStore'
 import { cn } from '@/lib/utils'
+import { useCompactTables, useTablePageSize } from '@/stores/settingsStore'
 
 interface ServerPagination {
   page: number
@@ -102,10 +102,7 @@ export function DataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className={cn(compactTables && 'h-8 py-1 text-xs')}
-                  >
+                  <TableHead key={header.id} className={cn(compactTables && 'h-8 py-1 text-xs')}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -130,10 +127,7 @@ export function DataTable<TData, TValue>({
                   className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(compactTables && 'py-1 text-xs')}
-                    >
+                    <TableCell key={cell.id} className={cn(compactTables && 'py-1 text-xs')}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -141,7 +135,10 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   {emptyMessage}
                 </TableCell>
               </TableRow>

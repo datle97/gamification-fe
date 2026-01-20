@@ -1,8 +1,6 @@
-import dayjs from 'dayjs'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -10,7 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { rewardCategoryLabels, type RewardCategory, type Reward } from '@/schemas/reward.schema'
+import { Textarea } from '@/components/ui/textarea'
+import { rewardCategoryLabels, type Reward, type RewardCategory } from '@/schemas/reward.schema'
+import dayjs from 'dayjs'
 
 const rewardCategories: RewardCategory[] = [
   'voucher',

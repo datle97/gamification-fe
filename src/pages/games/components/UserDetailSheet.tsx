@@ -1,5 +1,15 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Sheet,
   SheetContent,
@@ -8,54 +18,44 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  useGameUserDetail,
-  useUserTurns,
-  useUserRewards,
-  useUserMissions,
-  useUserActivities,
   useCheckEligibility,
+  useGameUserDetail,
   useGrantTurns,
-  useResetMissionProgress,
   useResetAllMissionsProgress,
+  useResetMissionProgress,
   useRevokeUserReward,
+  useUserActivities,
+  useUserMissions,
+  useUserRewards,
+  useUserTurns,
 } from '@/hooks/queries'
-import type { RewardEligibilityResult, ActivityType } from '@/services/game-users.service'
+import { useFormatDate } from '@/hooks/useFormatDate'
+import type { ActivityType, RewardEligibilityResult } from '@/services/game-users.service'
+import { useDevMode } from '@/stores/settingsStore'
+import parse from 'html-react-parser'
 import {
-  Loader2,
-  Coins,
-  Gift,
-  Target,
-  ChevronDown,
   Check,
-  X,
-  Search,
-  Settings2,
+  ChevronDown,
+  Clock,
+  Coins,
+  ExternalLink,
+  Gamepad2,
+  Gift,
+  History,
+  Loader2,
   Plus,
   RotateCcw,
-  Trash2,
-  History,
-  Gamepad2,
-  Trophy,
-  Clock,
+  Search,
+  Settings2,
   Shield,
-  ExternalLink,
+  Target,
+  Trash2,
+  Trophy,
+  X,
 } from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useDevMode } from '@/stores/settingsStore'
-import { Badge } from '@/components/ui/badge'
-import parse from 'html-react-parser'
-import { useFormatDate } from '@/hooks/useFormatDate'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router'
 
 // Format condition check to human-readable text
 function formatConditionCheck(check: {
@@ -634,9 +634,7 @@ export function UserDetailSheet({ gameId, userId, open, onOpenChange }: UserDeta
                         )}
                         <div className="mt-1 text-xs text-muted-foreground">
                           Received: {formatDateTime(reward.createdAt)}
-                          {reward.expiredAt && (
-                            <> • Expires: {formatDate(reward.expiredAt)}</>
-                          )}
+                          {reward.expiredAt && <> • Expires: {formatDate(reward.expiredAt)}</>}
                         </div>
                       </div>
                       {isDevMode && (

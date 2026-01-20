@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 
 interface EditableToggleCellProps {
   value: boolean
@@ -8,11 +8,7 @@ interface EditableToggleCellProps {
   disabled?: boolean
 }
 
-export function EditableToggleCell({
-  value,
-  onSave,
-  disabled,
-}: EditableToggleCellProps) {
+export function EditableToggleCell({ value, onSave, disabled }: EditableToggleCellProps) {
   const [isSaving, setIsSaving] = useState(false)
 
   const handleChange = async (newValue: boolean) => {

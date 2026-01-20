@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { App, CreateAppInput, UpdateAppInput } from '@/schemas/app.schema'
 import { appsService } from '@/services/apps.service'
-import type { CreateAppInput, UpdateAppInput, App } from '@/schemas/app.schema'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const appsKeys = {
   all: ['apps'] as const,

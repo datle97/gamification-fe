@@ -1,10 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { Reward } from '@/schemas/reward.schema'
+import { Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 interface ProbabilityManagerDialogProps {
   open: boolean
@@ -126,7 +126,10 @@ export function ProbabilityManagerDialog({
       })
     } else {
       // Proportional distribution
-      const currentSelectedTotal = selected.reduce((sum, id) => sum + (probabilities.get(id) || 0), 0)
+      const currentSelectedTotal = selected.reduce(
+        (sum, id) => sum + (probabilities.get(id) || 0),
+        0
+      )
 
       if (currentSelectedTotal > 0) {
         // Scale proportionally
@@ -180,7 +183,8 @@ export function ProbabilityManagerDialog({
         <DialogHeader>
           <DialogTitle>Manage Probabilities</DialogTitle>
           <DialogDescription>
-            Adjust reward probabilities individually or in bulk. Total: {totalProbability.toFixed(2)}%
+            Adjust reward probabilities individually or in bulk. Total:{' '}
+            {totalProbability.toFixed(2)}%
           </DialogDescription>
         </DialogHeader>
 
@@ -225,7 +229,8 @@ export function ProbabilityManagerDialog({
                 filteredRewards.map((reward) => {
                   const prob = probabilities.get(reward.rewardId) || 0
                   const isSelected = selectedIds.has(reward.rewardId)
-                  const barWidth = totalProbability > 0 ? Math.min(100, (prob / totalProbability) * 100) : 0
+                  const barWidth =
+                    totalProbability > 0 ? Math.min(100, (prob / totalProbability) * 100) : 0
 
                   return (
                     <div
@@ -253,7 +258,9 @@ export function ProbabilityManagerDialog({
                         max={100}
                         step={0.000001}
                         value={prob}
-                        onChange={(e) => setProbability(reward.rewardId, parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          setProbability(reward.rewardId, parseFloat(e.target.value) || 0)
+                        }
                         className="w-20 h-8 text-sm tabular-nums"
                       />
                     </div>
@@ -276,7 +283,9 @@ export function ProbabilityManagerDialog({
             </div>
 
             {/* Selected Actions */}
-            <div className={`p-3 border rounded-lg space-y-3 ${selectedCount === 0 ? 'opacity-50' : ''}`}>
+            <div
+              className={`p-3 border rounded-lg space-y-3 ${selectedCount === 0 ? 'opacity-50' : ''}`}
+            >
               <h4 className="font-semibold text-sm">
                 {selectedCount > 0 ? `${selectedCount} Selected` : 'No Selection'}
                 {selectedCount > 0 && (
@@ -315,7 +324,11 @@ export function ProbabilityManagerDialog({
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="proportional" id="proportional" disabled={selectedCount === 0} />
+                    <RadioGroupItem
+                      value="proportional"
+                      id="proportional"
+                      disabled={selectedCount === 0}
+                    />
                     <Label htmlFor="proportional" className="cursor-pointer font-normal text-xs">
                       Proportionally
                     </Label>

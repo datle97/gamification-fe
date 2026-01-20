@@ -1,4 +1,3 @@
-import dayjs from 'dayjs'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { ExpirationConfig, ExpirationUnit } from '@/schemas/reward.schema'
+import dayjs from 'dayjs'
 
 interface ExpirationTabProps {
   expirationConfig: string
@@ -76,7 +76,8 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
           {mode === 'permanent' && 'Rewards never expire once allocated'}
           {mode === 'ttl' && 'Rewards expire after a specified time period from allocation'}
           {mode === 'fixed' && 'Rewards expire on a specific calendar date'}
-          {mode === 'anchor' && 'Rewards expire at the end of the current period (e.g., end of month)'}
+          {mode === 'anchor' &&
+            'Rewards expire at the end of the current period (e.g., end of month)'}
         </p>
       </div>
 

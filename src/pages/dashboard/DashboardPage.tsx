@@ -1,14 +1,23 @@
-import { useMemo } from 'react'
-import { Gamepad2, Package, Calendar, Users, TrendingUp, Activity, Trophy, Gift } from 'lucide-react'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
-import { useDashboardStats } from '@/hooks/queries'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useNavigate } from 'react-router'
+import { useDashboardStats } from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
 import { gameTypeLabels } from '@/schemas/game.schema'
 import { useAnalytics } from '@/stores/settingsStore'
-import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
+import {
+  Activity,
+  Calendar,
+  Gamepad2,
+  Gift,
+  Package,
+  TrendingUp,
+  Trophy,
+  Users,
+} from 'lucide-react'
+import { useMemo } from 'react'
+import { useNavigate } from 'react-router'
 
 // Types for dashboard tables
 interface RecentWinner {
@@ -32,7 +41,6 @@ interface TopGame {
 
 const winnerColumnHelper = createColumnHelper<RecentWinner>()
 const topGameColumnHelper = createColumnHelper<TopGame>()
-
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -164,7 +172,7 @@ export function DashboardPage() {
     )
   }
 
-return (
+  return (
     <div className="space-y-6">
       {/* Header */}
       <div>
@@ -219,11 +227,10 @@ return (
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold tabular-nums">
-              {stats.totalUsers.toLocaleString()}
-            </p>
+            <p className="text-3xl font-bold tabular-nums">{stats.totalUsers.toLocaleString()}</p>
             <p className="text-sm text-muted-foreground mt-1">
-              <span className="text-primary font-medium">{stats.activeUsersToday}</span> active today
+              <span className="text-primary font-medium">{stats.activeUsersToday}</span> active
+              today
             </p>
           </CardContent>
         </Card>
@@ -325,7 +332,12 @@ return (
                                     ? 'bg-yellow-500'
                                     : 'bg-primary'
                             }`}
-                            style={{ width: game.quotaUsage !== null ? `${Math.min(game.quotaUsage, 100)}%` : '100%' }}
+                            style={{
+                              width:
+                                game.quotaUsage !== null
+                                  ? `${Math.min(game.quotaUsage, 100)}%`
+                                  : '100%',
+                            }}
                           />
                         </div>
                       </div>

@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { linksService } from '@/services/links.service'
 import type { CreateLinkInput } from '@/schemas/link.schema'
+import { linksService } from '@/services/links.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const linksKeys = {
   all: ['links'] as const,

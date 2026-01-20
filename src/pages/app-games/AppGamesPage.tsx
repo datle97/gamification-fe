@@ -1,26 +1,3 @@
-import { useState, useMemo } from 'react'
-import dayjs from 'dayjs'
-import { Plus, Loader2, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { DataTable } from '@/components/ui/data-table'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,10 +8,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { useApps, useCreateLink, useDeleteLink, useGames, useLinks } from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
-import { useApps, useGames, useLinks, useCreateLink, useDeleteLink } from '@/hooks/queries'
-import type { Link } from '@/schemas/link.schema'
 import { gameStatusVariants, type GameStatus } from '@/schemas/game.schema'
+import type { Link } from '@/schemas/link.schema'
+import dayjs from 'dayjs'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 const columnHelper = createColumnHelper<Link>()
 
@@ -130,9 +130,7 @@ export function AppGamesPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>App Games</CardTitle>
-              <CardDescription>
-                Link games to apps.
-              </CardDescription>
+              <CardDescription>Link games to apps.</CardDescription>
             </div>
             <Button onClick={handleOpenCreate}>
               <Plus className="h-4 w-4 mr-2" />

@@ -1,9 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Loader2, AlertTriangle, PieChart as PieChartIcon, BarChart3 } from 'lucide-react'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,6 +8,9 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { useRewardDistribution } from '@/hooks/queries'
+import { AlertTriangle, BarChart3, Loader2, PieChart as PieChartIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from 'recharts'
 
 interface RewardsDistributionCardProps {
   gameId: string

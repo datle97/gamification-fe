@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { CreateRewardInput, Reward, UpdateRewardInput } from '@/schemas/reward.schema'
 import { rewardsService } from '@/services/rewards.service'
 import { useAnalytics } from '@/stores/settingsStore'
-import type { CreateRewardInput, UpdateRewardInput, Reward } from '@/schemas/reward.schema'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const rewardsKeys = {
   all: ['rewards'] as const,

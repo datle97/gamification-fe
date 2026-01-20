@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/stores/authStore'
-import { Lock, AlertCircle } from 'lucide-react'
+import { AlertCircle, Lock } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
 
 export function LoginPage() {
   const [pin, setPin] = useState('')

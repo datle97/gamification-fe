@@ -1,3 +1,4 @@
+import { useSettingsStore } from '@/stores/settingsStore'
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -6,7 +7,6 @@ import {
   TriangleAlertIcon,
 } from 'lucide-react'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
-import { useSettingsStore } from '@/stores/settingsStore'
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const darkMode = useSettingsStore((state) => state.ui.darkMode)

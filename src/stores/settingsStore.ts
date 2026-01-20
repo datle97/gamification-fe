@@ -1,5 +1,5 @@
 import { create, type StateCreator } from 'zustand'
-import { persist, createJSONStorage, type PersistOptions } from 'zustand/middleware'
+import { createJSONStorage, persist, type PersistOptions } from 'zustand/middleware'
 
 export type DateFormat = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
 export type AutoRefreshInterval = 0 | 30 | 60 | 120 | 300 // 0 = disabled, seconds
@@ -101,4 +101,5 @@ export const useCompactTables = () => useSettingsStore((state) => state.ui.compa
 
 export const useDateFormat = () => useSettingsStore((state) => state.ui.dateFormat)
 
-export const useAutoRefreshInterval = () => useSettingsStore((state) => state.ui.autoRefreshInterval)
+export const useAutoRefreshInterval = () =>
+  useSettingsStore((state) => state.ui.autoRefreshInterval)

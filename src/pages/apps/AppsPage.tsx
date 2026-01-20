@@ -1,11 +1,8 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetContent,
@@ -14,9 +11,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { createColumnHelper } from '@/lib/column-helper'
+import { Textarea } from '@/components/ui/textarea'
 import { useApps, useCreateApp, useUpdateApp } from '@/hooks/queries'
+import { createColumnHelper } from '@/lib/column-helper'
 import type { App, CreateAppInput } from '@/schemas/app.schema'
+import { Loader2, Plus } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
 
 const columnHelper = createColumnHelper<App>()
 
@@ -73,11 +73,18 @@ export function AppsPage() {
         secondary: (row) => row.appId,
         onClick: handleOpenEdit,
       }),
-      columnHelper.editable.number('portalId', 'Portal ID', (row, value) => handleUpdate(row, 'portalId', value), {
-        min: 0,
-      }),
+      columnHelper.editable.number(
+        'portalId',
+        'Portal ID',
+        (row, value) => handleUpdate(row, 'portalId', value),
+        {
+          min: 0,
+        }
+      ),
       columnHelper.date('createdAt', 'Created'),
-      columnHelper.editable.toggle('isActive', 'Status', (row, value) => handleUpdate(row, 'isActive', value)),
+      columnHelper.editable.toggle('isActive', 'Status', (row, value) =>
+        handleUpdate(row, 'isActive', value)
+      ),
     ],
     [handleUpdate, handleOpenEdit]
   )
@@ -223,10 +230,7 @@ export function AppsPage() {
             <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!formData.appId || !formData.name || isSaving}
-            >
+            <Button onClick={handleSave} disabled={!formData.appId || !formData.name || isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isEditing ? 'Save Changes' : 'Create App'}
             </Button>

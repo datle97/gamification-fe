@@ -1,7 +1,7 @@
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { BarChart3, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 
 interface AnalyticsDisabledCardProps {
   description?: string

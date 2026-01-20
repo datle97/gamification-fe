@@ -143,7 +143,8 @@ export function TestSandboxTab({ gameId }: TestSandboxTabProps) {
           <CardContent>
             <p className="text-sm text-muted-foreground">
               This sandbox user is automatically created for testing. Turns are auto-granted when
-              needed. Use the Reset button to clear all test data (turns, rewards, missions, scores).
+              needed. Use the Reset button to clear all test data (turns, rewards, missions,
+              scores).
             </p>
           </CardContent>
         </Card>

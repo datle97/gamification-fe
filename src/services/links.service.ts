@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { Link, CreateLinkInput } from '@/schemas/link.schema'
+import type { CreateLinkInput, Link } from '@/schemas/link.schema'
 
 interface ApiResponse<T> {
   data: T

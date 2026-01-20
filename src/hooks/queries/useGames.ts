@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { gamesService } from '@/services/games.service'
-import type { CreateGameInput, UpdateGameInput, CloneGameInput, Game } from '@/schemas/game.schema'
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
+import type { CloneGameInput, CreateGameInput, Game, UpdateGameInput } from '@/schemas/game.schema'
+import { gamesService } from '@/services/games.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const gamesKeys = {
   all: ['games'] as const,

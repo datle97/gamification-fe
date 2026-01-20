@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 
 interface EditableNumberCellProps {
   value: number | null | undefined

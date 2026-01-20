@@ -1,7 +1,7 @@
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 import { cn } from '@/lib/utils'
 import { useDateFormat } from '@/stores/settingsStore'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 
 dayjs.extend(relativeTime)
 
@@ -30,8 +30,6 @@ export function DateCell({ value, showTime, relative, className }: DateCellProps
   }
 
   return (
-    <span className={cn('text-muted-foreground', className)}>
-      {dayjs(value).format(format)}
-    </span>
+    <span className={cn('text-muted-foreground', className)}>{dayjs(value).format(format)}</span>
   )
 }

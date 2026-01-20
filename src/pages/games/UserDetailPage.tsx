@@ -1,39 +1,7 @@
-import { useParams, useNavigate, useSearchParams } from 'react-router'
-import { useState, useEffect, useMemo } from 'react'
-import {
-  ArrowLeft,
-  Loader2,
-  Coins,
-  Gift,
-  Target,
-  Gamepad2,
-  Trophy,
-  TrendingUp,
-  Calendar,
-  History,
-  User,
-  Clock,
-  Plus,
-  Trash2,
-  Shield,
-  RotateCcw,
-  Search,
-  Settings2,
-  ChevronDown,
-  Check,
-  X,
-  Pencil,
-  UserCog,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   Dialog,
@@ -42,37 +10,79 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  useGameUserDetail,
-  useUserTurns,
-  useUserRewards,
-  useUserMissions,
-  useUserActivities,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import {
   useCheckEligibility,
+  useGame,
+  useGameUserDetail,
   useGrantTurns,
-  useResetMissionProgress,
   useResetAllMissionsProgress,
+  useResetMissionProgress,
   useRevokeUserReward,
   useUpdateUserAttributes,
-  useGame,
+  useUserActivities,
+  useUserMissions,
+  useUserRewards,
+  useUserTurns,
 } from '@/hooks/queries'
-import { useDevMode, useAnalytics } from '@/stores/settingsStore'
-import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
-import type { RewardEligibilityResult, ExpirationMode, ExpirationUnit } from '@/services/game-users.service'
 import { useFormatDate } from '@/hooks/useFormatDate'
-import type { ActivityType } from '@/services/game-users.service'
+import type {
+  ActivityType,
+  ExpirationMode,
+  ExpirationUnit,
+  RewardEligibilityResult,
+  UserActivity,
+} from '@/services/game-users.service'
+import { useAnalytics, useDevMode } from '@/stores/settingsStore'
+import dayjs from 'dayjs'
+import parse from 'html-react-parser'
 import {
-  LineChart,
+  ArrowLeft,
+  Calendar,
+  Check,
+  ChevronDown,
+  Clock,
+  Coins,
+  Gamepad2,
+  Gift,
+  History,
+  Loader2,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Search,
+  Settings2,
+  Shield,
+  Target,
+  Trash2,
+  TrendingUp,
+  Trophy,
+  User,
+  UserCog,
+  X,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
+import {
+  CartesianGrid,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts'
-import parse from 'html-react-parser'
-import dayjs from 'dayjs'
-import type { UserActivity } from '@/services/game-users.service'
 
 type TabValue = 'overview' | 'activity' | 'rewards' | 'missions'
 
@@ -197,17 +207,87 @@ function formatOperator(op?: string): string {
 // Activity type labels and colors using theme variables
 const ACTIVITY_CONFIG: Record<
   ActivityType,
-  { label: string; colorVar: string; bgClass: string; textClass: string; borderClass: string; badgeBgClass: string }
+  {
+    label: string
+    colorVar: string
+    bgClass: string
+    textClass: string
+    borderClass: string
+    badgeBgClass: string
+  }
 > = {
-  game_play: { label: 'Game Plays', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1', badgeBgClass: 'bg-chart-1/20' },
-  turn_earn: { label: 'Turns Earned', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2', badgeBgClass: 'bg-chart-2/20' },
-  turn_spend: { label: 'Turns Spent', colorVar: 'primary', bgClass: 'bg-primary', textClass: 'text-primary', borderClass: 'border-primary', badgeBgClass: 'bg-primary/20' },
-  turn_expire: { label: 'Turns Expired', colorVar: 'muted-foreground', bgClass: 'bg-muted-foreground', textClass: 'text-muted-foreground', borderClass: 'border-muted-foreground', badgeBgClass: 'bg-muted-foreground/20' },
-  reward_earn: { label: 'Rewards Won', colorVar: 'chart-4', bgClass: 'bg-chart-4', textClass: 'text-chart-4', borderClass: 'border-chart-4', badgeBgClass: 'bg-chart-4/20' },
-  mission_complete: { label: 'Missions', colorVar: 'chart-5', bgClass: 'bg-chart-5', textClass: 'text-chart-5', borderClass: 'border-chart-5', badgeBgClass: 'bg-chart-5/20' },
-  score_earn: { label: 'Score Earned', colorVar: 'chart-1', bgClass: 'bg-chart-1', textClass: 'text-chart-1', borderClass: 'border-chart-1', badgeBgClass: 'bg-chart-1/20' },
-  admin_grant: { label: 'Admin Grant', colorVar: 'chart-2', bgClass: 'bg-chart-2', textClass: 'text-chart-2', borderClass: 'border-chart-2', badgeBgClass: 'bg-chart-2/20' },
-  admin_revoke: { label: 'Admin Revoke', colorVar: 'destructive', bgClass: 'bg-destructive', textClass: 'text-destructive', borderClass: 'border-destructive', badgeBgClass: 'bg-destructive/20' },
+  game_play: {
+    label: 'Game Plays',
+    colorVar: 'chart-1',
+    bgClass: 'bg-chart-1',
+    textClass: 'text-chart-1',
+    borderClass: 'border-chart-1',
+    badgeBgClass: 'bg-chart-1/20',
+  },
+  turn_earn: {
+    label: 'Turns Earned',
+    colorVar: 'chart-2',
+    bgClass: 'bg-chart-2',
+    textClass: 'text-chart-2',
+    borderClass: 'border-chart-2',
+    badgeBgClass: 'bg-chart-2/20',
+  },
+  turn_spend: {
+    label: 'Turns Spent',
+    colorVar: 'primary',
+    bgClass: 'bg-primary',
+    textClass: 'text-primary',
+    borderClass: 'border-primary',
+    badgeBgClass: 'bg-primary/20',
+  },
+  turn_expire: {
+    label: 'Turns Expired',
+    colorVar: 'muted-foreground',
+    bgClass: 'bg-muted-foreground',
+    textClass: 'text-muted-foreground',
+    borderClass: 'border-muted-foreground',
+    badgeBgClass: 'bg-muted-foreground/20',
+  },
+  reward_earn: {
+    label: 'Rewards Won',
+    colorVar: 'chart-4',
+    bgClass: 'bg-chart-4',
+    textClass: 'text-chart-4',
+    borderClass: 'border-chart-4',
+    badgeBgClass: 'bg-chart-4/20',
+  },
+  mission_complete: {
+    label: 'Missions',
+    colorVar: 'chart-5',
+    bgClass: 'bg-chart-5',
+    textClass: 'text-chart-5',
+    borderClass: 'border-chart-5',
+    badgeBgClass: 'bg-chart-5/20',
+  },
+  score_earn: {
+    label: 'Score Earned',
+    colorVar: 'chart-1',
+    bgClass: 'bg-chart-1',
+    textClass: 'text-chart-1',
+    borderClass: 'border-chart-1',
+    badgeBgClass: 'bg-chart-1/20',
+  },
+  admin_grant: {
+    label: 'Admin Grant',
+    colorVar: 'chart-2',
+    bgClass: 'bg-chart-2',
+    textClass: 'text-chart-2',
+    borderClass: 'border-chart-2',
+    badgeBgClass: 'bg-chart-2/20',
+  },
+  admin_revoke: {
+    label: 'Admin Revoke',
+    colorVar: 'destructive',
+    bgClass: 'bg-destructive',
+    textClass: 'text-destructive',
+    borderClass: 'border-destructive',
+    badgeBgClass: 'bg-destructive/20',
+  },
 }
 
 // Get icon for activity type
@@ -290,11 +370,7 @@ function ActivityTimeline({
     : dateGroups
 
   if (displayGroups.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground text-sm">
-        No activity found
-      </div>
-    )
+    return <div className="text-center py-8 text-muted-foreground text-sm">No activity found</div>
   }
 
   return (
@@ -441,7 +517,9 @@ export function UserDetailPage() {
   const [grantExpUnit, setGrantExpUnit] = useState<ExpirationUnit>('day')
   const [showClientInput, setShowClientInput] = useState(false)
   const [clientInputJson, setClientInputJson] = useState('')
-  const [eligibilityResults, setEligibilityResults] = useState<RewardEligibilityResult[] | null>(null)
+  const [eligibilityResults, setEligibilityResults] = useState<RewardEligibilityResult[] | null>(
+    null
+  )
   const [eligibilityOpen, setEligibilityOpen] = useState(false)
   const [attributesDialogOpen, setAttributesDialogOpen] = useState(false)
   const [editingAttributes, setEditingAttributes] = useState<{ key: string; value: string }[]>([])
@@ -878,15 +956,13 @@ export function UserDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           {/* <span className="text-xs text-muted-foreground uppercase tracking-wider mr-1">Attributes:</span> */}
           {Object.entries(userGame.attributes).map(([key, value]) => (
-            <Badge
-              key={key}
-              variant="outline"
-              className="font-normal text-xs py-0.5 px-2"
-            >
+            <Badge key={key} variant="outline" className="font-normal text-xs py-0.5 px-2">
               <span className="text-muted-foreground mr-1">{key}:</span>
               <span className="font-medium">
                 {typeof value === 'boolean'
-                  ? value ? 'Yes' : 'No'
+                  ? value
+                    ? 'Yes'
+                    : 'No'
                   : typeof value === 'object'
                     ? JSON.stringify(value)
                     : String(value)}
@@ -966,7 +1042,9 @@ export function UserDetailPage() {
                     variant="outline"
                     size="sm"
                     className="w-full"
-                    onClick={() => setEditingAttributes([...editingAttributes, { key: '', value: '' }])}
+                    onClick={() =>
+                      setEditingAttributes([...editingAttributes, { key: '', value: '' }])
+                    }
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Attribute
@@ -993,7 +1071,9 @@ export function UserDetailPage() {
                         })
                       }}
                     >
-                      {updateAttributes.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                      {updateAttributes.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      )}
                       Save Changes
                     </Button>
                   </div>
@@ -1037,7 +1117,11 @@ export function UserDetailPage() {
                 {activityOverTime.length > 0 ? (
                   <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={activityOverTime}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={chartColors.muted} opacity={0.3} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={chartColors.muted}
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="date"
                         tick={{ fontSize: 11, fill: chartColors.muted }}
@@ -1112,9 +1196,7 @@ export function UserDetailPage() {
           {/* Header with Check Eligibility */}
           <Collapsible open={eligibilityOpen} onOpenChange={setEligibilityOpen}>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Received Rewards
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Received Rewards</h3>
               <div className="flex items-center gap-2">
                 {eligibilityResults && (
                   <CollapsibleTrigger asChild>
@@ -1159,7 +1241,9 @@ export function UserDetailPage() {
                           </Label>
                           <Textarea
                             id="clientInput"
-                            placeholder={'{\n  "utm_source": "facebook",\n  "storeId": "store-001"\n}'}
+                            placeholder={
+                              '{\n  "utm_source": "facebook",\n  "storeId": "store-001"\n}'
+                            }
                             value={clientInputJson}
                             onChange={(e) => setClientInputJson(e.target.value)}
                             className="font-mono text-xs min-h-20 resize-none"
@@ -1243,7 +1327,9 @@ export function UserDetailPage() {
                                         {isAttributeCheck && (
                                           <UserCog className="h-3 w-3 text-chart-2 shrink-0" />
                                         )}
-                                        <span className="truncate">{formatConditionCheck(check)}</span>
+                                        <span className="truncate">
+                                          {formatConditionCheck(check)}
+                                        </span>
                                       </div>
                                     )
                                   })}
@@ -1273,7 +1359,9 @@ export function UserDetailPage() {
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{reward.reward?.name || 'Unknown Reward'}</div>
+                      <div className="font-medium truncate">
+                        {reward.reward?.name || 'Unknown Reward'}
+                      </div>
                       {reward.rewardValue && (
                         <div className="text-sm text-muted-foreground font-mono truncate">
                           {reward.rewardValue}
@@ -1305,9 +1393,7 @@ export function UserDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center text-sm text-muted-foreground py-8">
-              No rewards found
-            </div>
+            <div className="text-center text-sm text-muted-foreground py-8">No rewards found</div>
           )}
         </TabsContent>
 
@@ -1315,9 +1401,7 @@ export function UserDetailPage() {
         <TabsContent value="missions" className="mt-6 space-y-4">
           {/* Header with Reset All Button */}
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Mission Progress
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Mission Progress</h3>
             {isDevMode && missions && missions.length > 0 && (
               <Button
                 size="sm"
@@ -1396,9 +1480,7 @@ export function UserDetailPage() {
               })}
             </div>
           ) : (
-            <div className="text-center text-sm text-muted-foreground py-8">
-              No missions found
-            </div>
+            <div className="text-center text-sm text-muted-foreground py-8">No missions found</div>
           )}
         </TabsContent>
       </Tabs>

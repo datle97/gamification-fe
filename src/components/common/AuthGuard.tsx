@@ -1,5 +1,5 @@
-import { Navigate, Outlet } from 'react-router'
 import { useIsAuthenticated } from '@/stores/authStore'
+import { Navigate, Outlet } from 'react-router'
 
 export function AuthGuard() {
   const isAuthenticated = useIsAuthenticated()

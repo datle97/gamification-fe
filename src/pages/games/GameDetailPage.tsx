@@ -1,10 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate, useSearchParams } from 'react-router'
-import { ArrowLeft, Loader2, Info, Settings, Trophy, Users, Target, Gift, Copy, FlaskConical } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -15,17 +10,33 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useGame, useCloneGame } from '@/hooks/queries'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCloneGame, useGame } from '@/hooks/queries'
 import { cloneGameSchema, type CloneGameInput } from '@/schemas/game.schema'
-import { GameInfoTab } from './components/GameInfoTab'
+import { useDevMode } from '@/stores/settingsStore'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  ArrowLeft,
+  Copy,
+  FlaskConical,
+  Gift,
+  Info,
+  Loader2,
+  Settings,
+  Target,
+  Trophy,
+  Users,
+} from 'lucide-react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { GameConfigTab } from './components/GameConfigTab'
+import { GameInfoTab } from './components/GameInfoTab'
+import { GameLeaderboardTab } from './components/GameLeaderboardTab'
 import { GameMissionsTab } from './components/GameMissionsTab'
 import { GameRewardsTab } from './components/GameRewardsTab'
 import { GameUsersTab } from './components/GameUsersTab'
-import { GameLeaderboardTab } from './components/GameLeaderboardTab'
 import { TestSandboxTab } from './components/TestSandboxTab'
-import { useDevMode } from '@/stores/settingsStore'
 
 type TabValue = 'info' | 'config' | 'users' | 'missions' | 'rewards' | 'leaderboard' | 'sandbox'
 
@@ -248,11 +259,7 @@ export function GameDetailPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setCloneDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setCloneDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={cloneGame.isPending}>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 import {
   gameUsersService,
   type CheckEligibilityInput,
@@ -6,8 +6,8 @@ import {
   type ListGameUsersParams,
   type TestPlayInput,
 } from '@/services/game-users.service'
-import { useRefetchInterval } from '@/hooks/useAutoRefresh'
 import { useAnalytics } from '@/stores/settingsStore'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const gameUsersKeys = {
   all: ['game-users'] as const,
@@ -80,8 +80,7 @@ export function useCheckEligibility(gameId: string, userId: string) {
 export function useGrantTurns(gameId: string, userId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (input: GrantTurnsInput) =>
-      gameUsersService.grantTurns(gameId, userId, input),
+    mutationFn: (input: GrantTurnsInput) => gameUsersService.grantTurns(gameId, userId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [...gameUsersKeys.detail(gameId, userId), 'turns'],

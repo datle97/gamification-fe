@@ -1,9 +1,9 @@
 import { api } from '@/lib/api'
 import type {
-  Reward,
   CreateRewardInput,
-  UpdateRewardInput,
+  Reward,
   RewardDistribution,
+  UpdateRewardInput,
 } from '@/schemas/reward.schema'
 
 interface ApiResponse<T> {

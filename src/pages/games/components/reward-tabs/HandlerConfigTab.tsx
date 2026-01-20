@@ -7,13 +7,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { handlerTypeLabels, type HandlerType } from '@/schemas/reward.schema'
+import { ApiHandlerForm } from '../reward-forms/ApiHandlerForm'
+import { CollectionHandlerForm } from '../reward-forms/CollectionHandlerForm'
+import { JourneyHandlerForm } from '../reward-forms/JourneyHandlerForm'
+import { NoRewardHandlerForm } from '../reward-forms/NoRewardHandlerForm'
+import { ScriptHandlerForm } from '../reward-forms/ScriptHandlerForm'
 import { SystemHandlerForm } from '../reward-forms/SystemHandlerForm'
 import { TurnHandlerForm } from '../reward-forms/TurnHandlerForm'
-import { JourneyHandlerForm } from '../reward-forms/JourneyHandlerForm'
-import { ScriptHandlerForm } from '../reward-forms/ScriptHandlerForm'
-import { NoRewardHandlerForm } from '../reward-forms/NoRewardHandlerForm'
-import { CollectionHandlerForm } from '../reward-forms/CollectionHandlerForm'
-import { ApiHandlerForm } from '../reward-forms/ApiHandlerForm'
 
 const handlerTypes: HandlerType[] = [
   'system',
@@ -55,7 +55,10 @@ export function HandlerConfigTab({
         <Label>
           Handler Type <span className="text-destructive">*</span>
         </Label>
-        <Select value={handlerType} onValueChange={(value) => onHandlerTypeChange(value as HandlerType)}>
+        <Select
+          value={handlerType}
+          onValueChange={(value) => onHandlerTypeChange(value as HandlerType)}
+        >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
@@ -84,7 +87,9 @@ export function HandlerConfigTab({
 
       {handlerType === 'no_reward' && <NoRewardHandlerForm config={config} onChange={onChange} />}
 
-      {handlerType === 'collection' && <CollectionHandlerForm config={config} onChange={onChange} />}
+      {handlerType === 'collection' && (
+        <CollectionHandlerForm config={config} onChange={onChange} />
+      )}
 
       {handlerType === 'api' && <ApiHandlerForm config={config} onChange={onChange} />}
 

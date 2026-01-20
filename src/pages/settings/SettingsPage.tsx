@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -9,28 +9,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
-  useSettingsStore,
   getDefaultFeatures,
   getDefaultUI,
-  type DateFormat,
+  useSettingsStore,
   type AutoRefreshInterval,
+  type DateFormat,
 } from '@/stores/settingsStore'
 import {
-  RotateCcw,
-  FlaskConical,
-  Palette,
-  Save,
-  Moon,
-  Rows3,
+  BarChart3,
   Calendar,
+  FlaskConical,
+  Moon,
+  Palette,
   RefreshCw,
+  RotateCcw,
+  Rows3,
+  Save,
   Table,
   Wrench,
-  BarChart3,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useMemo, useState } from 'react'
 
 interface LocalSettings {
   features: {

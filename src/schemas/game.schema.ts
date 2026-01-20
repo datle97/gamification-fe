@@ -2,7 +2,15 @@ import { z } from 'zod'
 
 // Enums
 export const gameStatusEnum = z.enum(['draft', 'active', 'paused', 'ended'])
-export const gameTypeEnum = z.enum(['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch'])
+export const gameTypeEnum = z.enum([
+  'spin',
+  'scratch',
+  'quiz',
+  'puzzle',
+  'match',
+  'lottery',
+  'catch',
+])
 export const periodTypeEnum = z.enum([
   'daily',
   'weekly',
@@ -35,7 +43,10 @@ export const gameStatusLabels: Record<GameStatus, string> = {
   ended: 'Ended',
 }
 
-export const gameStatusVariants: Record<GameStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+export const gameStatusVariants: Record<
+  GameStatus,
+  'default' | 'secondary' | 'outline' | 'destructive'
+> = {
   active: 'default',
   draft: 'outline',
   paused: 'secondary',

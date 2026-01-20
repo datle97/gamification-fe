@@ -1,6 +1,6 @@
-import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface SharingTabProps {
   shareConfig: string
@@ -143,14 +143,12 @@ export function SharingTab({ shareConfig, onChange }: SharingTabProps) {
                 type="number"
                 min={1}
                 placeholder="Unlimited"
-                value={
-                  (() => {
-                    const conditions = config.conditions as Record<string, unknown> | undefined
-                    const uniqueness = conditions?.uniqueness as Record<string, unknown> | undefined
-                    const maxPerUser = uniqueness?.maxPerUser
-                    return typeof maxPerUser === 'number' ? maxPerUser : ''
-                  })()
-                }
+                value={(() => {
+                  const conditions = config.conditions as Record<string, unknown> | undefined
+                  const uniqueness = conditions?.uniqueness as Record<string, unknown> | undefined
+                  const maxPerUser = uniqueness?.maxPerUser
+                  return typeof maxPerUser === 'number' ? maxPerUser : ''
+                })()}
                 onChange={(e) => {
                   const value = e.target.value
                   const conditions = config.conditions as Record<string, unknown> | undefined
@@ -178,9 +176,9 @@ export function SharingTab({ shareConfig, onChange }: SharingTabProps) {
           {/* Advanced Note */}
           <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 p-4">
             <p className="text-sm text-blue-900 dark:text-blue-200">
-              <strong>Advanced sharing conditions:</strong> For complex share prevention rules (e.g.,
-              block sharing if user owns certain rewards), use the Advanced tab to edit the shareConfig
-              JSON directly.
+              <strong>Advanced sharing conditions:</strong> For complex share prevention rules
+              (e.g., block sharing if user owns certain rewards), use the Advanced tab to edit the
+              shareConfig JSON directly.
             </p>
           </div>
         </>

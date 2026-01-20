@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import type { Mission, CreateMissionInput, UpdateMissionInput } from '@/schemas/mission.schema'
+import type { CreateMissionInput, Mission, UpdateMissionInput } from '@/schemas/mission.schema'
 
 interface ApiResponse<T> {
   data: T

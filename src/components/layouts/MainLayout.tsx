@@ -1,9 +1,4 @@
-import { Fragment } from 'react'
-import { Link, Outlet, useLocation, useNavigate } from 'react-router'
-import { LogOut, Moon, Sun } from 'lucide-react'
 import { AppSidebar } from '@/components/app-sidebar'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,8 +8,13 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuthStore } from '@/stores/authStore'
+import { LogOut, Moon, Sun } from 'lucide-react'
+import { Fragment } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',

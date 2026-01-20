@@ -1,9 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Plus, Loader2, Sliders } from 'lucide-react'
+import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import { Button } from '@/components/ui/button'
-import { createColumnHelper } from '@/lib/column-helper'
-import { DataTable } from '@/components/ui/data-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
   DialogContent,
@@ -14,30 +12,32 @@ import {
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  useRewardsByGame,
-  useCreateReward,
-  useUpdateReward,
-  useDeleteReward,
   useBatchUpdateRewards,
+  useCreateReward,
+  useDeleteReward,
+  useRewardsByGame,
+  useUpdateReward,
 } from '@/hooks/queries'
-import { useAnalytics } from '@/stores/settingsStore'
+import { createColumnHelper } from '@/lib/column-helper'
 import {
-  rewardCategoryLabels,
   handlerTypeLabels,
+  rewardCategoryLabels,
+  type CreateRewardInput,
+  type HandlerType,
   type Reward,
   type RewardCategory,
-  type HandlerType,
-  type CreateRewardInput,
 } from '@/schemas/reward.schema'
+import { useAnalytics } from '@/stores/settingsStore'
+import { Loader2, Plus, Sliders } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
+import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { BasicTab } from './reward-tabs/BasicTab'
+import { ConditionsTab } from './reward-tabs/ConditionsTab'
 import { ExpirationTab } from './reward-tabs/ExpirationTab'
 import { HandlerConfigTab } from './reward-tabs/HandlerConfigTab'
-import { ConditionsTab } from './reward-tabs/ConditionsTab'
 import { SharingTab } from './reward-tabs/SharingTab'
-import { AdvancedTab } from './reward-tabs/AdvancedTab'
-import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 import { RewardsDistributionCard } from './RewardsDistributionCard'
-import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 
 const columnHelper = createColumnHelper<Reward>()
 

@@ -1,18 +1,7 @@
+import { ConditionBuilder } from '@/components/common/ConditionBuilder'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -21,13 +10,24 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { ConditionBuilder } from '@/components/common/ConditionBuilder'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import { useRewardsByGame } from '@/hooks/queries'
 import type { RequiresRewardsCondition, RewardConditions } from '@/schemas/reward.schema'
 import type { Conditions } from '@/types/conditions'
+import dayjs from 'dayjs'
 import { ChevronDown, ChevronRight, ChevronsUpDown, X } from 'lucide-react'
 import { useState } from 'react'
-import dayjs from 'dayjs'
 
 interface ConditionsTabProps {
   conditions: string
@@ -79,8 +79,7 @@ function getConfiguredSections(conds: RewardConditions) {
       conds.requiresUserSegment?.excludePhoneNumbers?.length
     ),
     leaderboardScore: !!(
-      conds.requiresLeaderboardScore?.op &&
-      conds.requiresLeaderboardScore?.value !== undefined
+      conds.requiresLeaderboardScore?.op && conds.requiresLeaderboardScore?.value !== undefined
     ),
     userAttributes: !!conds.requiresUserAttributes,
     clientInput: !!conds.requiresClientInput,
@@ -104,7 +103,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
     }
   }
 
-  const [expandedSections, setExpandedSections] = useState<ExpandedSections>(getInitialExpandedSections)
+  const [expandedSections, setExpandedSections] = useState<ExpandedSections>(
+    getInitialExpandedSections
+  )
 
   const toggleSection = (section: keyof ExpandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -139,7 +140,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
   const configuredSections = getConfiguredSections(conds)
 
   // Helper to check if user segment has other fields with values (excluding specified field)
-  const hasOtherUserSegmentFields = (exclude: 'userIds' | 'phoneNumbers' | 'excludeUserIds' | 'excludePhoneNumbers') => {
+  const hasOtherUserSegmentFields = (
+    exclude: 'userIds' | 'phoneNumbers' | 'excludeUserIds' | 'excludePhoneNumbers'
+  ) => {
     const seg = conds.requiresUserSegment
     return !!(
       (exclude !== 'userIds' && seg?.userIds?.length) ||
@@ -184,7 +187,12 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
               <Label>Required Rewards</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative">
-                  <Popover open={expandedSections.requiresRewardsPopover} onOpenChange={(open) => setExpandedSections(prev => ({ ...prev, requiresRewardsPopover: open }))}>
+                  <Popover
+                    open={expandedSections.requiresRewardsPopover}
+                    onOpenChange={(open) =>
+                      setExpandedSections((prev) => ({ ...prev, requiresRewardsPopover: open }))
+                    }
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -199,121 +207,129 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                           return (
                             <>
                               <span>
-                                {count > 0 ? `${count} reward${count > 1 ? 's' : ''} selected` : 'Select rewards...'}
+                                {count > 0
+                                  ? `${count} reward${count > 1 ? 's' : ''} selected`
+                                  : 'Select rewards...'}
                               </span>
-                              {count === 0 && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                              {count === 0 && (
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              )}
                             </>
                           )
                         })()}
                       </Button>
                     </PopoverTrigger>
-                  <PopoverContent className="w-100 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search rewards..." />
-                      <div onWheel={(e) => e.stopPropagation()}>
-                        <CommandList>
-                          <CommandEmpty>No rewards found</CommandEmpty>
-                          <CommandGroup>
-                            {rewards.map((reward) => {
-                              const currentCondition = !Array.isArray(conds.requiresRewards)
-                                ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                                : undefined
-                              const currentRewardIds = currentCondition?.rewardIds || []
-                              const isSelected = currentRewardIds.includes(reward.rewardId)
+                    <PopoverContent className="w-100 p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search rewards..." />
+                        <div onWheel={(e) => e.stopPropagation()}>
+                          <CommandList>
+                            <CommandEmpty>No rewards found</CommandEmpty>
+                            <CommandGroup>
+                              {rewards.map((reward) => {
+                                const currentCondition = !Array.isArray(conds.requiresRewards)
+                                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                                  : undefined
+                                const currentRewardIds = currentCondition?.rewardIds || []
+                                const isSelected = currentRewardIds.includes(reward.rewardId)
 
-                              return (
-                                <CommandItem
-                                  key={reward.rewardId}
-                                  value={reward.name}
-                                  onSelect={() => {
-                                    const newRewardIds = isSelected
-                                      ? currentRewardIds.filter((id: string) => id !== reward.rewardId)
-                                      : [...currentRewardIds, reward.rewardId]
+                                return (
+                                  <CommandItem
+                                    key={reward.rewardId}
+                                    value={reward.name}
+                                    onSelect={() => {
+                                      const newRewardIds = isSelected
+                                        ? currentRewardIds.filter(
+                                            (id: string) => id !== reward.rewardId
+                                          )
+                                        : [...currentRewardIds, reward.rewardId]
 
-                                    updateConditions({
-                                      requiresRewards: newRewardIds.length > 0
-                                        ? {
-                                            ...currentCondition,
-                                            rewardIds: newRewardIds,
-                                            mode: currentCondition?.mode || 'all',
-                                          }
-                                        : undefined,
-                                    })
-                                  }}
-                                >
-                                  <Checkbox
-                                    checked={isSelected}
-                                    className="mr-2"
-                                  />
-                                  <span>{reward.name}</span>
-                                </CommandItem>
-                              )
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </div>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {(() => {
-                  const currentCondition = !Array.isArray(conds.requiresRewards)
-                    ? conds.requiresRewards
-                    : undefined
-                  const hasRewards = (currentCondition?.rewardIds?.length || 0) > 0
-                  return hasRewards && (
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        updateConditions({ requiresRewards: undefined })
-                      }}
-                    >
-                      <X className="h-4 w-4 opacity-50 hover:opacity-100" />
-                    </button>
-                  )
-                })()}
+                                      updateConditions({
+                                        requiresRewards:
+                                          newRewardIds.length > 0
+                                            ? {
+                                                ...currentCondition,
+                                                rewardIds: newRewardIds,
+                                                mode: currentCondition?.mode || 'all',
+                                              }
+                                            : undefined,
+                                      })
+                                    }}
+                                  >
+                                    <Checkbox checked={isSelected} className="mr-2" />
+                                    <span>{reward.name}</span>
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </div>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {(() => {
+                    const currentCondition = !Array.isArray(conds.requiresRewards)
+                      ? conds.requiresRewards
+                      : undefined
+                    const hasRewards = (currentCondition?.rewardIds?.length || 0) > 0
+                    return (
+                      hasRewards && (
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            updateConditions({ requiresRewards: undefined })
+                          }}
+                        >
+                          <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                        </button>
+                      )
+                    )
+                  })()}
+                </div>
               </div>
-            </div>
-            {(() => {
+              {(() => {
                 const currentCondition = !Array.isArray(conds.requiresRewards)
                   ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
                   : undefined
                 const currentRewardIds = currentCondition?.rewardIds || []
-                return currentRewardIds.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {currentRewardIds.map((rewardId: string) => {
-                      const reward = rewards.find((r) => r.rewardId === rewardId)
-                      return (
-                        <Badge key={rewardId} variant="secondary" className="gap-1">
-                          {reward?.name || rewardId}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto w-auto p-0! hover:bg-transparent"
-                            onClick={() => {
-                              const newRewardIds = currentRewardIds.filter(
-                                (id: string) => id !== rewardId
-                              )
-                              updateConditions({
-                                requiresRewards:
-                                  newRewardIds.length > 0
-                                    ? {
-                                        ...currentCondition,
-                                        rewardIds: newRewardIds,
-                                      }
-                                    : undefined,
-                              })
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      )
-                    })}
-                  </div>
+                return (
+                  currentRewardIds.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {currentRewardIds.map((rewardId: string) => {
+                        const reward = rewards.find((r) => r.rewardId === rewardId)
+                        return (
+                          <Badge key={rewardId} variant="secondary" className="gap-1">
+                            {reward?.name || rewardId}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto w-auto p-0! hover:bg-transparent"
+                              onClick={() => {
+                                const newRewardIds = currentRewardIds.filter(
+                                  (id: string) => id !== rewardId
+                                )
+                                updateConditions({
+                                  requiresRewards:
+                                    newRewardIds.length > 0
+                                      ? {
+                                          ...currentCondition,
+                                          rewardIds: newRewardIds,
+                                        }
+                                      : undefined,
+                                })
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  )
                 )
               })()}
             </div>
@@ -333,7 +349,8 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                     : undefined
                   updateConditions({
                     requiresRewards:
-                      currentCondition?.rewardIds?.length || currentCondition?.excludeRewards?.length
+                      currentCondition?.rewardIds?.length ||
+                      currentCondition?.excludeRewards?.length
                         ? { ...currentCondition, mode: value }
                         : undefined,
                   })
@@ -389,104 +406,110 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                     }
                   >
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                      {(() => {
-                        const currentCondition = !Array.isArray(conds.requiresRewards)
-                          ? conds.requiresRewards
-                          : undefined
-                        const count = currentCondition?.excludeRewards?.length || 0
-                        return (
-                          <>
-                            <span>
-                              {count > 0
-                                ? `${count} reward${count > 1 ? 's' : ''} excluded`
-                                : 'Select rewards to exclude...'}
-                            </span>
-                            {count === 0 && (
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            )}
-                          </>
-                        )
-                      })()}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-100 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search rewards..." />
-                      <div onWheel={(e) => e.stopPropagation()}>
-                        <CommandList>
-                          <CommandEmpty>No rewards found</CommandEmpty>
-                          <CommandGroup>
-                            {rewards.map((reward) => {
-                              const currentCondition = !Array.isArray(conds.requiresRewards)
-                                ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
-                                : undefined
-                              const excludeRewards = currentCondition?.excludeRewards || []
-                              const isExcluded = excludeRewards.includes(reward.rewardId)
-
-                              return (
-                                <CommandItem
-                                  key={reward.rewardId}
-                                  value={reward.name}
-                                  onSelect={() => {
-                                    const newExcludeRewards = isExcluded
-                                      ? excludeRewards.filter((id: string) => id !== reward.rewardId)
-                                      : [...excludeRewards, reward.rewardId]
-
-                                    updateConditions({
-                                      requiresRewards:
-                                        newExcludeRewards.length > 0 ||
-                                        currentCondition?.rewardIds?.length
-                                          ? {
-                                              ...currentCondition,
-                                              excludeRewards:
-                                                newExcludeRewards.length > 0
-                                                  ? newExcludeRewards
-                                                  : undefined,
-                                            }
-                                          : undefined,
-                                    })
-                                  }}
-                                >
-                                  <Checkbox checked={isExcluded} className="mr-2" />
-                                  <span>{reward.name}</span>
-                                </CommandItem>
-                              )
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </div>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {(() => {
-                  const currentCondition = !Array.isArray(conds.requiresRewards)
-                    ? conds.requiresRewards
-                    : undefined
-                  const hasExcluded = (currentCondition?.excludeRewards?.length || 0) > 0
-                  return (
-                    hasExcluded && (
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          const current = !Array.isArray(conds.requiresRewards)
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between font-normal"
+                      >
+                        {(() => {
+                          const currentCondition = !Array.isArray(conds.requiresRewards)
                             ? conds.requiresRewards
                             : undefined
-                          updateConditions({
-                            requiresRewards: current?.rewardIds?.length
-                              ? { ...current, excludeRewards: undefined }
-                              : undefined,
-                          })
-                        }}
-                      >
-                        <X className="h-4 w-4 opacity-50 hover:opacity-100" />
-                      </button>
+                          const count = currentCondition?.excludeRewards?.length || 0
+                          return (
+                            <>
+                              <span>
+                                {count > 0
+                                  ? `${count} reward${count > 1 ? 's' : ''} excluded`
+                                  : 'Select rewards to exclude...'}
+                              </span>
+                              {count === 0 && (
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              )}
+                            </>
+                          )
+                        })()}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-100 p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search rewards..." />
+                        <div onWheel={(e) => e.stopPropagation()}>
+                          <CommandList>
+                            <CommandEmpty>No rewards found</CommandEmpty>
+                            <CommandGroup>
+                              {rewards.map((reward) => {
+                                const currentCondition = !Array.isArray(conds.requiresRewards)
+                                  ? (conds.requiresRewards as RequiresRewardsCondition | undefined)
+                                  : undefined
+                                const excludeRewards = currentCondition?.excludeRewards || []
+                                const isExcluded = excludeRewards.includes(reward.rewardId)
+
+                                return (
+                                  <CommandItem
+                                    key={reward.rewardId}
+                                    value={reward.name}
+                                    onSelect={() => {
+                                      const newExcludeRewards = isExcluded
+                                        ? excludeRewards.filter(
+                                            (id: string) => id !== reward.rewardId
+                                          )
+                                        : [...excludeRewards, reward.rewardId]
+
+                                      updateConditions({
+                                        requiresRewards:
+                                          newExcludeRewards.length > 0 ||
+                                          currentCondition?.rewardIds?.length
+                                            ? {
+                                                ...currentCondition,
+                                                excludeRewards:
+                                                  newExcludeRewards.length > 0
+                                                    ? newExcludeRewards
+                                                    : undefined,
+                                              }
+                                            : undefined,
+                                      })
+                                    }}
+                                  >
+                                    <Checkbox checked={isExcluded} className="mr-2" />
+                                    <span>{reward.name}</span>
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </div>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {(() => {
+                    const currentCondition = !Array.isArray(conds.requiresRewards)
+                      ? conds.requiresRewards
+                      : undefined
+                    const hasExcluded = (currentCondition?.excludeRewards?.length || 0) > 0
+                    return (
+                      hasExcluded && (
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            const current = !Array.isArray(conds.requiresRewards)
+                              ? conds.requiresRewards
+                              : undefined
+                            updateConditions({
+                              requiresRewards: current?.rewardIds?.length
+                                ? { ...current, excludeRewards: undefined }
+                                : undefined,
+                            })
+                          }}
+                        >
+                          <X className="h-4 w-4 opacity-50 hover:opacity-100" />
+                        </button>
+                      )
                     )
-                  )
-                })()}
+                  })()}
                 </div>
               </div>
               {/* Excluded rewards badges */}
@@ -514,11 +537,14 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
                                 )
                                 updateConditions({
                                   requiresRewards:
-                                    newExcludeRewards.length > 0 || currentCondition?.rewardIds?.length
+                                    newExcludeRewards.length > 0 ||
+                                    currentCondition?.rewardIds?.length
                                       ? {
                                           ...currentCondition,
                                           excludeRewards:
-                                            newExcludeRewards.length > 0 ? newExcludeRewards : undefined,
+                                            newExcludeRewards.length > 0
+                                              ? newExcludeRewards
+                                              : undefined,
                                         }
                                       : undefined,
                                 })
@@ -557,7 +583,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Duplicate Prevention</span>
           </div>
-          {configuredSections.uniqueness && <span className="text-xs text-muted-foreground">Configured</span>}
+          {configuredSections.uniqueness && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
         </button>
         {expandedSections.uniqueness && (
           <div className="p-4 pt-0 space-y-4">
@@ -667,7 +695,9 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
             )}
             <span className="font-medium">Time Window</span>
           </div>
-          {configuredSections.timeWindow && <span className="text-xs text-muted-foreground">Configured</span>}
+          {configuredSections.timeWindow && (
+            <span className="text-xs text-muted-foreground">Configured</span>
+          )}
         </button>
         {expandedSections.timeWindow && (
           <div className="p-4 pt-0 space-y-4">
@@ -678,8 +708,12 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
               <Label>Date Range</Label>
               <DateRangePicker
                 value={{
-                  from: conds.timeWindow?.startDate ? dayjs(conds.timeWindow.startDate).toDate() : undefined,
-                  to: conds.timeWindow?.endDate ? dayjs(conds.timeWindow.endDate).toDate() : undefined,
+                  from: conds.timeWindow?.startDate
+                    ? dayjs(conds.timeWindow.startDate).toDate()
+                    : undefined,
+                  to: conds.timeWindow?.endDate
+                    ? dayjs(conds.timeWindow.endDate).toDate()
+                    : undefined,
                 }}
                 onChange={(range) =>
                   updateConditions({
