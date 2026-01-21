@@ -15,7 +15,7 @@ export function BadgeCell<T extends string>({
   variants,
   defaultVariant = 'secondary',
 }: BadgeCellProps<T>) {
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === '') {
     return <span className="text-muted-foreground">-</span>
   }
 
