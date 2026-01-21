@@ -16,7 +16,7 @@ import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState
 
 // Lazy load heavy RichTextEditor
 const RichTextEditor = lazy(() =>
-  import('@/components/ui/rich-text-editor').then((m) => ({ default: m.RichTextEditor }))
+  import('@/components/common/rich-text-editor').then((m) => ({ default: m.RichTextEditor }))
 )
 
 // ============================================================================
