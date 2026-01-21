@@ -388,9 +388,9 @@ export function MonacoScriptEditor({
       className={className}
       onClick={handleContainerClick}
       style={{
+        position: 'relative',
         border: `1px solid ${cssVarToHex('--border', '#e5e7eb')}`,
         borderRadius: '0.375rem',
-        overflow: 'hidden',
       }}
     >
       <Editor
@@ -440,7 +440,6 @@ export function MonacoScriptEditor({
           renderLineHighlight: 'line',
           cursorBlinking: 'smooth',
           smoothScrolling: true,
-          fixedOverflowWidgets: true,
           overviewRulerLanes: 0,
           hideCursorInOverviewRuler: true,
           scrollbar: {
