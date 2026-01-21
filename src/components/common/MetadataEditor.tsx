@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { JsonEditor } from './JsonEditor'
 
 interface MetadataEditorProps {
@@ -7,6 +8,10 @@ interface MetadataEditorProps {
   placeholder?: string
 }
 
-export function MetadataEditor({ value, onChange, className }: MetadataEditorProps) {
+export const MetadataEditor = memo(function MetadataEditor({
+  value,
+  onChange,
+  className,
+}: MetadataEditorProps) {
   return <JsonEditor value={value} onChange={onChange} className={className} />
-}
+})

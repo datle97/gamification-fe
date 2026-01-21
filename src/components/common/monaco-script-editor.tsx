@@ -113,6 +113,18 @@ declare const $helpers: ScriptHelpers;
 declare const $constants: ScriptConstants;
 `
 
+// Loading placeholder - exported for use with Suspense
+export function MonacoScriptEditorLoading({ height = '400px' }: { height?: string }) {
+  return (
+    <div
+      className="border rounded-md bg-muted/50 flex items-center justify-center w-full"
+      style={{ height }}
+    >
+      <span className="text-muted-foreground text-sm">Loading editor...</span>
+    </div>
+  )
+}
+
 interface MonacoScriptEditorProps {
   value: string
   onChange: (value: string) => void
@@ -129,6 +141,7 @@ export function MonacoScriptEditor({
   height = '400px',
 }: MonacoScriptEditorProps) {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Inject custom CSS for Monaco widgets
@@ -182,27 +195,149 @@ export function MonacoScriptEditor({
   )
 
   // Convert CSS variable to hex color
-  const cssVarToHex = (varName: string, fallback: string): string => {
-    // Create a temp element to get computed color
-    const temp = document.createElement('div')
-    temp.style.color = `var(${varName})`
-    temp.style.display = 'none'
-    document.body.appendChild(temp)
-    const computed = getComputedStyle(temp).color
-    document.body.removeChild(temp)
+  const cssVarToHex = useCallback((varName: string, fallback: string): string => {
+    try {
+      const temp = document.createElement('div')
+      temp.style.color = `var(${varName})`
+      temp.style.display = 'none'
+      document.body.appendChild(temp)
+      const computed = getComputedStyle(temp).color
+      document.body.removeChild(temp)
 
-    // Parse rgb(r, g, b) or rgba(r, g, b, a)
-    const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-    if (match) {
-      const r = parseInt(match[1]).toString(16).padStart(2, '0')
-      const g = parseInt(match[2]).toString(16).padStart(2, '0')
-      const b = parseInt(match[3]).toString(16).padStart(2, '0')
-      return `#${r}${g}${b}`
+      // Match rgb(r, g, b) or rgba(r, g, b, a) format - integers 0-255
+      const rgbMatch = computed.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
+      if (rgbMatch) {
+        const r = Math.min(255, parseInt(rgbMatch[1])).toString(16).padStart(2, '0')
+        const g = Math.min(255, parseInt(rgbMatch[2])).toString(16).padStart(2, '0')
+        const b = Math.min(255, parseInt(rgbMatch[3])).toString(16).padStart(2, '0')
+        return `#${r}${g}${b}`
+      }
+    } catch {
+      // Fallback on any error
     }
     return fallback
-  }
+  }, [])
+
+  // Define/update Monaco theme based on current CSS variables
+  const updateMonacoTheme = useCallback(
+    (monaco: Monaco) => {
+      const isDark = document.documentElement.classList.contains('dark')
+
+      // Fallback colors for light/dark modes
+      const fallbacks = isDark
+        ? {
+            background: '#1e1e1e',
+            foreground: '#d4d4d4',
+            muted: '#2d2d2d',
+            mutedForeground: '#808080',
+            border: '#404040',
+            popover: '#252526',
+            primary: '#e07028',
+          }
+        : {
+            background: '#ffffff',
+            foreground: '#1f2937',
+            muted: '#f3f4f6',
+            mutedForeground: '#6b7280',
+            border: '#e5e7eb',
+            popover: '#ffffff',
+            primary: '#c2410c',
+          }
+
+      const colors = {
+        background: cssVarToHex('--background', fallbacks.background),
+        foreground: cssVarToHex('--foreground', fallbacks.foreground),
+        muted: cssVarToHex('--muted', fallbacks.muted),
+        mutedForeground: cssVarToHex('--muted-foreground', fallbacks.mutedForeground),
+        border: cssVarToHex('--border', fallbacks.border),
+        popover: cssVarToHex('--popover', fallbacks.popover),
+        primary: cssVarToHex('--primary', fallbacks.primary),
+        codeKeyword: cssVarToHex('--code-keyword', isDark ? '#c586c0' : '#7c3aed'),
+        codeString: cssVarToHex('--code-string', isDark ? '#ce9178' : '#16a34a'),
+        codeNumber: cssVarToHex('--code-number', isDark ? '#b5cea8' : '#c2410c'),
+        codeComment: cssVarToHex('--code-comment', isDark ? '#6a9955' : '#6b7280'),
+        codeFunction: cssVarToHex('--code-function', isDark ? '#dcdcaa' : '#2563eb'),
+        codeVariable: cssVarToHex('--code-variable', isDark ? '#9cdcfe' : '#92400e'),
+        codeProperty: cssVarToHex('--code-property', isDark ? '#4ec9b0' : '#0891b2'),
+        codeOperator: cssVarToHex('--code-operator', isDark ? '#d4d4d4' : '#7c3aed'),
+        codeSelection: cssVarToHex('--code-selection', isDark ? '#264f78' : '#c7d2fe'),
+      }
+
+    // Selected suggestion background - more visible
+      const selectedBg = isDark ? '#3b4252' : '#e5e7eb'
+
+    // Define custom theme using CSS variables
+      monaco.editor.defineTheme('app-theme', {
+        base: isDark ? 'vs-dark' : 'vs',
+        inherit: true,
+        rules: [
+          { token: 'keyword', foreground: colors.codeKeyword.slice(1) },
+          { token: 'keyword.control', foreground: colors.codeKeyword.slice(1) },
+          { token: 'storage', foreground: colors.codeKeyword.slice(1) },
+          { token: 'string', foreground: colors.codeString.slice(1) },
+          { token: 'string.quoted', foreground: colors.codeString.slice(1) },
+          { token: 'number', foreground: colors.codeNumber.slice(1) },
+          { token: 'comment', foreground: colors.codeComment.slice(1), fontStyle: 'italic' },
+          { token: 'type', foreground: colors.codeProperty.slice(1) },
+          { token: 'type.identifier', foreground: colors.codeProperty.slice(1) },
+          { token: 'function', foreground: colors.codeFunction.slice(1) },
+          { token: 'variable', foreground: colors.codeVariable.slice(1) },
+          { token: 'variable.predefined', foreground: colors.codeNumber.slice(1) },
+          { token: 'operator', foreground: colors.codeOperator.slice(1) },
+          { token: 'delimiter', foreground: colors.foreground.slice(1) },
+          { token: 'identifier', foreground: colors.foreground.slice(1) },
+        ],
+        colors: {
+          'editor.background': colors.background,
+          'editor.foreground': colors.foreground,
+          'editor.lineHighlightBackground': colors.muted + '80',
+          'editor.selectionBackground': colors.codeSelection,
+          'editorCursor.foreground': colors.foreground,
+          'editorLineNumber.foreground': colors.mutedForeground,
+          'editorLineNumber.activeForeground': colors.foreground,
+          'editorGutter.background': colors.muted,
+          'editorWidget.background': colors.popover,
+          'editorWidget.border': colors.border,
+          'editorSuggestWidget.background': colors.popover,
+          'editorSuggestWidget.border': colors.border,
+          'editorSuggestWidget.foreground': colors.foreground,
+          'editorSuggestWidget.selectedBackground': selectedBg,
+          'editorSuggestWidget.selectedForeground': colors.foreground,
+          'editorSuggestWidget.highlightForeground': colors.primary,
+          'editorSuggestWidget.focusHighlightForeground': colors.primary,
+          'editorHoverWidget.background': colors.popover,
+          'editorHoverWidget.border': colors.border,
+          'editorHoverWidget.foreground': colors.foreground,
+          'list.hoverBackground': colors.muted,
+          'list.focusBackground': selectedBg,
+        },
+      })
+
+      // Apply theme
+      monaco.editor.setTheme('app-theme')
+    },
+    [cssVarToHex]
+  )
+
+  // Listen for dark mode changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && monacoRef.current) {
+          updateMonacoTheme(monacoRef.current)
+        }
+      })
+    })
+
+    observer.observe(document.documentElement, { attributes: true })
+
+    return () => observer.disconnect()
+  }, [updateMonacoTheme])
 
   const handleEditorWillMount = (monaco: Monaco) => {
+    // Store monaco reference for theme updates
+    monacoRef.current = monaco
+
     // Configure TypeScript/JavaScript compiler options
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ESNext,
@@ -228,81 +363,17 @@ export function MonacoScriptEditor({
       noSyntaxValidation: false,
     })
 
-    const isDark = document.documentElement.classList.contains('dark')
-
-    // Read colors from CSS variables
-    const colors = {
-      background: cssVarToHex('--background', '#faf9f7'),
-      foreground: cssVarToHex('--foreground', '#1f2937'),
-      muted: cssVarToHex('--muted', '#f3f4f6'),
-      mutedForeground: cssVarToHex('--muted-foreground', '#6b7280'),
-      border: cssVarToHex('--border', '#e5e7eb'),
-      popover: cssVarToHex('--popover', '#ffffff'),
-      primary: cssVarToHex('--primary', '#c2410c'),
-      codeKeyword: cssVarToHex('--code-keyword', '#7c3aed'),
-      codeString: cssVarToHex('--code-string', '#16a34a'),
-      codeNumber: cssVarToHex('--code-number', '#c2410c'),
-      codeComment: cssVarToHex('--code-comment', '#6b7280'),
-      codeFunction: cssVarToHex('--code-function', '#2563eb'),
-      codeVariable: cssVarToHex('--code-variable', '#92400e'),
-      codeProperty: cssVarToHex('--code-property', '#0891b2'),
-      codeOperator: cssVarToHex('--code-operator', '#7c3aed'),
-      codeSelection: cssVarToHex('--code-selection', '#c7d2fe'),
-    }
-
-    // Selected suggestion background - more visible
-    const selectedBg = isDark ? '#3b4252' : '#e5e7eb'
-
-    // Define custom theme using CSS variables
-    monaco.editor.defineTheme('app-theme', {
-      base: isDark ? 'vs-dark' : 'vs',
-      inherit: true,
-      rules: [
-        { token: 'keyword', foreground: colors.codeKeyword.slice(1) },
-        { token: 'keyword.control', foreground: colors.codeKeyword.slice(1) },
-        { token: 'storage', foreground: colors.codeKeyword.slice(1) },
-        { token: 'string', foreground: colors.codeString.slice(1) },
-        { token: 'string.quoted', foreground: colors.codeString.slice(1) },
-        { token: 'number', foreground: colors.codeNumber.slice(1) },
-        { token: 'comment', foreground: colors.codeComment.slice(1), fontStyle: 'italic' },
-        { token: 'type', foreground: colors.codeProperty.slice(1) },
-        { token: 'type.identifier', foreground: colors.codeProperty.slice(1) },
-        { token: 'function', foreground: colors.codeFunction.slice(1) },
-        { token: 'variable', foreground: colors.codeVariable.slice(1) },
-        { token: 'variable.predefined', foreground: colors.codeNumber.slice(1) },
-        { token: 'operator', foreground: colors.codeOperator.slice(1) },
-        { token: 'delimiter', foreground: colors.foreground.slice(1) },
-        { token: 'identifier', foreground: colors.foreground.slice(1) },
-      ],
-      colors: {
-        'editor.background': colors.background,
-        'editor.foreground': colors.foreground,
-        'editor.lineHighlightBackground': colors.muted + '80',
-        'editor.selectionBackground': colors.codeSelection,
-        'editorCursor.foreground': colors.foreground,
-        'editorLineNumber.foreground': colors.mutedForeground,
-        'editorLineNumber.activeForeground': colors.foreground,
-        'editorGutter.background': colors.muted,
-        'editorWidget.background': colors.popover,
-        'editorWidget.border': colors.border,
-        'editorSuggestWidget.background': colors.popover,
-        'editorSuggestWidget.border': colors.border,
-        'editorSuggestWidget.foreground': colors.foreground,
-        'editorSuggestWidget.selectedBackground': selectedBg,
-        'editorSuggestWidget.selectedForeground': colors.foreground,
-        'editorSuggestWidget.highlightForeground': colors.primary,
-        'editorSuggestWidget.focusHighlightForeground': colors.primary,
-        'editorHoverWidget.background': colors.popover,
-        'editorHoverWidget.border': colors.border,
-        'editorHoverWidget.foreground': colors.foreground,
-        'list.hoverBackground': colors.muted,
-        'list.focusBackground': selectedBg,
-      },
-    })
+    // Define initial theme
+    updateMonacoTheme(monaco)
   }
 
-  const handleEditorMount: OnMount = (editor) => {
+  const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
+    monacoRef.current = monaco
+
+    // Ensure theme is applied after mount
+    updateMonacoTheme(monaco)
+
     // Focus editor to ensure it receives keyboard events
     editor.focus()
   }
@@ -330,6 +401,7 @@ export function MonacoScriptEditor({
         beforeMount={handleEditorWillMount}
         onMount={handleEditorMount}
         theme="app-theme"
+        loading={<MonacoScriptEditorLoading height={height} />}
         options={{
           readOnly: disabled,
           minimap: { enabled: false },
@@ -368,7 +440,6 @@ export function MonacoScriptEditor({
           renderLineHighlight: 'line',
           cursorBlinking: 'smooth',
           smoothScrolling: true,
-          // Fix for embedded environments
           fixedOverflowWidgets: true,
           overviewRulerLanes: 0,
           hideCursorInOverviewRuler: true,

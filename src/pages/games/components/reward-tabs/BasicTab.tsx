@@ -12,6 +12,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { rewardCategoryLabels, type Reward, type RewardCategory } from '@/schemas/reward.schema'
 import dayjs from 'dayjs'
+import { useCallback } from 'react'
 
 const rewardCategories: RewardCategory[] = [
   'voucher',
@@ -44,6 +45,12 @@ interface BasicTabProps {
 }
 
 export function BasicTab({ formData, onChange, isCreate, selectedReward }: BasicTabProps) {
+  // Memoize metadata onChange to prevent JsonEditor re-renders
+  const handleMetadataChange = useCallback(
+    (value: string) => onChange({ metadata: value }),
+    [onChange]
+  )
+
   return (
     <div className="space-y-6">
       {/* Basic Information */}
@@ -82,7 +89,7 @@ export function BasicTab({ formData, onChange, isCreate, selectedReward }: Basic
           <Label>Metadata</Label>
           <MetadataEditor
             value={formData.metadata}
-            onChange={(value) => onChange({ metadata: value })}
+            onChange={handleMetadataChange}
             placeholder="Add custom metadata fields for frontend display"
           />
         </div>

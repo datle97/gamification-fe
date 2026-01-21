@@ -672,13 +672,16 @@ export function JsonEditor({ value, onChange, className }: JsonEditorProps) {
     }
   }, [value])
 
-  // Sync code value when switching to code mode
+  // Sync code value only when switching TO code mode (not on every data change)
+  const prevModeRef = useRef(mode)
+
   useEffect(() => {
-    if (mode === 'code') {
+    if (mode === 'code' && prevModeRef.current !== 'code') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCodeValue(JSON.stringify(data, null, 2))
       setCodeError(null)
     }
+    prevModeRef.current = mode
   }, [mode, data])
 
   const handleValueChange = useCallback(

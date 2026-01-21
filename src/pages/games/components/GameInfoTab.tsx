@@ -22,7 +22,7 @@ import {
 } from '@/schemas/game.schema'
 import dayjs from 'dayjs'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery', 'catch']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
@@ -45,6 +45,12 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
     timezone: game.timezone || 'Asia/Ho_Chi_Minh',
     metadata: game.metadata ? JSON.stringify(game.metadata, null, 2) : '',
   })
+
+  // Memoize metadata onChange to prevent JsonEditor re-renders
+  const handleMetadataChange = useCallback(
+    (value: string) => setFormData((prev) => ({ ...prev, metadata: value })),
+    []
+  )
 
   const parseJsonField = (value: string) => {
     if (!value.trim()) return undefined
@@ -191,7 +197,7 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
           <Label htmlFor="metadata">Metadata (JSON)</Label>
           <MetadataEditor
             value={formData.metadata}
-            onChange={(value) => setFormData({ ...formData, metadata: value })}
+            onChange={handleMetadataChange}
           />
           <p className="text-xs text-muted-foreground">
             Custom metadata for frontend display (e.g., icons, labels, extra info)
