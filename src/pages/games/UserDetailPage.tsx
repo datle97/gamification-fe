@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   useCheckEligibility,
   useGame,
@@ -49,6 +50,7 @@ import dayjs from 'dayjs'
 import parse from 'html-react-parser'
 import {
   ArrowLeft,
+  Ban,
   Calendar,
   Check,
   ChevronDown,
@@ -58,11 +60,13 @@ import {
   Gift,
   History,
   Loader2,
+  PackageCheck,
   Pencil,
   Plus,
   RotateCcw,
   Search,
   Settings2,
+  Share2,
   Shield,
   Target,
   Trash2,
@@ -78,8 +82,8 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -288,6 +292,38 @@ const ACTIVITY_CONFIG: Record<
     borderClass: 'border-destructive',
     badgeBgClass: 'bg-destructive/20',
   },
+  reward_share: {
+    label: 'Rewards Shared',
+    colorVar: 'chart-3',
+    bgClass: 'bg-chart-3',
+    textClass: 'text-chart-3',
+    borderClass: 'border-chart-3',
+    badgeBgClass: 'bg-chart-3/20',
+  },
+  reward_claim: {
+    label: 'Rewards Claimed',
+    colorVar: 'chart-4',
+    bgClass: 'bg-chart-4',
+    textClass: 'text-chart-4',
+    borderClass: 'border-chart-4',
+    badgeBgClass: 'bg-chart-4/20',
+  },
+  reward_fail: {
+    label: 'No Reward',
+    colorVar: 'muted-foreground',
+    bgClass: 'bg-muted-foreground',
+    textClass: 'text-muted-foreground',
+    borderClass: 'border-muted-foreground',
+    badgeBgClass: 'bg-muted-foreground/20',
+  },
+  mission_progress: {
+    label: 'Mission Progress',
+    colorVar: 'chart-5',
+    bgClass: 'bg-chart-5',
+    textClass: 'text-chart-5',
+    borderClass: 'border-chart-5',
+    badgeBgClass: 'bg-chart-5/20',
+  },
 }
 
 // Get icon for activity type
@@ -303,8 +339,16 @@ function getActivityIcon(type: ActivityType) {
       return Clock
     case 'reward_earn':
       return Gift
+    case 'reward_share':
+      return Share2
+    case 'reward_claim':
+      return PackageCheck
+    case 'reward_fail':
+      return Ban
     case 'mission_complete':
       return Trophy
+    case 'mission_progress':
+      return TrendingUp
     case 'score_earn':
       return Target
     case 'admin_grant':
@@ -422,6 +466,33 @@ function ActivityTimeline({
                       />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm">{primaryActivity.description}</span>
+                        {primaryActivity.metadata?.source && (
+                          <span className="ml-2 text-[10px] text-muted-foreground/70 font-medium uppercase">
+                            {primaryActivity.metadata.source}
+                          </span>
+                        )}
+                        {primaryActivity.metadata?.requestId && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="ml-2 text-[10px] text-muted-foreground/70 font-mono hover:text-foreground transition-colors"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    primaryActivity.metadata!.requestId!
+                                  )
+                                }}
+                              >
+                                #{primaryActivity.metadata.requestId.slice(-8)}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-mono text-xs">
+                                {primaryActivity.metadata.requestId}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </div>
 
@@ -681,44 +752,10 @@ export function UserDetailPage() {
 
     const now = dayjs()
 
-    // TODO: add requestId to transaction_log
-    // SIMULATION - Group activities between turn_spend (or game_play) events
-    // turn_spend starts a new session, subsequent reward_earn/score_earn belong to it
-    const sortedActivities = [...activitiesData.activities].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
-
-    let currentSessionId: string | null = null
-    const activitiesWithSimulatedRequestId = sortedActivities.map((activity) => {
-      // If already has requestId, use it
-      if (activity.metadata?.requestId) return activity
-
-      // turn_spend or game_play starts a new session
-      if (activity.type === 'turn_spend' || activity.type === 'game_play') {
-        currentSessionId = `sim_${activity.id}`
-        return {
-          ...activity,
-          metadata: { ...activity.metadata, requestId: currentSessionId },
-        }
-      }
-
-      // These types belong to current game session
-      const sessionTypes: ActivityType[] = ['reward_earn', 'score_earn', 'mission_complete']
-      if (currentSessionId && sessionTypes.includes(activity.type)) {
-        return {
-          ...activity,
-          metadata: { ...activity.metadata, requestId: currentSessionId },
-        }
-      }
-
-      // Other types (turn_earn, admin_grant, etc.) are standalone
-      return activity
-    })
-
-    // First, group by requestId (or use id as fallback for ungrouped)
+    // Group activities by requestId from metadata (or use id as fallback for standalone activities)
     const byRequestId = new Map<string, UserActivity[]>()
 
-    activitiesWithSimulatedRequestId.forEach((activity) => {
+    activitiesData.activities.forEach((activity) => {
       const key = activity.metadata?.requestId || `single_${activity.id}`
       if (!byRequestId.has(key)) {
         byRequestId.set(key, [])
@@ -740,12 +777,16 @@ export function UserDetailPage() {
         game_play: 1,
         turn_spend: 2,
         reward_earn: 3,
-        score_earn: 4,
-        mission_complete: 5,
-        turn_earn: 6,
-        turn_expire: 7,
-        admin_grant: 8,
-        admin_revoke: 9,
+        reward_share: 4,
+        reward_claim: 5,
+        reward_fail: 6,
+        score_earn: 7,
+        mission_complete: 8,
+        mission_progress: 9,
+        turn_earn: 10,
+        turn_expire: 11,
+        admin_grant: 12,
+        admin_revoke: 13,
       }
       activities.sort((a, b) => typePriority[a.type] - typePriority[b.type])
 
@@ -1136,7 +1177,7 @@ export function UserDetailPage() {
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip
+                      <RechartsTooltip
                         contentStyle={{
                           backgroundColor: chartColors.popover,
                           border: `1px solid ${chartColors.border}`,

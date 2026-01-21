@@ -135,10 +135,16 @@ export type ActivityType =
   | 'turn_spend'
   | 'turn_expire'
   | 'reward_earn'
+  | 'reward_share'
+  | 'reward_claim'
+  | 'reward_fail'
   | 'mission_complete'
+  | 'mission_progress'
   | 'score_earn'
   | 'admin_grant'
   | 'admin_revoke'
+
+export type ActivitySource = 'api' | 'cron' | 'admin' | 'webhook' | 'system'
 
 export interface UserActivity {
   id: string
@@ -155,6 +161,12 @@ export interface UserActivity {
     reason?: string
     sessionId?: string
     requestId?: string
+    shareId?: string
+    sharedBy?: string
+    recipientPhone?: string
+    currentValue?: number
+    appId?: string
+    source?: ActivitySource
   }
 }
 
