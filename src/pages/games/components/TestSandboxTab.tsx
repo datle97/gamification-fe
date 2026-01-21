@@ -9,6 +9,7 @@ import type { TestPlayResult } from '@/services/game-users.service'
 import {
   AlertCircle,
   CheckCircle2,
+  ExternalLink,
   FlaskConical,
   Gift,
   Loader2,
@@ -17,12 +18,14 @@ import {
   User,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 
 interface TestSandboxTabProps {
   gameId: string
 }
 
 export function TestSandboxTab({ gameId }: TestSandboxTabProps) {
+  const navigate = useNavigate()
   const [clientInputJson, setClientInputJson] = useState('{}')
   const [attributeOverridesJson, setAttributeOverridesJson] = useState('{}')
   const [testResult, setTestResult] = useState<TestPlayResult | null>(null)
@@ -123,7 +126,6 @@ export function TestSandboxTab({ gameId }: TestSandboxTabProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{sandboxUser?.remainingTurns ?? 0} turns</Badge>
                 <Button
                   variant="outline"
                   size="sm"
@@ -137,8 +139,35 @@ export function TestSandboxTab({ gameId }: TestSandboxTabProps) {
                   )}
                   <span className="ml-2">Reset</span>
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/games/${gameId}/users/${sandboxUser?.userId}`)}
+                  disabled={!sandboxUser?.userId}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
               </div>
             </div>
+            {/* Attributes */}
+            {sandboxUser?.attributes && Object.keys(sandboxUser.attributes).length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {Object.entries(sandboxUser.attributes).map(([key, value]) => (
+                  <Badge key={key} variant="outline" className="font-normal text-xs py-0.5 px-2">
+                    <span className="text-muted-foreground mr-1">{key}:</span>
+                    <span className="font-medium">
+                      {typeof value === 'boolean'
+                        ? value
+                          ? 'Yes'
+                          : 'No'
+                        : typeof value === 'object'
+                          ? JSON.stringify(value)
+                          : String(value)}
+                    </span>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">

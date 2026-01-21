@@ -1,3 +1,9 @@
+/**
+ * @deprecated This component is deprecated. Use UserDetailPage instead for full user details.
+ * The sheet version has limited space and functionality compared to the full page view.
+ * Route: /games/:gameId/users/:userId
+ */
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
