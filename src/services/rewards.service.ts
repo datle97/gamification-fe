@@ -38,18 +38,19 @@ export const rewardsService = {
     return res.data
   },
 
-  update: (id: string, data: UpdateRewardInput) =>
+  update: (gameId: string, id: string, data: UpdateRewardInput) =>
     api
-      .put(`gamification/admin/rewards/${id}`, { json: data })
+      .put(`gamification/admin/games/${gameId}/rewards/${id}`, { json: data })
       .json<ApiResponse<Reward>>()
       .then((res) => res.data),
 
-  batchUpdate: (updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
+  batchUpdate: (gameId: string, updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
     api
-      .post('gamification/admin/rewards/batch-update', { json: { updates } })
+      .post(`gamification/admin/games/${gameId}/rewards/batch-update`, { json: { updates } })
       .json<ApiResponse<void>>(),
 
-  delete: (id: string) => api.delete(`gamification/admin/rewards/${id}`),
+  delete: (gameId: string, id: string) =>
+    api.delete(`gamification/admin/games/${gameId}/rewards/${id}`),
 
   getDistribution: (gameId: string) =>
     api

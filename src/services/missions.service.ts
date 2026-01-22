@@ -33,11 +33,12 @@ export const missionsService = {
     return res.data
   },
 
-  update: (id: string, data: UpdateMissionInput) =>
+  update: (gameId: string, id: string, data: UpdateMissionInput) =>
     api
-      .put(`gamification/admin/missions/${id}`, { json: data })
+      .put(`gamification/admin/games/${gameId}/missions/${id}`, { json: data })
       .json<ApiResponse<Mission>>()
       .then((res) => res.data),
 
-  delete: (id: string) => api.delete(`gamification/admin/missions/${id}`),
+  delete: (gameId: string, id: string) =>
+    api.delete(`gamification/admin/games/${gameId}/missions/${id}`),
 }

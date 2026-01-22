@@ -47,8 +47,8 @@ export function useUpdateMission() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateMissionInput }) =>
-      missionsService.update(id, data),
+    mutationFn: ({ gameId, id, data }: { gameId: string; id: string; data: UpdateMissionInput }) =>
+      missionsService.update(gameId, id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['missions'] })
       queryClient.invalidateQueries({ queryKey: missionsKeys.detail(id) })
@@ -60,7 +60,8 @@ export function useDeleteMission() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => missionsService.delete(id),
+    mutationFn: ({ gameId, id }: { gameId: string; id: string }) =>
+      missionsService.delete(gameId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['missions'] })
     },

@@ -48,8 +48,8 @@ export function useUpdateReward() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateRewardInput }) =>
-      rewardsService.update(id, data),
+    mutationFn: ({ gameId, id, data }: { gameId: string; id: string; data: UpdateRewardInput }) =>
+      rewardsService.update(gameId, id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
       queryClient.invalidateQueries({ queryKey: rewardsKeys.detail(id) })
@@ -61,8 +61,13 @@ export function useBatchUpdateRewards() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (updates: Array<{ rewardId: string; data: Partial<Reward> }>) =>
-      rewardsService.batchUpdate(updates),
+    mutationFn: ({
+      gameId,
+      updates,
+    }: {
+      gameId: string
+      updates: Array<{ rewardId: string; data: Partial<Reward> }>
+    }) => rewardsService.batchUpdate(gameId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
     },
@@ -73,7 +78,8 @@ export function useDeleteReward() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => rewardsService.delete(id),
+    mutationFn: ({ gameId, id }: { gameId: string; id: string }) =>
+      rewardsService.delete(gameId, id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
     },

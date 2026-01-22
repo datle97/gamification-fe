@@ -133,11 +133,12 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   const handleInlineUpdate = useCallback(
     async (mission: Mission, field: string, value: unknown) => {
       await updateMission.mutateAsync({
+        gameId,
         id: mission.missionId,
         data: { [field]: value },
       })
     },
-    [updateMission]
+    [gameId, updateMission]
   )
 
   const columns = useMemo(
@@ -237,6 +238,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
       } as CreateMissionInput)
     } else if (sheetMode === 'edit' && selectedMission) {
       await updateMission.mutateAsync({
+        gameId,
         id: selectedMission.missionId,
         data: {
           name: formData.name,
@@ -265,7 +267,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
 
   const handleDelete = async () => {
     if (!selectedMission) return
-    await deleteMission.mutateAsync(selectedMission.missionId)
+    await deleteMission.mutateAsync({ gameId, id: selectedMission.missionId })
     handleClose()
   }
 

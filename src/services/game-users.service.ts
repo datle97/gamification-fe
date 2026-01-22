@@ -119,7 +119,6 @@ export interface ExpirationConfig {
 
 export interface GrantTurnsInput {
   amount: number
-  portalId?: number
   reason?: string
   expirationConfig?: ExpirationConfig
 }

@@ -102,11 +102,12 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const handleInlineUpdate = useCallback(
     async (reward: Reward, field: string, value: unknown) => {
       await updateReward.mutateAsync({
+        gameId,
         id: reward.rewardId,
         data: { [field]: value },
       })
     },
-    [updateReward]
+    [gameId, updateReward]
   )
 
   const columns = useMemo(
@@ -220,6 +221,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       } as CreateRewardInput)
     } else if (dialogMode === 'edit' && selectedReward) {
       await updateReward.mutateAsync({
+        gameId,
         id: selectedReward.rewardId,
         data: payload,
       })
@@ -230,18 +232,19 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
 
   const handleDelete = async () => {
     if (!selectedReward) return
-    await deleteReward.mutateAsync(selectedReward.rewardId)
+    await deleteReward.mutateAsync({ gameId, id: selectedReward.rewardId })
     handleClose()
   }
 
   const handleProbabilityApply = async (updates: { rewardId: string; probability: number }[]) => {
     // Batch update all rewards with new probabilities in a single transaction
-    await batchUpdateRewards.mutateAsync(
-      updates.map((u) => ({
+    await batchUpdateRewards.mutateAsync({
+      gameId,
+      updates: updates.map((u) => ({
         rewardId: u.rewardId,
         data: { probability: u.probability },
-      }))
-    )
+      })),
+    })
   }
 
   const isPending = createReward.isPending || updateReward.isPending || deleteReward.isPending
