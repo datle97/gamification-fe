@@ -843,18 +843,19 @@ export function UserDetailPage() {
       // Sort activities within group by type priority
       const typePriority: Record<ActivityType, number> = {
         game_play: 1,
-        turn_spend: 2,
-        reward_earn: 3,
-        reward_share: 4,
-        reward_claim: 5,
-        reward_fail: 6,
-        score_earn: 7,
-        mission_complete: 8,
-        mission_progress: 9,
-        turn_earn: 10,
-        turn_expire: 11,
-        admin_grant: 12,
-        admin_revoke: 13,
+        game_share: 2,
+        turn_spend: 3,
+        reward_earn: 4,
+        reward_share: 5,
+        reward_claim: 6,
+        reward_fail: 7,
+        score_earn: 8,
+        mission_complete: 9,
+        mission_progress: 10,
+        turn_earn: 11,
+        turn_expire: 12,
+        admin_grant: 13,
+        admin_revoke: 14,
       }
       activities.sort((a, b) => typePriority[a.type] - typePriority[b.type])
 
