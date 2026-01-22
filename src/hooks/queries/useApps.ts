@@ -39,6 +39,7 @@ export function useUpdateApp() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateAppInput }) =>
       appsService.update(id, data),
+    // TODO: Check optimistic update pattern
     onMutate: async ({ id, data }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: appsKeys.all })

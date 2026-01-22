@@ -44,6 +44,7 @@ import type {
   ExpirationUnit,
   RewardEligibilityResult,
   UserActivity,
+  UserReward,
 } from '@/services/game-users.service'
 import { useAnalytics, useDevMode } from '@/stores/settingsStore'
 import dayjs from 'dayjs'
@@ -228,6 +229,14 @@ const ACTIVITY_CONFIG: Record<
     borderClass: 'border-chart-1',
     badgeBgClass: 'bg-chart-1/20',
   },
+  game_share: {
+    label: 'Game Shares',
+    colorVar: 'chart-3',
+    bgClass: 'bg-chart-3',
+    textClass: 'text-chart-3',
+    borderClass: 'border-chart-3',
+    badgeBgClass: 'bg-chart-3/20',
+  },
   turn_earn: {
     label: 'Turns Earned',
     colorVar: 'chart-2',
@@ -331,6 +340,8 @@ function getActivityIcon(type: ActivityType) {
   switch (type) {
     case 'game_play':
       return Gamepad2
+    case 'game_share':
+      return Share2
     case 'turn_earn':
       return Plus
     case 'turn_spend':
@@ -552,6 +563,64 @@ function ActivityTimeline({
   )
 }
 
+function RewardItem({
+  reward,
+  gameId,
+  userId,
+  isDevMode,
+  formatDate,
+}: {
+  reward: UserReward
+  gameId: string
+  userId: string
+  isDevMode: boolean
+  formatDate: (date: string) => string
+}) {
+  const revokeReward = useRevokeUserReward(gameId, userId)
+
+  return (
+    <div className="rounded-lg border p-3 group">
+      <div className="flex items-start gap-3">
+        {reward.reward?.imageUrl && (
+          <img
+            src={reward.reward.imageUrl}
+            alt=""
+            className="h-10 w-10 rounded object-cover shrink-0"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{reward.reward?.name || 'Unknown Reward'}</div>
+          {reward.rewardValue && (
+            <div className="text-sm text-muted-foreground font-mono truncate">
+              {reward.rewardValue}
+            </div>
+          )}
+          <div className="mt-1 text-xs text-muted-foreground">
+            {formatDate(reward.createdAt)}
+            {reward.expiredAt && <> • {formatDate(reward.expiredAt)}</>}
+          </div>
+        </div>
+        {isDevMode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => revokeReward.mutate(reward.id)}
+            disabled={revokeReward.isPending}
+            title="Revoke reward"
+          >
+            {revokeReward.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Trash2 className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function UserDetailPage() {
   const { gameId, userId } = useParams<{ gameId: string; userId: string }>()
   const navigate = useNavigate()
@@ -576,7 +645,6 @@ export function UserDetailPage() {
   const grantTurns = useGrantTurns(gameId!, userId!)
   const resetMission = useResetMissionProgress(gameId!, userId!)
   const resetAllMissions = useResetAllMissionsProgress(gameId!, userId!)
-  const revokeReward = useRevokeUserReward(gameId!, userId!)
   const updateAttributes = useUpdateUserAttributes(gameId!, userId!)
 
   // Admin state
@@ -1390,47 +1458,14 @@ export function UserDetailPage() {
           {rewards && rewards.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {rewards.map((reward) => (
-                <div key={reward.id} className="rounded-lg border p-3 group">
-                  <div className="flex items-start gap-3">
-                    {reward.reward?.imageUrl && (
-                      <img
-                        src={reward.reward.imageUrl}
-                        alt=""
-                        className="h-10 w-10 rounded object-cover shrink-0"
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {reward.reward?.name || 'Unknown Reward'}
-                      </div>
-                      {reward.rewardValue && (
-                        <div className="text-sm text-muted-foreground font-mono truncate">
-                          {reward.rewardValue}
-                        </div>
-                      )}
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {formatDate(reward.createdAt)}
-                        {reward.expiredAt && <> • {formatDate(reward.expiredAt)}</>}
-                      </div>
-                    </div>
-                    {isDevMode && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => revokeReward.mutate(reward.id)}
-                        disabled={revokeReward.isPending}
-                        title="Revoke reward"
-                      >
-                        {revokeReward.isPending ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <RewardItem
+                  key={reward.id}
+                  reward={reward}
+                  gameId={gameId!}
+                  userId={userId!}
+                  isDevMode={isDevMode}
+                  formatDate={formatDate}
+                />
               ))}
             </div>
           ) : (

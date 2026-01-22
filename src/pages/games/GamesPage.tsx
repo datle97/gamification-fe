@@ -19,7 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { useCreateGame, useGames, useUpdateGame } from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
 import {
@@ -283,13 +283,11 @@ export function GamesPage() {
               <p className="text-xs text-muted-foreground">URL to the game render template</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
+              <Label>Description</Label>
+              <RichTextEditor
                 placeholder="Game description..."
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="min-h-20"
+                onChange={(value) => setFormData({ ...formData, description: value })}
               />
             </div>
           </div>

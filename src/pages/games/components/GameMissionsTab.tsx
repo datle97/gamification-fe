@@ -21,6 +21,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import {
   useCreateMission,
   useDeleteMission,
@@ -336,13 +337,11 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
+                <Label>Description</Label>
+                <RichTextEditor
                   placeholder="Mission description..."
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="min-h-16"
+                  onChange={(value) => setFormData({ ...formData, description: value })}
                 />
               </div>
             </div>

@@ -1,3 +1,4 @@
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { MetadataEditor } from '@/components/common/MetadataEditor'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -9,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { rewardCategoryLabels, type Reward, type RewardCategory } from '@/schemas/reward.schema'
 import dayjs from 'dayjs'
 import { useCallback } from 'react'
@@ -67,13 +67,11 @@ export function BasicTab({ formData, onChange, isCreate, selectedReward }: Basic
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
+          <Label>Description</Label>
+          <RichTextEditor
             placeholder="Reward description..."
             value={formData.description}
-            onChange={(e) => onChange({ description: e.target.value })}
-            className="min-h-20"
+            onChange={(value) => onChange({ description: value })}
           />
         </div>
         <div className="space-y-2">

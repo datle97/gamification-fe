@@ -1,3 +1,4 @@
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,13 +12,18 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { Check, ChevronDown, ChevronRight, Code, Pencil, Plus, Trash2, TreeDeciduous, X } from 'lucide-react'
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-// Lazy load heavy RichTextEditor
-const RichTextEditor = lazy(() =>
-  import('@/components/common/rich-text-editor').then((m) => ({ default: m.RichTextEditor }))
-)
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Code,
+  Pencil,
+  Plus,
+  Trash2,
+  TreeDeciduous,
+  X,
+} from 'lucide-react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // ============================================================================
 // Types
@@ -189,14 +195,12 @@ const ValueEditor = memo(function ValueEditor({
   if (type === 'html') {
     return (
       <div className="w-full">
-        <Suspense fallback={<div className="h-24 animate-pulse bg-muted rounded" />}>
-          <RichTextEditor
-            value={stringValue}
-            onChange={onChange}
-            placeholder="Enter HTML content..."
-            className="min-h-24"
-          />
-        </Suspense>
+        <RichTextEditor
+          value={stringValue}
+          onChange={onChange}
+          placeholder="Enter HTML content..."
+          className="min-h-24"
+        />
       </div>
     )
   }
@@ -498,20 +502,10 @@ const JsonNode = memo(function JsonNode({
                   />
                 </div>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={confirmEdit}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={confirmEdit}>
                 <Check className="h-4 w-4 text-foreground" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={cancelEdit}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelEdit}>
                 <X className="h-4 w-4 text-muted-foreground" />
               </Button>
             </div>
@@ -534,22 +528,13 @@ const JsonNode = memo(function JsonNode({
               </span>
             </span>
           ) : (
-            <ValueDisplay
-              value={value}
-              type={currentType}
-              onDoubleClick={startEditing}
-            />
+            <ValueDisplay value={value} type={currentType} onDoubleClick={startEditing} />
           )}
 
           {/* Actions */}
           {!isEditing && (
             <div className="flex items-center gap-0.5 opacity-0 group-hover/node:opacity-100 transition-opacity">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={startEditing}
-              >
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={startEditing}>
                 <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
               </Button>
               {isCollection && (

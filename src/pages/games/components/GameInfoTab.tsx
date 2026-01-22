@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { useUpdateGame } from '@/hooks/queries'
 import {
   gameStatusLabels,
@@ -183,13 +183,11 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
+          <Label>Description</Label>
+          <RichTextEditor
             placeholder="Game description..."
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="min-h-24"
+            onChange={(value) => setFormData({ ...formData, description: value })}
           />
         </div>
 

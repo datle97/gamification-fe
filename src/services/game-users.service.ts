@@ -131,6 +131,7 @@ export interface GrantTurnsResult {
 
 export type ActivityType =
   | 'game_play'
+  | 'game_share'
   | 'turn_earn'
   | 'turn_spend'
   | 'turn_expire'
@@ -162,8 +163,9 @@ export interface UserActivity {
     sessionId?: string
     requestId?: string
     shareId?: string
-    sharedBy?: string
-    recipientPhone?: string
+    shareType?: string
+    toPhone?: string
+    fromUserId?: string
     currentValue?: number
     appId?: string
     source?: ActivitySource

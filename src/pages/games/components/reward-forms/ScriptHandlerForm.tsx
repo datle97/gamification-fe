@@ -1,11 +1,5 @@
-import { MonacoScriptEditorLoading } from '@/components/common/monaco-script-editor'
+import { MonacoScriptEditor } from '@/components/common/lazy-monaco-script-editor'
 import { Label } from '@/components/ui/label'
-import { Suspense, lazy } from 'react'
-
-// Lazy load MonacoScriptEditor
-const MonacoScriptEditor = lazy(() =>
-  import('@/components/common/monaco-script-editor').then((m) => ({ default: m.MonacoScriptEditor }))
-)
 
 interface ScriptHandlerFormProps {
   config: string
@@ -94,9 +88,7 @@ export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) 
         <Label htmlFor="script">
           JavaScript Code <span className="text-destructive">*</span>
         </Label>
-        <Suspense fallback={<MonacoScriptEditorLoading height="400px" />}>
-          <MonacoScriptEditor value={currentScript} onChange={updateScript} height="400px" />
-        </Suspense>
+        <MonacoScriptEditor value={currentScript} onChange={updateScript} height="400px" />
         <p className="text-xs text-muted-foreground">
           Global variables: <code className="px-1 bg-muted rounded">$context</code>,{' '}
           <code className="px-1 bg-muted rounded">$services</code>,{' '}
