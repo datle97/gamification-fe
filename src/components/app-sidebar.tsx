@@ -1,6 +1,3 @@
-import { Gamepad2, LayoutDashboard, LayoutGrid, Link2, Settings } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router'
-
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +11,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { Gamepad2, LayoutDashboard, LayoutGrid, Link2, Settings } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -37,7 +36,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Gamification</span>
-                  <span className="truncate text-xs">Admin Panel</span>
+                  <span className="truncate text-xs">Management</span>
                 </div>
               </NavLink>
             </SidebarMenuButton>
