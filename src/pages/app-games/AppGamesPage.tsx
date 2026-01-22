@@ -247,7 +247,7 @@ export function AppGamesPage() {
                           {selectedLink.game.startAt
                             ? dayjs(selectedLink.game.startAt).format('MMMM D, YYYY')
                             : 'No start'}
-                          {' → '}
+                          {' - '}
                           {selectedLink.game.endAt
                             ? dayjs(selectedLink.game.endAt).format('MMMM D, YYYY')
                             : 'No end'}

@@ -18,7 +18,7 @@ export function DateRangeCell({ startAt, endAt, showTime }: DateRangeCellProps) 
   return (
     <div className="text-sm text-muted-foreground">
       {startAt ? dayjs(startAt).format(format) : '∞'}
-      {' → '}
+      {' - '}
       {endAt ? dayjs(endAt).format(format) : '∞'}
     </div>
   )

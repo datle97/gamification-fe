@@ -121,7 +121,7 @@ export function EditableDateRangeCell({
     return (
       <>
         {startAt ? dayjs(startAt).format(format) : '∞'}
-        {' → '}
+        {' - '}
         {endAt ? dayjs(endAt).format(format) : '∞'}
       </>
     )

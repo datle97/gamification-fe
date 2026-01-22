@@ -23,7 +23,7 @@ export function DateRangePicker({
   placeholder = 'Pick a date range',
   className,
   numberOfMonths = 2,
-  showTime = false,
+  showTime = true,
 }: DateRangePickerProps) {
   const handleRangeSelect = (range: DateRange | undefined) => {
     if (!range) {
