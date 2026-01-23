@@ -1,13 +1,14 @@
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Dialog,
-  DialogContent,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+  UnsavedChangesDialog,
+  UnsavedChangesDialogContent,
+} from '@/components/common/unsaved-changes-dialog'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -40,13 +41,27 @@ export function ProbabilityManagerDialog({
   const [probabilities, setProbabilities] = useState<Map<string, number>>(
     new Map(rewards.map((r) => [r.rewardId, r.probability]))
   )
+  const [initialProbabilities, setInitialProbabilities] = useState<Map<string, number>>(
+    new Map(rewards.map((r) => [r.rewardId, r.probability]))
+  )
   const [targetTotal, setTargetTotal] = useState<string>('100')
   const [distributeMode, setDistributeMode] = useState<DistributeMode>('proportional')
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Track unsaved changes
+  const isDirty = useMemo(() => {
+    if (probabilities.size !== initialProbabilities.size) return true
+    for (const [id, prob] of probabilities) {
+      if (initialProbabilities.get(id) !== prob) return true
+    }
+    return false
+  }, [probabilities, initialProbabilities])
+
   // Reset state to current reward values
   const resetState = () => {
-    setProbabilities(new Map(rewards.map((r) => [r.rewardId, r.probability])))
+    const initialMap = new Map(rewards.map((r) => [r.rewardId, r.probability]))
+    setProbabilities(initialMap)
+    setInitialProbabilities(initialMap)
     setSelectedIds(new Set())
     setTargetTotal('100')
     setDistributeMode('proportional')
@@ -172,14 +187,11 @@ export function ProbabilityManagerDialog({
     onOpenChange(false)
   }
 
-  const handleCancel = () => {
-    resetState()
-    onOpenChange(false)
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl! max-h-[85vh] flex flex-col top-[5%] translate-y-0">
+    <UnsavedChangesDialog open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
+      <UnsavedChangesDialogContent
+        className="max-w-7xl! max-h-[85vh] flex flex-col top-[5%] translate-y-0"
+      >
         <DialogHeader>
           <DialogTitle>Manage Probabilities</DialogTitle>
           <DialogDescription>
@@ -359,12 +371,12 @@ export function ProbabilityManagerDialog({
         </div>
 
         <DialogFooter className="px-6 pb-6 pt-4 border-t">
-          <Button variant="outline" onClick={handleCancel}>
-            Cancel
-          </Button>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
           <Button onClick={handleApply}>Apply Changes</Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </UnsavedChangesDialogContent>
+    </UnsavedChangesDialog>
   )
 }

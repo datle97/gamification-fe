@@ -1,18 +1,20 @@
+import {
+  SheetClose,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  UnsavedChangesSheet,
+  UnsavedChangesSheetContent,
+} from '@/components/common/unsaved-changes-sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import { useApps, useCreateApp, useUpdateApp } from '@/hooks/queries'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { App, CreateAppInput } from '@/schemas/app.schema'
 import { Loader2, Plus } from 'lucide-react'
@@ -44,6 +46,13 @@ export function AppsPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetMode, setSheetMode] = useState<SheetMode>('create')
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
+
+  // Track unsaved changes
+  const { isDirty } = useUnsavedChanges({
+    data: formData,
+    initialData: sheetOpen ? sheetInitialData : undefined,
+  })
 
   const handleUpdate = useCallback(
     async (row: App, field: keyof App, value: string | number | boolean | null) => {
@@ -56,12 +65,14 @@ export function AppsPage() {
   )
 
   const handleOpenEdit = useCallback((app: App) => {
-    setFormData({
+    const editFormData: FormData = {
       appId: app.appId,
       name: app.name,
       portalId: app.portalId,
       config: JSON.stringify(app.config ?? {}, null, 2),
-    })
+    }
+    setFormData(editFormData)
+    setSheetInitialData(editFormData)
     setSheetMode('edit')
     setSheetOpen(true)
   }, [])
@@ -91,6 +102,7 @@ export function AppsPage() {
 
   const handleOpenCreate = () => {
     setFormData(initialFormData)
+    setSheetInitialData(initialFormData)
     setSheetMode('create')
     setSheetOpen(true)
   }
@@ -169,8 +181,12 @@ export function AppsPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={sheetOpen} onOpenChange={(open) => !open && handleClose()}>
-        <SheetContent className="sm:max-w-lg">
+      <UnsavedChangesSheet
+        open={sheetOpen}
+        onOpenChange={(open) => !open && handleClose()}
+        isDirty={isDirty}
+      >
+        <UnsavedChangesSheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>{isEditing ? 'Edit App' : 'Create App'}</SheetTitle>
             <SheetDescription>
@@ -227,16 +243,16 @@ export function AppsPage() {
             </div>
           </div>
           <SheetFooter>
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
             <Button onClick={handleSave} disabled={!formData.appId || !formData.name || isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isEditing ? 'Save Changes' : 'Create App'}
             </Button>
           </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </UnsavedChangesSheetContent>
+      </UnsavedChangesSheet>
     </div>
   )
 }

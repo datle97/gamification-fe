@@ -1,16 +1,17 @@
 import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import { ExpirationEditor } from '@/components/common/ExpirationEditor'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/data-table'
 import {
-  Dialog,
-  DialogContent,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
+  UnsavedChangesDialog,
+  UnsavedChangesDialogContent,
+} from '@/components/common/unsaved-changes-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   useBatchUpdateRewards,
@@ -19,6 +20,7 @@ import {
   useRewardsByGame,
   useUpdateReward,
 } from '@/hooks/queries'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { ExpirationConfig, RewardConfig } from '@/schemas/reward.schema'
 import {
@@ -97,8 +99,15 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const [dialogMode, setDialogMode] = useState<DialogMode>('closed')
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [dialogInitialData, setDialogInitialData] = useState<FormData>(initialFormData)
   const [activeTab, setActiveTab] = useState('basic')
   const [probabilityDialogOpen, setProbabilityDialogOpen] = useState(false)
+
+  // Track unsaved changes
+  const { isDirty } = useUnsavedChanges({
+    data: formData,
+    initialData: dialogMode !== 'closed' ? dialogInitialData : undefined,
+  })
 
   const handleInlineUpdate = useCallback(
     async (reward: Reward, field: string, value: unknown) => {
@@ -149,13 +158,14 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
     setDialogMode('create')
     setSelectedReward(null)
     setFormData(initialFormData)
+    setDialogInitialData(initialFormData)
     setActiveTab('basic')
   }
 
   const handleRowClick = (reward: Reward) => {
     setDialogMode('edit')
     setSelectedReward(reward)
-    setFormData({
+    const editFormData: FormData = {
       name: reward.name,
       description: reward.description || '',
       imageUrl: reward.imageUrl || '',
@@ -171,7 +181,9 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       shareConfig: reward.shareConfig ? JSON.stringify(reward.shareConfig, null, 2) : '',
       expirationConfig: reward.expirationConfig || null,
       metadata: reward.metadata ? JSON.stringify(reward.metadata, null, 2) : '',
-    })
+    }
+    setFormData(editFormData)
+    setDialogInitialData(editFormData)
     setActiveTab('basic')
   }
 
@@ -291,8 +303,14 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0">
+      <UnsavedChangesDialog
+        open={dialogMode !== 'closed'}
+        onOpenChange={(open) => !open && handleClose()}
+        isDirty={isDirty}
+      >
+        <UnsavedChangesDialogContent
+          className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0"
+        >
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>
               {isCreate ? 'Create Reward' : `Edit: ${selectedReward?.name}`}
@@ -417,9 +435,9 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                 Delete
               </Button>
             )}
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
             <Button
               onClick={handleSave}
               disabled={!formData.name || !formData.handlerType || isPending}
@@ -428,8 +446,8 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
               {isCreate ? 'Create Reward' : 'Save Changes'}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </UnsavedChangesDialogContent>
+      </UnsavedChangesDialog>
 
       <ProbabilityManagerDialog
         open={probabilityDialogOpen}

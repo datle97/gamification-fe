@@ -1,6 +1,16 @@
 import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
+import {
+  SheetClose,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  UnsavedChangesSheet,
+  UnsavedChangesSheetContent,
+} from '@/components/common/unsaved-changes-sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable } from '@/components/ui/data-table'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
@@ -13,21 +23,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
   useCreateGame,
   useGames,
   useImportGame,
   usePreviewImport,
   useUpdateGame,
 } from '@/hooks/queries'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { GameExport } from '@/lib/game-export'
 import {
@@ -90,7 +92,9 @@ function ActionBadge({
   const sizeClass = size === 'sm' ? 'px-1 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-xs'
 
   if (action === 'create') {
-    return <span className={`${sizeClass} rounded bg-primary/10 text-primary font-medium`}>NEW</span>
+    return (
+      <span className={`${sizeClass} rounded bg-primary/10 text-primary font-medium`}>NEW</span>
+    )
   }
   if (action === 'update') {
     return (
@@ -116,6 +120,7 @@ export function GamesPage() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
 
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -128,6 +133,15 @@ export function GamesPage() {
     rewards: true,
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Track unsaved changes for create sheet
+  const { isDirty: isCreateDirty } = useUnsavedChanges({
+    data: formData,
+    initialData: sheetOpen ? sheetInitialData : undefined,
+  })
+
+  // Track unsaved changes for import sheet (dirty if file is selected)
+  const isImportDirty = importData !== null
 
   const handleUpdateStatus = useCallback(
     async (row: Game, status: GameStatus) => {
@@ -238,6 +252,7 @@ export function GamesPage() {
 
   const handleOpenCreate = () => {
     setFormData(initialFormData)
+    setSheetInitialData(initialFormData)
     setSheetOpen(true)
   }
 
@@ -295,8 +310,12 @@ export function GamesPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={sheetOpen} onOpenChange={(open) => !open && handleClose()}>
-        <SheetContent className="sm:max-w-lg">
+      <UnsavedChangesSheet
+        open={sheetOpen}
+        onOpenChange={(open) => !open && handleClose()}
+        isDirty={isCreateDirty}
+      >
+        <UnsavedChangesSheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Create Game</SheetTitle>
             <SheetDescription>
@@ -418,9 +437,9 @@ export function GamesPage() {
             </div>
           </div>
           <SheetFooter>
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
             <Button
               onClick={handleSave}
               disabled={!formData.code || !formData.name || createGame.isPending}
@@ -429,12 +448,16 @@ export function GamesPage() {
               Create Game
             </Button>
           </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </UnsavedChangesSheetContent>
+      </UnsavedChangesSheet>
 
       {/* Import Dialog */}
-      <Sheet open={importDialogOpen} onOpenChange={(open) => !open && handleCloseImport()}>
-        <SheetContent className="sm:max-w-xl">
+      <UnsavedChangesSheet
+        open={importDialogOpen}
+        onOpenChange={(open) => !open && handleCloseImport()}
+        isDirty={isImportDirty}
+      >
+        <UnsavedChangesSheetContent className="sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>Import Game</SheetTitle>
             <SheetDescription>
@@ -619,9 +642,9 @@ export function GamesPage() {
             )}
           </div>
           <SheetFooter>
-            <Button variant="outline" onClick={handleCloseImport}>
-              Cancel
-            </Button>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
             <Button
               onClick={handleImport}
               disabled={
@@ -635,8 +658,8 @@ export function GamesPage() {
               Import Selected
             </Button>
           </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </UnsavedChangesSheetContent>
+      </UnsavedChangesSheet>
     </div>
   )
 }

@@ -1,5 +1,14 @@
 import { ExpirationEditor } from '@/components/common/ExpirationEditor'
 import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
+import {
+  SheetClose,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  UnsavedChangesSheet,
+  UnsavedChangesSheetContent,
+} from '@/components/common/unsaved-changes-sheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,14 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import {
   useCreateMission,
@@ -30,6 +31,7 @@ import {
   useMissionsByGame,
   useUpdateMission,
 } from '@/hooks/queries'
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import {
   missionPeriodLabels,
@@ -180,6 +182,13 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   const [sheetMode, setSheetMode] = useState<SheetMode>('closed')
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+  const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
+
+  // Track unsaved changes
+  const { isDirty } = useUnsavedChanges({
+    data: formData,
+    initialData: sheetMode !== 'closed' ? sheetInitialData : undefined,
+  })
 
   const handleInlineUpdate = useCallback(
     async (mission: Mission, field: string, value: unknown) => {
@@ -215,12 +224,13 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
     setSheetMode('create')
     setSelectedMission(null)
     setFormData(initialFormData)
+    setSheetInitialData(initialFormData)
   }
 
   const handleRowClick = (mission: Mission) => {
     setSheetMode('edit')
     setSelectedMission(mission)
-    setFormData({
+    const editFormData: FormData = {
       code: mission.code,
       name: mission.name,
       description: mission.description || '',
@@ -239,7 +249,9 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
       allowFeTrigger: mission.allowFeTrigger ?? true,
       conditions: mission.conditions ? JSON.stringify(mission.conditions, null, 2) : '',
       rewardExpirationConfig: mission.rewardExpirationConfig || null,
-    })
+    }
+    setFormData(editFormData)
+    setSheetInitialData(editFormData)
   }
 
   const handleClose = () => {
@@ -346,8 +358,12 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
         />
       </CardContent>
 
-      <Sheet open={sheetMode !== 'closed'} onOpenChange={(open) => !open && handleClose()}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
+      <UnsavedChangesSheet
+        open={sheetMode !== 'closed'}
+        onOpenChange={(open) => !open && handleClose()}
+        isDirty={isDirty}
+      >
+        <UnsavedChangesSheetContent className="sm:max-w-xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{isCreate ? 'Create Mission' : 'Edit Mission'}</SheetTitle>
             <SheetDescription>
@@ -690,16 +706,16 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                 Delete
               </Button>
             )}
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
             <Button onClick={handleSave} disabled={!formData.code || !formData.name || isPending}>
               {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {isCreate ? 'Create Mission' : 'Save changes'}
             </Button>
           </SheetFooter>
-        </SheetContent>
-      </Sheet>
+        </UnsavedChangesSheetContent>
+      </UnsavedChangesSheet>
     </Card>
   )
 }
