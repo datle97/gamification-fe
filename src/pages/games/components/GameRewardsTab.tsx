@@ -1,4 +1,5 @@
 import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
+import { ExpirationEditor } from '@/components/common/ExpirationEditor'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -19,6 +20,7 @@ import {
   useUpdateReward,
 } from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
+import type { ExpirationConfig } from '@/schemas/reward.schema'
 import {
   handlerTypeLabels,
   rewardCategoryLabels,
@@ -34,7 +36,6 @@ import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { BasicTab } from './reward-tabs/BasicTab'
 import { ConditionsTab } from './reward-tabs/ConditionsTab'
-import { ExpirationTab } from './reward-tabs/ExpirationTab'
 import { HandlerConfigTab } from './reward-tabs/HandlerConfigTab'
 import { SharingTab } from './reward-tabs/SharingTab'
 import { RewardsDistributionCard } from './RewardsDistributionCard'
@@ -59,7 +60,7 @@ interface FormData {
   config: string
   conditions: string
   shareConfig: string
-  expirationConfig: string
+  expirationConfig: ExpirationConfig | null
   metadata: string
 }
 
@@ -77,7 +78,7 @@ const initialFormData: FormData = {
   config: '{"type": "system"}',
   conditions: '',
   shareConfig: '',
-  expirationConfig: '',
+  expirationConfig: null,
   metadata: '',
 }
 
@@ -168,9 +169,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       config: reward.config ? JSON.stringify(reward.config, null, 2) : '{"type": "system"}',
       conditions: reward.conditions ? JSON.stringify(reward.conditions, null, 2) : '',
       shareConfig: reward.shareConfig ? JSON.stringify(reward.shareConfig, null, 2) : '',
-      expirationConfig: reward.expirationConfig
-        ? JSON.stringify(reward.expirationConfig, null, 2)
-        : '',
+      expirationConfig: reward.expirationConfig || null,
       metadata: reward.metadata ? JSON.stringify(reward.metadata, null, 2) : '',
     })
     setActiveTab('basic')
@@ -210,7 +209,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       config: parseJsonField(formData.config) || { type: 'system' },
       conditions: parseJsonField(formData.conditions),
       shareConfig: parseJsonField(formData.shareConfig),
-      expirationConfig: parseJsonField(formData.expirationConfig),
+      expirationConfig: formData.expirationConfig,
       metadata: parseJsonField(formData.metadata),
     }
 
@@ -354,9 +353,10 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
               </TabsContent>
 
               <TabsContent value="expiration" className="mt-0">
-                <ExpirationTab
-                  expirationConfig={formData.expirationConfig}
+                <ExpirationEditor
+                  value={formData.expirationConfig}
                   onChange={(exp) => setFormData({ ...formData, expirationConfig: exp })}
+                  itemLabel="rewards"
                 />
               </TabsContent>
 
@@ -389,8 +389,25 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                   config={formData.config}
                   conditions={formData.conditions}
                   shareConfig={formData.shareConfig}
-                  expirationConfig={formData.expirationConfig}
-                  onChange={(field, value) => setFormData({ ...formData, [field]: value })}
+                  expirationConfig={
+                    formData.expirationConfig
+                      ? JSON.stringify(formData.expirationConfig, null, 2)
+                      : ''
+                  }
+                  onChange={(field, value) => {
+                    if (field === 'expirationConfig') {
+                      try {
+                        setFormData({
+                          ...formData,
+                          expirationConfig: value ? JSON.parse(value) : null,
+                        })
+                      } catch {
+                        // Invalid JSON, ignore
+                      }
+                    } else {
+                      setFormData({ ...formData, [field]: value })
+                    }
+                  }}
                 />
               </TabsContent>
             </div>

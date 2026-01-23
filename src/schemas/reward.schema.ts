@@ -48,14 +48,13 @@ export const handlerTypeLabels: Record<HandlerType, string> = {
   journey: 'Journey',
 }
 
-// Expiration config
+// Expiration config (matches backend ExpirationConfig type)
 export const expirationConfigSchema = z
   .object({
     mode: z.enum(['permanent', 'ttl', 'fixed', 'anchor']),
-    ttlDays: z.number().optional(),
-    fixedDate: z.string().optional(),
-    anchorPeriod: z.string().optional(),
-    anchorOffset: z.number().optional(),
+    value: z.number().optional(),
+    unit: z.enum(['second', 'minute', 'hour', 'day', 'week', 'month', 'year']).optional(),
+    date: z.string().optional(),
   })
   .optional()
   .nullable()

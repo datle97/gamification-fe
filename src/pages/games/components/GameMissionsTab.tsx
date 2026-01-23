@@ -1,6 +1,9 @@
+import { ExpirationEditor } from '@/components/common/ExpirationEditor'
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Combobox } from '@/components/ui/combobox'
 import { DataTable } from '@/components/ui/data-table'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { Input } from '@/components/ui/input'
@@ -21,7 +24,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
-import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import {
   useCreateMission,
   useDeleteMission,
@@ -33,32 +35,20 @@ import {
   missionPeriodLabels,
   missionRewardTypeLabels,
   missionTypeLabels,
+  predefinedTriggerEvents,
   triggerEventLabels,
   type CreateMissionInput,
   type Mission,
   type MissionPeriod,
   type MissionRewardType,
   type MissionType,
-  type TriggerEvent,
 } from '@/schemas/mission.schema'
+import type { ExpirationConfig } from '@/schemas/reward.schema'
 import dayjs from 'dayjs'
 import { Loader2, Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
 const missionTypes: MissionType[] = ['single', 'count', 'streak', 'cumulative']
-const triggerEvents: TriggerEvent[] = [
-  'user:login',
-  'zma:checkin',
-  'game:play',
-  'game:share',
-  'share:reward',
-  'share:position',
-  'bill:payment',
-  'booking:create',
-  'coupon:redeem',
-  'tier:upgrade',
-  'points:earn',
-]
 const missionPeriods: MissionPeriod[] = [
   'daily',
   'weekly',
@@ -70,6 +60,67 @@ const missionPeriods: MissionPeriod[] = [
 ]
 const rewardTypes: MissionRewardType[] = ['turns', 'score']
 
+// Trigger event options for combobox
+const triggerEventOptions = predefinedTriggerEvents.map((event) => ({
+  value: event,
+  label: triggerEventLabels[event],
+  description: event,
+}))
+
+// Combined tracking description based on period + type
+const getTrackingDescription = (period: MissionPeriod, type: MissionType): string => {
+  const periodText = period === 'all_time' ? 'lifetime' : missionPeriodLabels[period].toLowerCase()
+
+  switch (type) {
+    case 'single':
+      return `Complete once${period === 'all_time' ? ' ever' : ` per ${periodText}`}`
+    case 'count':
+      return `Count different days${period === 'all_time' ? ' (not consecutive)' : `, resets ${periodText}`}`
+    case 'streak':
+      return `Complete on consecutive days${period === 'all_time' ? '' : `, resets ${periodText}`}`
+    case 'cumulative':
+      return `Accumulate value${period === 'all_time' ? ' over lifetime' : `, resets ${periodText}`}`
+    default:
+      return ''
+  }
+}
+
+// Dynamic labels based on mission type
+const getTargetValueConfig = (missionType: MissionType) => {
+  switch (missionType) {
+    case 'single':
+      return {
+        label: 'Target',
+        hint: 'User completes the action once to finish',
+        hidden: true, // Always 1 for single type
+      }
+    case 'count':
+      return {
+        label: 'Days Required',
+        hint: 'User must complete the action on X different days (not consecutive)',
+        hidden: false,
+      }
+    case 'streak':
+      return {
+        label: 'Streak Goal',
+        hint: 'User must complete the action on X CONSECUTIVE days',
+        hidden: false,
+      }
+    case 'cumulative':
+      return {
+        label: 'Target Value',
+        hint: 'Total points/value to accumulate',
+        hidden: false,
+      }
+    default:
+      return {
+        label: 'Target Value',
+        hint: '',
+        hidden: false,
+      }
+  }
+}
+
 const columnHelper = createColumnHelper<Mission>()
 
 type SheetMode = 'closed' | 'create' | 'edit'
@@ -79,7 +130,7 @@ interface FormData {
   name: string
   description: string
   imageUrl: string
-  triggerEvent: TriggerEvent
+  triggerEvent: string
   missionType: MissionType
   missionPeriod: MissionPeriod
   targetValue: number
@@ -92,7 +143,7 @@ interface FormData {
   isActive: boolean
   allowFeTrigger: boolean
   conditions: string
-  rewardExpirationConfig: string
+  rewardExpirationConfig: ExpirationConfig | null
 }
 
 const initialFormData: FormData = {
@@ -113,7 +164,7 @@ const initialFormData: FormData = {
   isActive: true,
   allowFeTrigger: true,
   conditions: '',
-  rewardExpirationConfig: '',
+  rewardExpirationConfig: null,
 }
 
 interface GameMissionsTabProps {
@@ -187,9 +238,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
       isActive: mission.isActive ?? true,
       allowFeTrigger: mission.allowFeTrigger ?? true,
       conditions: mission.conditions ? JSON.stringify(mission.conditions, null, 2) : '',
-      rewardExpirationConfig: mission.rewardExpirationConfig
-        ? JSON.stringify(mission.rewardExpirationConfig, null, 2)
-        : '',
+      rewardExpirationConfig: mission.rewardExpirationConfig || null,
     })
   }
 
@@ -212,7 +261,6 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
     if (!formData.code || !formData.name) return
 
     const conditions = parseJsonField(formData.conditions)
-    const rewardExpirationConfig = parseJsonField(formData.rewardExpirationConfig)
 
     if (sheetMode === 'create') {
       await createMission.mutateAsync({
@@ -233,7 +281,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
         isActive: formData.isActive,
         allowFeTrigger: formData.allowFeTrigger,
         conditions,
-        rewardExpirationConfig,
+        rewardExpirationConfig: formData.rewardExpirationConfig,
         gameId,
       } as CreateMissionInput)
     } else if (sheetMode === 'edit' && selectedMission) {
@@ -257,7 +305,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
           isActive: formData.isActive,
           allowFeTrigger: formData.allowFeTrigger,
           conditions,
-          rewardExpirationConfig,
+          rewardExpirationConfig: formData.rewardExpirationConfig,
         },
       })
     }
@@ -339,6 +387,15 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                 </div>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="imageUrl">Image URL</Label>
+                <Input
+                  id="imageUrl"
+                  placeholder="https://..."
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>Description</Label>
                 <RichTextEditor
                   placeholder="Mission description..."
@@ -348,35 +405,59 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
               </div>
             </div>
 
-            {/* Trigger & Type */}
+            {/* Trigger */}
             <div className="space-y-4 pt-4 border-t">
-              <h4 className="text-sm font-medium text-muted-foreground">Trigger & Type</h4>
+              <h4 className="text-sm font-medium text-muted-foreground">Trigger</h4>
+              <div className="space-y-2">
+                <Label>Trigger Event</Label>
+                <Combobox
+                  options={triggerEventOptions}
+                  value={formData.triggerEvent}
+                  onChange={(value) => setFormData({ ...formData, triggerEvent: value })}
+                  placeholder="Select or type trigger event..."
+                  searchPlaceholder="Search events..."
+                  allowCustom
+                  renderOption={(option) => (
+                    <div className="flex items-center gap-2">
+                      <span>{option.label}</span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        ({option.value})
+                      </span>
+                    </div>
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  What action triggers progress for this mission
+                </p>
+              </div>
+            </div>
+
+            {/* Tracking */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground">Tracking</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Trigger Event</Label>
+                  <Label>Period</Label>
                   <Select
-                    value={formData.triggerEvent}
+                    value={formData.missionPeriod}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, triggerEvent: value as TriggerEvent })
+                      setFormData({ ...formData, missionPeriod: value as MissionPeriod })
                     }
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {triggerEvents.map((event) => (
-                        <SelectItem key={event} value={event}>
-                          {triggerEventLabels[event]}
-                          <span className="ml-2 text-xs text-muted-foreground font-mono">
-                            ({event})
-                          </span>
+                      {missionPeriods.map((period) => (
+                        <SelectItem key={period} value={period}>
+                          {missionPeriodLabels[period]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Mission Type</Label>
+                  <Label>Type</Label>
                   <Select
                     value={formData.missionType}
                     onValueChange={(value) =>
@@ -396,47 +477,39 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Mission Period</Label>
-                <Select
-                  value={formData.missionPeriod}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, missionPeriod: value as MissionPeriod })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {missionPeriods.map((period) => (
-                      <SelectItem key={period} value={period}>
-                        {missionPeriodLabels[period]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                {getTrackingDescription(formData.missionPeriod, formData.missionType)}
+              </p>
             </div>
 
             {/* Completion */}
             <div className="space-y-4 pt-4 border-t">
               <h4 className="text-sm font-medium text-muted-foreground">Completion</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="targetValue">Target Value</Label>
-                  <Input
-                    id="targetValue"
-                    type="number"
-                    min={1}
-                    value={formData.targetValue}
-                    onChange={(e) =>
-                      setFormData({ ...formData, targetValue: parseInt(e.target.value) || 1 })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    How many times to complete the action
-                  </p>
-                </div>
+              <div
+                className={`grid grid-cols-${formData.missionType === 'single' ? '1' : '2'} gap-4`}
+              >
+                {/* Target Value - hidden for single type */}
+                {formData.missionType !== 'single' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="targetValue">
+                      {getTargetValueConfig(formData.missionType).label}
+                    </Label>
+                    <Input
+                      id="targetValue"
+                      type="number"
+                      min={1}
+                      value={formData.targetValue}
+                      onChange={(e) =>
+                        setFormData({ ...formData, targetValue: parseInt(e.target.value) || 1 })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {getTargetValueConfig(formData.missionType).hint}
+                    </p>
+                  </div>
+                )}
+
+                {/* Max Completions */}
                 <div className="space-y-2">
                   <Label htmlFor="maxCompletions">Max Completions</Label>
                   <Input
@@ -452,7 +525,13 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                       })
                     }
                   />
-                  <p className="text-xs text-muted-foreground">Leave empty for unlimited</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.maxCompletions === null
+                      ? `Unlimited completions per ${formData.missionPeriod === 'all_time' ? 'lifetime' : missionPeriodLabels[formData.missionPeriod].toLowerCase()}`
+                      : formData.maxCompletions === 1
+                        ? `Can only complete once ${formData.missionPeriod === 'all_time' ? 'ever' : 'per ' + missionPeriodLabels[formData.missionPeriod].toLowerCase()}`
+                        : `Can complete ${formData.maxCompletions} times per ${formData.missionPeriod === 'all_time' ? 'lifetime' : missionPeriodLabels[formData.missionPeriod].toLowerCase()}`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -494,6 +573,21 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                   />
                 </div>
               </div>
+              {formData.rewardType === 'turns' && (
+                <div className="space-y-2">
+                  <Label>Turns Expiration</Label>
+                  <div className="border rounded-lg p-4 bg-muted/20">
+                    <ExpirationEditor
+                      value={formData.rewardExpirationConfig}
+                      onChange={(config) =>
+                        setFormData({ ...formData, rewardExpirationConfig: config })
+                      }
+                      itemLabel="turns"
+                      description="Configure when turns expire after being granted."
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Schedule */}
@@ -521,27 +615,16 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
             {/* Settings */}
             <div className="space-y-4 pt-4 border-t">
               <h4 className="text-sm font-medium text-muted-foreground">Settings</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="displayOrder">Display Order</Label>
-                  <Input
-                    id="displayOrder"
-                    type="number"
-                    value={formData.displayOrder}
-                    onChange={(e) =>
-                      setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Image URL</Label>
-                  <Input
-                    id="imageUrl"
-                    placeholder="https://..."
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="displayOrder">Display Order</Label>
+                <Input
+                  id="displayOrder"
+                  type="number"
+                  value={formData.displayOrder}
+                  onChange={(e) =>
+                    setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })
+                  }
+                />
               </div>
               <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-2">
@@ -583,21 +666,6 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
                 />
                 <p className="text-xs text-muted-foreground">
                   Optional conditions for mission eligibility
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rewardExpirationConfig">Reward Expiration Config (JSON)</Label>
-                <Textarea
-                  id="rewardExpirationConfig"
-                  placeholder='{"mode": "ttl", "ttlDays": 30}'
-                  value={formData.rewardExpirationConfig}
-                  onChange={(e) =>
-                    setFormData({ ...formData, rewardExpirationConfig: e.target.value })
-                  }
-                  className="min-h-20 font-mono text-sm"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Expiration settings for mission rewards (turns/score)
                 </p>
               </div>
             </div>

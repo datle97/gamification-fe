@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 // Enums
 export const missionTypeEnum = z.enum(['single', 'count', 'streak', 'cumulative'])
-export const triggerEventEnum = z.enum([
+// Predefined trigger events (for UI suggestions)
+export const predefinedTriggerEvents = [
   'user:login',
   'zma:checkin',
   'game:play',
@@ -14,7 +15,9 @@ export const triggerEventEnum = z.enum([
   'coupon:redeem',
   'tier:upgrade',
   'points:earn',
-])
+] as const
+
+export const triggerEventEnum = z.enum(predefinedTriggerEvents)
 export const missionPeriodEnum = z.enum([
   'daily',
   'weekly',
@@ -71,16 +74,16 @@ export const triggerEventLabels: Record<TriggerEvent, string> = {
 // Mission conditions (optional JSONB field)
 export const missionConditionsSchema = z.record(z.string(), z.any()).optional()
 
-// Expiration config
+// Expiration config (matches backend ExpirationConfig type)
 export const expirationConfigSchema = z
   .object({
     mode: z.enum(['permanent', 'ttl', 'fixed', 'anchor']),
-    ttlDays: z.number().optional(),
-    fixedDate: z.string().optional(),
-    anchorPeriod: z.string().optional(),
-    anchorOffset: z.number().optional(),
+    value: z.number().optional(),
+    unit: z.enum(['second', 'minute', 'hour', 'day', 'week', 'month', 'year']).optional(),
+    date: z.string().optional(),
   })
   .optional()
+  .nullable()
 
 // Mission schema
 export const missionSchema = z.object({
@@ -95,7 +98,7 @@ export const missionSchema = z.object({
   description: z.string().max(500).optional(),
   imageUrl: z.string().url().optional().or(z.literal('')),
   displayOrder: z.number().default(0),
-  triggerEvent: triggerEventEnum,
+  triggerEvent: z.string().min(1, 'Trigger event is required'),
   missionType: missionTypeEnum,
   missionPeriod: missionPeriodEnum,
   targetValue: z.number().min(1).default(1),

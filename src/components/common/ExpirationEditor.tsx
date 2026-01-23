@@ -11,41 +11,33 @@ import {
 import type { ExpirationConfig, ExpirationUnit } from '@/schemas/reward.schema'
 import dayjs from 'dayjs'
 
-interface ExpirationTabProps {
-  expirationConfig: string
-  onChange: (expirationConfig: string) => void
+interface ExpirationEditorProps {
+  value: ExpirationConfig | null
+  onChange: (value: ExpirationConfig | null) => void
+  description?: string
+  /** Label for what expires (e.g., "rewards", "turns", "items") */
+  itemLabel?: string
 }
 
-export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps) {
-  const getExpirationConfig = (): ExpirationConfig | null => {
-    try {
-      return expirationConfig ? JSON.parse(expirationConfig) : null
-    } catch {
-      return null
-    }
-  }
+export function ExpirationEditor({
+  value,
+  onChange,
+  description,
+  itemLabel = 'items',
+}: ExpirationEditorProps) {
+  const mode = value?.mode || 'permanent'
 
-  const updateExpirationConfig = (updates: Partial<ExpirationConfig> | null) => {
+  const updateConfig = (updates: Partial<ExpirationConfig> | null) => {
     if (!updates) {
-      onChange('')
+      onChange(null)
       return
     }
-
-    const current = getExpirationConfig()
-    const updated = { ...current, ...updates }
-
-    onChange(JSON.stringify(updated, null, 2))
+    onChange({ ...value, ...updates } as ExpirationConfig)
   }
-
-  const config = getExpirationConfig()
-  const mode = config?.mode || 'permanent'
 
   return (
     <div className="space-y-6">
-      <div className="text-sm text-muted-foreground">
-        Configure when rewards expire after being allocated to users. Leave as permanent for rewards
-        that never expire.
-      </div>
+      {description && <div className="text-sm text-muted-foreground">{description}</div>}
 
       {/* Mode Selector */}
       <div className="space-y-2">
@@ -54,11 +46,11 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
         </Label>
         <Select
           value={mode}
-          onValueChange={(value: 'permanent' | 'ttl' | 'fixed' | 'anchor') => {
-            if (value === 'permanent') {
-              updateExpirationConfig(null)
+          onValueChange={(val: 'permanent' | 'ttl' | 'fixed' | 'anchor') => {
+            if (val === 'permanent') {
+              updateConfig(null)
             } else {
-              updateExpirationConfig({ mode: value })
+              updateConfig({ mode: val })
             }
           }}
         >
@@ -73,11 +65,11 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          {mode === 'permanent' && 'Rewards never expire once allocated'}
-          {mode === 'ttl' && 'Rewards expire after a specified time period from allocation'}
-          {mode === 'fixed' && 'Rewards expire on a specific calendar date'}
+          {mode === 'permanent' && `${capitalize(itemLabel)} never expire once allocated`}
+          {mode === 'ttl' && `${capitalize(itemLabel)} expire after a specified time period`}
+          {mode === 'fixed' && `${capitalize(itemLabel)} expire on a specific calendar date`}
           {mode === 'anchor' &&
-            'Rewards expire at the end of the current period (e.g., end of month)'}
+            `${capitalize(itemLabel)} expire at the end of the current period (e.g., end of month)`}
         </p>
       </div>
 
@@ -98,13 +90,13 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                 type="number"
                 min={1}
                 placeholder="30"
-                value={config?.value ?? ''}
+                value={value?.value ?? ''}
                 onChange={(e) => {
-                  const value = e.target.value
-                  updateExpirationConfig({
+                  const val = e.target.value
+                  updateConfig({
                     mode: 'ttl',
-                    value: value ? parseInt(value) : undefined,
-                    unit: config?.unit || 'day',
+                    value: val ? parseInt(val) : undefined,
+                    unit: value?.unit || 'day',
                   })
                 }}
               />
@@ -114,12 +106,12 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                 Unit <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={config?.unit || 'day'}
-                onValueChange={(value: ExpirationUnit) => {
-                  updateExpirationConfig({
+                value={value?.unit || 'day'}
+                onValueChange={(val: ExpirationUnit) => {
+                  updateConfig({
                     mode: 'ttl',
-                    value: config?.value,
-                    unit: value,
+                    value: value?.value,
+                    unit: val,
                   })
                 }}
               >
@@ -139,8 +131,8 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Time period from allocation until the reward expires. Example: 30 days means reward
-            expires 30 days after user receives it.
+            Time period from allocation until expiration. Example: 30 days means expiration 30 days
+            after allocation.
           </p>
         </div>
       )}
@@ -154,9 +146,9 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
               Date & Time <span className="text-destructive">*</span>
             </Label>
             <DatePicker
-              value={config?.date ? dayjs(config.date).toDate() : undefined}
+              value={value?.date ? dayjs(value.date).toDate() : undefined}
               onChange={(date) => {
-                updateExpirationConfig({
+                updateConfig({
                   mode: 'fixed',
                   date: date ? dayjs(date).toISOString() : undefined,
                 })
@@ -166,7 +158,7 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            All rewards will expire on this specific date and time, regardless of when they were
+            All {itemLabel} will expire on this specific date and time, regardless of when they were
             allocated.
           </p>
         </div>
@@ -182,11 +174,11 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                 Period <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={config?.unit || 'month'}
-                onValueChange={(value: ExpirationUnit) => {
-                  updateExpirationConfig({
+                value={value?.unit || 'month'}
+                onValueChange={(val: ExpirationUnit) => {
+                  updateConfig({
                     mode: 'anchor',
-                    unit: value,
+                    unit: val,
                   })
                 }}
               >
@@ -201,14 +193,15 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Rewards expire at the end of the current period from allocation time.
+                {capitalize(itemLabel)} expire at the end of the current period from allocation
+                time.
               </p>
             </div>
 
-            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/20 p-4">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
-                <strong>Example:</strong> If period is "month" and reward is allocated on Jan 15, it
-                will expire on Jan 31 (end of current month).
+            <div className="rounded-lg border border-muted-foreground/20 bg-muted/50 p-4">
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Example:</strong> If period is "month" and
+                allocated on Jan 15, expiration will be Jan 31 (end of current month).
               </p>
             </div>
           </div>
@@ -217,13 +210,17 @@ export function ExpirationTab({ expirationConfig, onChange }: ExpirationTabProps
 
       {/* Info Note */}
       {mode === 'permanent' && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-950/20 p-4">
-          <p className="text-sm text-gray-900 dark:text-gray-200">
-            <strong>Note:</strong> Permanent rewards never expire and will remain in the user's
-            inventory indefinitely until manually removed or used.
+        <div className="rounded-lg border border-muted-foreground/20 bg-muted/50 p-4">
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">Note:</strong> Permanent {itemLabel} never expire
+            and will remain in the user's inventory indefinitely until manually removed or used.
           </p>
         </div>
       )}
     </div>
   )
+}
+
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
