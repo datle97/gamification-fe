@@ -2,6 +2,7 @@ import Editor, { Monaco, OnMount } from '@monaco-editor/react'
 import { useCallback, useEffect, useRef } from 'react'
 
 // Type definitions for script environment - will be added to Monaco
+// The script runs inside: return (async () => { <USER_CODE> })();
 const SCRIPT_ENV_TYPES = `
 interface HttpResponse<T = unknown> {
   data: T;
@@ -29,16 +30,40 @@ interface RabbitMQService {
   publish(queue: string, message: object): Promise<void>;
 }
 
+// Pino-style logger: logger.info({ context }, "message") or logger.info("message")
 interface Logger {
-  info(message: string, context?: object): void;
-  warn(message: string, context?: object): void;
-  error(message: string, context?: object): void;
-  debug(message: string, context?: object): void;
+  info(msg: string): void;
+  info(context: object, msg: string): void;
+  warn(msg: string): void;
+  warn(context: object, msg: string): void;
+  error(msg: string): void;
+  error(context: object, msg: string): void;
+  debug(msg: string): void;
+  debug(context: object, msg: string): void;
+  trace(msg: string): void;
+  trace(context: object, msg: string): void;
+  fatal(msg: string): void;
+  fatal(context: object, msg: string): void;
 }
 
 interface CryptoHelper {
   randomUUID(): string;
-  createHash(algorithm: string): object;
+  randomBytes(size: number): Buffer;
+  createHash(algorithm: string): {
+    update(data: string | Buffer): CryptoHelper['createHash'];
+    digest(encoding?: 'hex' | 'base64' | 'binary'): string;
+    digest(): Buffer;
+  };
+  createCipheriv(algorithm: string, key: Buffer | string, iv: Buffer | string): {
+    update(data: string | Buffer, inputEncoding?: BufferEncoding, outputEncoding?: BufferEncoding): string | Buffer;
+    final(outputEncoding?: BufferEncoding): string | Buffer;
+    setAutoPadding(autoPadding?: boolean): void;
+  };
+  createDecipheriv(algorithm: string, key: Buffer | string, iv: Buffer | string): {
+    update(data: string | Buffer, inputEncoding?: BufferEncoding, outputEncoding?: BufferEncoding): string | Buffer;
+    final(outputEncoding?: BufferEncoding): string | Buffer;
+    setAutoPadding(autoPadding?: boolean): void;
+  };
 }
 
 interface Reward {
@@ -78,7 +103,7 @@ interface ScriptHelpers {
   randomPercentage(): number;
   toLocalPhone(phone: string): string;
   toIntlPhone(phone: string): string;
-  calculateJourneyExpiry(timezone: string): Date;
+  calculateJourneyExpiry(expireType: string, expireValue: number, unit: string, timezone: string): Date;
   logger: Logger;
   crypto: CryptoHelper;
 }
@@ -89,13 +114,14 @@ interface ScriptConstants {
 
 interface RewardResultSuccess {
   success: true;
-  persistedTo?: 'vouchers' | 'rewards' | 'external';
+  persistedTo?: 'vouchers' | 'user_rewards';
   reward?: {
     rewardId: string;
-    name: string;
+    name?: string;
     rewardValue?: string;
     metadata?: Record<string, unknown>;
   };
+  score?: number;
 }
 
 interface RewardResultFailure {
@@ -107,10 +133,18 @@ interface RewardResultFailure {
 
 type RewardResult = RewardResultSuccess | RewardResultFailure;
 
-declare const $context: ScriptContext;
-declare const $services: ScriptServices;
-declare const $helpers: ScriptHelpers;
-declare const $constants: ScriptConstants;
+// Injected variables (available globally in script)
+declare var $context: ScriptContext;
+declare var $services: ScriptServices;
+declare var $helpers: ScriptHelpers;
+declare var $constants: ScriptConstants;
+
+/**
+ * Helper to get autocomplete for RewardResult.
+ * Usage: return $result({ success: true, reward: { ... } })
+ * This is just for IDE autocomplete - at runtime it returns the input as-is.
+ */
+declare function $result(result: RewardResult): RewardResult;
 `
 
 // Loading placeholder - exported for use with Suspense
@@ -263,10 +297,10 @@ export function MonacoScriptEditor({
         codeSelection: cssVarToHex('--code-selection', isDark ? '#264f78' : '#c7d2fe'),
       }
 
-    // Selected suggestion background - more visible
+      // Selected suggestion background - more visible
       const selectedBg = isDark ? '#3b4252' : '#e5e7eb'
 
-    // Define custom theme using CSS variables
+      // Define custom theme using CSS variables
       monaco.editor.defineTheme('app-theme', {
         base: isDark ? 'vs-dark' : 'vs',
         inherit: true,
@@ -348,7 +382,7 @@ export function MonacoScriptEditor({
       esModuleInterop: true,
       strict: false,
       allowJs: true,
-      checkJs: false,
+      checkJs: true,
     })
 
     // Add custom type definitions
@@ -357,10 +391,17 @@ export function MonacoScriptEditor({
       'file:///node_modules/@types/script-env/index.d.ts'
     )
 
-    // Disable some validations for a cleaner experience
+    // Configure diagnostics - ignore false positives for async wrapper context
+    // The script runs inside: (async () => { <code> })()
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
       noSemanticValidation: false,
       noSyntaxValidation: false,
+      diagnosticCodesToIgnore: [
+        1375, // 'await' expressions are only allowed at the top level of a file when that file is a module
+        1108, // A 'return' statement can only be used within a function body
+        1378, // Top-level 'await' expressions are only allowed when the 'module' option is set to...
+        2451, // Cannot redeclare block-scoped variable (e.g., 'name' conflicts with global)
+      ],
     })
 
     // Define initial theme
@@ -407,7 +448,8 @@ export function MonacoScriptEditor({
           minimap: { enabled: false },
           fontSize: 13,
           lineHeight: 20,
-          fontFamily: '"SF Mono", "Fira Code", "JetBrains Mono", Menlo, Monaco, Consolas, monospace',
+          fontFamily:
+            '"SF Mono", "Fira Code", "JetBrains Mono", Menlo, Monaco, Consolas, monospace',
           fontWeight: '400',
           fontLigatures: false,
           lineNumbers: 'on',
