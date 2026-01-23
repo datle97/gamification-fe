@@ -11,13 +11,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCloneGame, useGame } from '@/hooks/queries'
+import { useCloneGame, useExportGame, useGame } from '@/hooks/queries'
+import { downloadGameExport } from '@/lib/game-export'
 import { cloneGameSchema, type CloneGameInput } from '@/schemas/game.schema'
 import { useDevMode } from '@/stores/settingsStore'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
   Copy,
+  Download,
   FlaskConical,
   Gift,
   Info,
@@ -50,6 +52,7 @@ export function GameDetailPage() {
   const currentTab = (searchParams.get('tab') as TabValue) || 'info'
   const { data: game, isLoading, error } = useGame(gameId!)
   const cloneGame = useCloneGame()
+  const exportGame = useExportGame()
 
   const cloneForm = useForm<CloneGameInput>({
     resolver: zodResolver(cloneGameSchema),
@@ -82,6 +85,12 @@ export function GameDetailPage() {
       cloneForm.setValue('newName', `${game.name} (Copy)`)
     }
     setCloneDialogOpen(true)
+  }
+
+  const handleExport = async () => {
+    if (!gameId) return
+    const gameExport = await exportGame.mutateAsync(gameId)
+    downloadGameExport(gameExport)
   }
 
   if (isLoading) {
@@ -119,10 +128,20 @@ export function GameDetailPage() {
             <p className="text-sm text-muted-foreground font-mono">{game.code}</p>
           </div>
         </div>
-        <Button variant="outline" onClick={openCloneDialog}>
-          <Copy className="h-4 w-4 mr-2" />
-          Clone
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exportGame.isPending}>
+            {exportGame.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Export
+          </Button>
+          <Button variant="outline" onClick={openCloneDialog}>
+            <Copy className="h-4 w-4 mr-2" />
+            Clone
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}

@@ -1,6 +1,7 @@
 import { useRefetchInterval } from '@/hooks/useAutoRefresh'
+import type { GameExport } from '@/lib/game-export'
 import type { CloneGameInput, CreateGameInput, Game, UpdateGameInput } from '@/schemas/game.schema'
-import { gamesService } from '@/services/games.service'
+import { gamesService, type ImportOptions } from '@/services/games.service'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const gamesKeys = {
@@ -101,6 +102,30 @@ export function useCloneGame() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: gamesKeys.all })
     },
+  })
+}
+
+export function useExportGame() {
+  return useMutation({
+    mutationFn: (id: string) => gamesService.export(id),
+  })
+}
+
+export function useImportGame() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ data, options }: { data: GameExport; options?: ImportOptions }) =>
+      gamesService.import(data, options),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: gamesKeys.all })
+    },
+  })
+}
+
+export function usePreviewImport() {
+  return useMutation({
+    mutationFn: (data: GameExport) => gamesService.preview(data),
   })
 }
 

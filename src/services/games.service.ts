@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import type { GameExport } from '@/lib/game-export'
 import type { CloneGameInput, CreateGameInput, Game, UpdateGameInput } from '@/schemas/game.schema'
 import type { HistoricalPeriods, LeaderboardResponse } from '@/schemas/leaderboard.schema'
 
@@ -38,6 +39,24 @@ export const gamesService = {
     api
       .post(`gamification/admin/games/${id}/clone`, { json: data })
       .json<ApiResponse<Game>>()
+      .then((res) => res.data),
+
+  export: (id: string) =>
+    api
+      .get(`gamification/admin/games/${id}/export`)
+      .json<ApiResponse<GameExport>>()
+      .then((res) => res.data),
+
+  import: (data: GameExport, options?: ImportOptions) =>
+    api
+      .post('gamification/admin/games/import', { json: { ...data, options } })
+      .json<ApiResponse<ImportGameResult>>()
+      .then((res) => res.data),
+
+  preview: (data: GameExport) =>
+    api
+      .post('gamification/admin/games/import/preview', { json: data })
+      .json<ApiResponse<PreviewImportResult>>()
       .then((res) => res.data),
 
   // Stats methods
@@ -124,4 +143,54 @@ export interface DashboardStats {
   topGames: DashboardGameStats[]
   recentWinners: DashboardRecentWinner[]
   rewardsDistribution: DashboardRewardsDistribution
+}
+
+// Import result type
+export interface ImportGameResult {
+  game: {
+    gameId: string
+    action: 'created' | 'updated'
+  }
+  missions: {
+    created: number
+    updated: number
+  }
+  rewards: {
+    created: number
+    updated: number
+  }
+}
+
+// Import preview types
+export interface ImportOptions {
+  /** Selective import options - if not provided, import all */
+  include?: {
+    game?: boolean
+    missions?: boolean
+    rewards?: boolean
+  }
+}
+
+export interface ItemDiff {
+  id: string
+  code?: string
+  name: string
+  action: 'create' | 'update' | 'skip'
+  /** Changed fields for update action */
+  changes?: Array<{
+    field: string
+    oldValue: unknown
+    newValue: unknown
+  }>
+}
+
+export interface PreviewImportResult {
+  game: ItemDiff
+  missions: ItemDiff[]
+  rewards: ItemDiff[]
+  summary: {
+    game: { action: 'create' | 'update' | 'skip' }
+    missions: { create: number; update: number; skip: number }
+    rewards: { create: number; update: number; skip: number }
+  }
 }

@@ -1,3 +1,4 @@
+import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -19,9 +20,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { RichTextEditor } from '@/components/common/lazy-rich-text-editor'
-import { useCreateGame, useGames, useUpdateGame } from '@/hooks/queries'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  useCreateGame,
+  useGames,
+  useImportGame,
+  usePreviewImport,
+  useUpdateGame,
+} from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
+import type { GameExport } from '@/lib/game-export'
 import {
   gameStatusLabels,
   gameStatusVariants,
@@ -31,9 +39,11 @@ import {
   type GameStatus,
   type GameType,
 } from '@/schemas/game.schema'
+import type { PreviewImportResult } from '@/services/games.service'
 import dayjs from 'dayjs'
-import { Loader2, Plus } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { AlertCircle, CheckCircle2, Loader2, Plus, Upload } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 const columnHelper = createColumnHelper<Game>()
 
@@ -69,13 +79,55 @@ const initialFormData: FormData = {
   timezone: 'Asia/Ho_Chi_Minh',
 }
 
+// Helper component for action badges
+function ActionBadge({
+  action,
+  size = 'default',
+}: {
+  action: 'create' | 'update' | 'skip'
+  size?: 'default' | 'sm'
+}) {
+  const sizeClass = size === 'sm' ? 'px-1 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-xs'
+
+  if (action === 'create') {
+    return <span className={`${sizeClass} rounded bg-primary/10 text-primary font-medium`}>NEW</span>
+  }
+  if (action === 'update') {
+    return (
+      <span className={`${sizeClass} rounded bg-amber-500/10 text-amber-600 font-medium`}>
+        UPDATE
+      </span>
+    )
+  }
+  // skip = unchanged
+  return (
+    <span className={`${sizeClass} rounded bg-muted text-muted-foreground font-medium`}>
+      UNCHANGED
+    </span>
+  )
+}
+
 export function GamesPage() {
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
   const updateGame = useUpdateGame()
+  const importGame = useImportGame()
+  const previewImport = usePreviewImport()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
+
+  // Import dialog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [importData, setImportData] = useState<GameExport | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importPreview, setImportPreview] = useState<PreviewImportResult | null>(null)
+  const [importInclude, setImportInclude] = useState({
+    game: true,
+    missions: true,
+    rewards: true,
+  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleUpdateStatus = useCallback(
     async (row: Game, status: GameStatus) => {
@@ -116,6 +168,74 @@ export function GamesPage() {
     [handleUpdateStatus, handleUpdateSchedule]
   )
 
+  // Import handlers
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      setImportPreview(null)
+
+      try {
+        const json = JSON.parse(event.target?.result as string) as GameExport
+        if (!json.version || !json.game || !json.missions || !json.rewards) {
+          setImportError('Invalid game export format')
+          setImportData(null)
+          setImportPreview(null)
+          return
+        }
+        setImportData(json)
+        setImportError(null)
+
+        // Fetch preview (dry run)
+        try {
+          const preview = await previewImport.mutateAsync(json)
+          setImportPreview(preview)
+        } catch (err) {
+          setImportError(`Preview failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        }
+      } catch {
+        setImportError('Failed to parse JSON file')
+        setImportData(null)
+        setImportPreview(null)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleImport = async () => {
+    if (!importData) return
+    try {
+      const result = await importGame.mutateAsync({
+        data: importData,
+        options: { include: importInclude },
+      })
+      const action = result.game.action === 'created' ? 'Created' : 'Updated'
+      toast.success(
+        `${action} game "${importData.game.name}" with ${result.missions.created + result.missions.updated} missions and ${result.rewards.created + result.rewards.updated} rewards`
+      )
+      setImportDialogOpen(false)
+      setImportData(null)
+      setImportError(null)
+      setImportPreview(null)
+      setImportInclude({ game: true, missions: true, rewards: true })
+    } catch (err) {
+      toast.error(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleCloseImport = () => {
+    setImportDialogOpen(false)
+    setImportData(null)
+    setImportError(null)
+    setImportPreview(null)
+    setImportInclude({ game: true, missions: true, rewards: true })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleOpenCreate = () => {
     setFormData(initialFormData)
     setSheetOpen(true)
@@ -153,10 +273,16 @@ export function GamesPage() {
                 Manage game templates with status and schedule settings
               </CardDescription>
             </div>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              New Game
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </Button>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Game
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -301,6 +427,212 @@ export function GamesPage() {
             >
               {createGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create Game
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Import Dialog */}
+      <Sheet open={importDialogOpen} onOpenChange={(open) => !open && handleCloseImport()}>
+        <SheetContent className="sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Import Game</SheetTitle>
+            <SheetDescription>
+              Import a game configuration from a JSON file exported from another environment
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 space-y-4 overflow-auto px-4">
+            <div className="space-y-2">
+              <Label htmlFor="importFile">Select JSON File</Label>
+              <Input
+                ref={fileInputRef}
+                id="importFile"
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                disabled={previewImport.isPending}
+              />
+            </div>
+
+            {previewImport.isPending && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-muted text-muted-foreground text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading preview...
+              </div>
+            )}
+
+            {importError && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4" />
+                {importError}
+              </div>
+            )}
+
+            {importData && importPreview && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 p-3 rounded-md bg-primary/10 text-primary text-sm">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Valid game export file
+                </div>
+
+                {/* Game Section */}
+                <div className="space-y-2 p-4 rounded-md border bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="include-game"
+                      checked={importInclude.game}
+                      onCheckedChange={(checked) =>
+                        setImportInclude((prev) => ({ ...prev, game: !!checked }))
+                      }
+                    />
+                    <label htmlFor="include-game" className="flex-1 font-medium cursor-pointer">
+                      Game Info
+                    </label>
+                    <ActionBadge action={importPreview.game.action} />
+                  </div>
+                  <div className="ml-7 text-sm">
+                    <span className="text-muted-foreground">Name:</span>{' '}
+                    <span className="font-medium">{importData.game.name}</span>
+                    <span className="text-muted-foreground ml-3">Code:</span>{' '}
+                    <span className="font-mono text-xs">{importData.game.code}</span>
+                  </div>
+                  {importPreview.game.changes && importPreview.game.changes.length > 0 && (
+                    <div className="ml-7 mt-2 text-xs space-y-1">
+                      {importPreview.game.changes.slice(0, 3).map((change) => (
+                        <div key={change.field} className="text-muted-foreground">
+                          <span className="font-medium">{change.field}:</span>{' '}
+                          <span className="line-through">{String(change.oldValue ?? '—')}</span>
+                          <span className="mx-1">→</span>
+                          <span className="text-foreground">{String(change.newValue ?? '—')}</span>
+                        </div>
+                      ))}
+                      {importPreview.game.changes.length > 3 && (
+                        <div className="text-muted-foreground">
+                          +{importPreview.game.changes.length - 3} more changes
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Missions Section */}
+                <div className="space-y-2 p-4 rounded-md border bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="include-missions"
+                      checked={importInclude.missions}
+                      onCheckedChange={(checked) =>
+                        setImportInclude((prev) => ({ ...prev, missions: !!checked }))
+                      }
+                    />
+                    <label htmlFor="include-missions" className="flex-1 font-medium cursor-pointer">
+                      Missions ({importData.missions.length})
+                    </label>
+                    <div className="flex gap-1 text-xs">
+                      {importPreview.summary.missions.create > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {importPreview.summary.missions.create} new
+                        </span>
+                      )}
+                      {importPreview.summary.missions.update > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600">
+                          {importPreview.summary.missions.update} update
+                        </span>
+                      )}
+                      {importPreview.summary.missions.skip > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {importPreview.summary.missions.skip} unchanged
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {importPreview.missions.length > 0 && (
+                    <div className="ml-7 mt-2 space-y-1 max-h-32 overflow-auto">
+                      {importPreview.missions.map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 text-xs">
+                          <ActionBadge action={m.action} size="sm" />
+                          <span className="font-mono text-muted-foreground">{m.code}</span>
+                          <span>{m.name}</span>
+                          {m.changes && m.changes.length > 0 && (
+                            <span className="text-muted-foreground">
+                              ({m.changes.length} field{m.changes.length > 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Rewards Section */}
+                <div className="space-y-2 p-4 rounded-md border bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="include-rewards"
+                      checked={importInclude.rewards}
+                      onCheckedChange={(checked) =>
+                        setImportInclude((prev) => ({ ...prev, rewards: !!checked }))
+                      }
+                    />
+                    <label htmlFor="include-rewards" className="flex-1 font-medium cursor-pointer">
+                      Rewards ({importData.rewards.length})
+                    </label>
+                    <div className="flex gap-1 text-xs">
+                      {importPreview.summary.rewards.create > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                          {importPreview.summary.rewards.create} new
+                        </span>
+                      )}
+                      {importPreview.summary.rewards.update > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600">
+                          {importPreview.summary.rewards.update} update
+                        </span>
+                      )}
+                      {importPreview.summary.rewards.skip > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          {importPreview.summary.rewards.skip} unchanged
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {importPreview.rewards.length > 0 && (
+                    <div className="ml-7 mt-2 space-y-1 max-h-48 overflow-auto">
+                      {importPreview.rewards.map((r) => (
+                        <div key={r.id} className="flex items-center gap-2 text-xs">
+                          <ActionBadge action={r.action} size="sm" />
+                          <span>{r.name}</span>
+                          {r.changes && r.changes.length > 0 && (
+                            <span className="text-muted-foreground">
+                              ({r.changes.length} field{r.changes.length > 1 ? 's' : ''})
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Exported: {dayjs(importData.exportedAt).format('YYYY-MM-DD HH:mm:ss')}
+                </div>
+              </div>
+            )}
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={handleCloseImport}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={
+                !importData ||
+                !importPreview ||
+                importGame.isPending ||
+                (!importInclude.game && !importInclude.missions && !importInclude.rewards)
+              }
+            >
+              {importGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Import Selected
             </Button>
           </SheetFooter>
         </SheetContent>
