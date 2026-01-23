@@ -1,21 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import type { SystemRewardConfig } from '@/schemas/reward.schema'
+
 interface SystemHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: SystemRewardConfig
+  onChange: (config: SystemRewardConfig) => void
 }
 
-export function SystemHandlerForm({ config, onChange }: SystemHandlerFormProps) {
-  // Initialize empty config if needed
-  if (!config || config === '{}') {
-    onChange(
-      JSON.stringify(
-        {
-          type: 'system',
-        },
-        null,
-        2
-      )
-    )
-  }
+export function SystemHandlerForm({
+  config: _config,
+  onChange: _onChange,
+}: SystemHandlerFormProps) {
+  // System handler has minimal config - just ensure type is set
+  // No user-editable fields needed
 
   return (
     <div className="space-y-4">

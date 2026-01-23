@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -6,7 +7,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { handlerTypeLabels, type HandlerType } from '@/schemas/reward.schema'
+import {
+  handlerTypeLabels,
+  type ApiRewardConfig,
+  type CollectionRewardConfig,
+  type HandlerType,
+  type JourneyRewardConfig,
+  type NoRewardConfig,
+  type RewardConfig,
+  type ScriptRewardConfig,
+  type SystemRewardConfig,
+  type TurnRewardConfig,
+} from '@/schemas/reward.schema'
 import { ApiHandlerForm } from '../reward-forms/ApiHandlerForm'
 import { CollectionHandlerForm } from '../reward-forms/CollectionHandlerForm'
 import { JourneyHandlerForm } from '../reward-forms/JourneyHandlerForm'
@@ -37,8 +49,8 @@ const handlerTypeDescriptions: Record<HandlerType, string> = {
 
 interface HandlerConfigTabProps {
   handlerType: HandlerType
-  config: string
-  onChange: (config: string) => void
+  config: RewardConfig
+  onChange: (config: RewardConfig) => void
   onHandlerTypeChange: (type: HandlerType) => void
 }
 
@@ -48,6 +60,16 @@ export function HandlerConfigTab({
   onChange,
   onHandlerTypeChange,
 }: HandlerConfigTabProps) {
+  const updateConfigField = (key: string, value: unknown) => {
+    const newConfig = { ...config }
+    if (value === undefined || value === '') {
+      delete (newConfig as Record<string, unknown>)[key]
+    } else {
+      ;(newConfig as Record<string, unknown>)[key] = value
+    }
+    onChange(newConfig)
+  }
+
   return (
     <div className="space-y-6">
       {/* Handler Type Selector */}
@@ -77,21 +99,77 @@ export function HandlerConfigTab({
       <div className="border-t" />
 
       {/* Dynamic Handler Forms */}
-      {handlerType === 'system' && <SystemHandlerForm config={config} onChange={onChange} />}
-
-      {handlerType === 'turn' && <TurnHandlerForm config={config} onChange={onChange} />}
-
-      {handlerType === 'journey' && <JourneyHandlerForm config={config} onChange={onChange} />}
-
-      {handlerType === 'script' && <ScriptHandlerForm config={config} onChange={onChange} />}
-
-      {handlerType === 'no_reward' && <NoRewardHandlerForm config={config} onChange={onChange} />}
-
-      {handlerType === 'collection' && (
-        <CollectionHandlerForm config={config} onChange={onChange} />
+      {handlerType === 'system' && (
+        <SystemHandlerForm
+          config={config as SystemRewardConfig}
+          onChange={onChange as (c: SystemRewardConfig) => void}
+        />
       )}
 
-      {handlerType === 'api' && <ApiHandlerForm config={config} onChange={onChange} />}
+      {handlerType === 'turn' && (
+        <TurnHandlerForm
+          config={config as TurnRewardConfig}
+          onChange={onChange as (c: TurnRewardConfig) => void}
+        />
+      )}
+
+      {handlerType === 'journey' && (
+        <JourneyHandlerForm
+          config={config as JourneyRewardConfig}
+          onChange={onChange as (c: JourneyRewardConfig) => void}
+        />
+      )}
+
+      {handlerType === 'script' && (
+        <ScriptHandlerForm
+          config={config as ScriptRewardConfig}
+          onChange={onChange as (c: ScriptRewardConfig) => void}
+        />
+      )}
+
+      {handlerType === 'no_reward' && (
+        <NoRewardHandlerForm
+          config={config as NoRewardConfig}
+          onChange={onChange as (c: NoRewardConfig) => void}
+        />
+      )}
+
+      {handlerType === 'collection' && (
+        <CollectionHandlerForm
+          config={config as CollectionRewardConfig}
+          onChange={onChange as (c: CollectionRewardConfig) => void}
+        />
+      )}
+
+      {handlerType === 'api' && (
+        <ApiHandlerForm
+          config={config as ApiRewardConfig}
+          onChange={onChange as (c: ApiRewardConfig) => void}
+        />
+      )}
+
+      {/* Score Settings - Only for system and journey types */}
+      {(handlerType === 'system' || handlerType === 'journey') && (
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="text-sm font-semibold">Score Settings</h4>
+          <div className="space-y-2">
+            <Label htmlFor="bonus_score">Bonus Score</Label>
+            <Input
+              id="bonus_score"
+              type="number"
+              min={0}
+              placeholder="0"
+              value={config.score || ''}
+              onChange={(e) =>
+                updateConfigField('score', e.target.value ? parseInt(e.target.value) : undefined)
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              Score to add to user's total when this reward is allocated (default: 0)
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Fallback to JSON editor for unrecognized types */}
       {!['system', 'turn', 'journey', 'script', 'no_reward', 'collection', 'api'].includes(

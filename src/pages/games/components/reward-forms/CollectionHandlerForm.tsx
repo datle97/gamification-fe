@@ -1,21 +1,18 @@
+import type { CollectionRewardConfig } from '@/schemas/reward.schema'
+
 interface CollectionHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: CollectionRewardConfig
+  onChange: (config: CollectionRewardConfig) => void
 }
 
-export function CollectionHandlerForm({ config, onChange }: CollectionHandlerFormProps) {
-  // Initialize empty config if needed
-  if (!config || config === '{}') {
-    onChange(
-      JSON.stringify(
-        {
-          type: 'collection',
-        },
-        null,
-        2
-      )
-    )
-  }
+export function CollectionHandlerForm({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  config: _config,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onChange: _onChange,
+}: CollectionHandlerFormProps) {
+  // Collection handler has minimal config - just ensure type is set
+  // No user-editable fields needed
 
   return (
     <div className="space-y-4">

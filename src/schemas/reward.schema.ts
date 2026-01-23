@@ -69,6 +69,110 @@ export const shareConfigSchema = z
   .optional()
   .nullable()
 
+// Reward Config Types
+export const rewardPersistToEnum = z.enum(['vouchers', 'user_rewards'])
+export type RewardPersistTo = z.infer<typeof rewardPersistToEnum>
+
+// Base config schema (shared fields)
+const baseRewardConfigSchema = z.object({
+  extra: z.record(z.string(), z.unknown()).optional(),
+  tag: z.string().optional(),
+  score: z.number().optional(),
+})
+
+// Individual config schemas
+export const noRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('no_reward'),
+  message: z.string().optional(),
+})
+
+export const turnRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('turn'),
+  amount: z.number(),
+  expirationConfig: expirationConfigSchema.optional(),
+})
+
+export const systemRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('system'),
+})
+
+export const apiRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('api'),
+  provider: z.string(),
+  persistTo: rewardPersistToEnum,
+  api: z.object({
+    url: z.string(),
+    method: z.enum(['GET', 'POST']),
+    headers: z.record(z.string(), z.string()).optional(),
+    params: z.record(z.string(), z.unknown()).optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    timeout: z.number().optional(),
+  }),
+  responseMapping: z.object({
+    fields: z.array(z.object({ target: z.string(), expr: z.string() })).optional(),
+    successCondition: z.string().optional(),
+    fallbackCondition: z.string().optional(),
+    noRewardCondition: z.string().optional(),
+  }),
+  retry: z
+    .object({
+      maxRetries: z.number().optional(),
+      retryDelay: z.number().optional(),
+    })
+    .optional(),
+})
+
+export const scriptRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('script'),
+  code: z.string(),
+  persistTo: rewardPersistToEnum.optional(),
+})
+
+export const journeyRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('journey'),
+  journeyId: z.number(),
+  portalId: z.number(),
+  propId: z.string(),
+  campaignType: z.string(),
+  rollPercentage: z.boolean().optional(),
+  persistTo: rewardPersistToEnum.optional(),
+})
+
+export const collectionRewardConfigSchema = baseRewardConfigSchema.extend({
+  type: z.literal('collection'),
+})
+
+// Combined discriminated union
+export const rewardConfigSchema = z.discriminatedUnion('type', [
+  noRewardConfigSchema,
+  turnRewardConfigSchema,
+  systemRewardConfigSchema,
+  apiRewardConfigSchema,
+  scriptRewardConfigSchema,
+  journeyRewardConfigSchema,
+  collectionRewardConfigSchema,
+])
+
+// Type exports (inferred from Zod schemas)
+export type NoRewardConfig = z.infer<typeof noRewardConfigSchema>
+export type TurnRewardConfig = z.infer<typeof turnRewardConfigSchema>
+export type SystemRewardConfig = z.infer<typeof systemRewardConfigSchema>
+export type ApiRewardConfig = z.infer<typeof apiRewardConfigSchema>
+export type ScriptRewardConfig = z.infer<typeof scriptRewardConfigSchema>
+export type JourneyRewardConfig = z.infer<typeof journeyRewardConfigSchema>
+export type CollectionRewardConfig = z.infer<typeof collectionRewardConfigSchema>
+export type RewardConfig = z.infer<typeof rewardConfigSchema>
+
+/** Base interface for all reward configs */
+export interface BaseRewardConfig {
+  /** Extra metadata to save with reward */
+  extra?: Record<string, unknown>
+  /** Tag for reward grouping */
+  tag?: string
+  /** Bonus score when reward is allocated */
+  score?: number
+}
+
 // Reward schema
 export const rewardSchema = z.object({
   rewardId: z.string().uuid(),
@@ -78,7 +182,7 @@ export const rewardSchema = z.object({
   description: z.string().max(500).optional().nullable(),
   rewardType: rewardCategoryEnum.optional().nullable(),
   handlerType: handlerTypeEnum,
-  config: z.record(z.string(), z.any()).default({}),
+  config: rewardConfigSchema,
   probability: z.number().min(0).max(100).default(0),
   quota: z.number().min(0).nullable().optional(),
   quotaUsed: z.number().default(0),

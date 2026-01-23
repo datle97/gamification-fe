@@ -1,39 +1,24 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { NoRewardConfig } from '@/schemas/reward.schema'
 
 interface NoRewardHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: NoRewardConfig
+  onChange: (config: NoRewardConfig) => void
 }
 
 export function NoRewardHandlerForm({ config, onChange }: NoRewardHandlerFormProps) {
-  const getMessage = () => {
-    try {
-      const cfg = JSON.parse(config)
-      return cfg.message || ''
-    } catch {
-      return ''
+  const updateConfig = <K extends keyof NoRewardConfig>(
+    key: K,
+    value: NoRewardConfig[K] | undefined
+  ) => {
+    const newConfig = { ...config }
+    if (value === undefined || value === '') {
+      delete newConfig[key]
+    } else {
+      newConfig[key] = value
     }
-  }
-
-  const updateMessage = (message: string) => {
-    try {
-      const cfg = JSON.parse(config)
-      cfg.message = message
-      onChange(JSON.stringify(cfg, null, 2))
-    } catch {
-      // Initialize if invalid JSON
-      onChange(
-        JSON.stringify(
-          {
-            type: 'no_reward',
-            message,
-          },
-          null,
-          2
-        )
-      )
-    }
+    onChange(newConfig)
   }
 
   return (
@@ -44,8 +29,8 @@ export function NoRewardHandlerForm({ config, onChange }: NoRewardHandlerFormPro
         <Input
           id="message"
           placeholder="e.g., Better luck next time!"
-          value={getMessage()}
-          onChange={(e) => updateMessage(e.target.value)}
+          value={config.message || ''}
+          onChange={(e) => updateConfig('message', e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
           This represents a "no win" outcome. You can optionally set a message to display.

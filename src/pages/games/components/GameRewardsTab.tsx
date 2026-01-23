@@ -20,7 +20,7 @@ import {
   useUpdateReward,
 } from '@/hooks/queries'
 import { createColumnHelper } from '@/lib/column-helper'
-import type { ExpirationConfig } from '@/schemas/reward.schema'
+import type { ExpirationConfig, RewardConfig } from '@/schemas/reward.schema'
 import {
   handlerTypeLabels,
   rewardCategoryLabels,
@@ -56,8 +56,8 @@ interface FormData {
   displayOrder: number
   isActive: boolean
   fallbackRewardId: string
-  // Config (JSON for now, will be structured later)
-  config: string
+  // Config as typed objects
+  config: RewardConfig
   conditions: string
   shareConfig: string
   expirationConfig: ExpirationConfig | null
@@ -75,7 +75,7 @@ const initialFormData: FormData = {
   displayOrder: 0,
   isActive: true,
   fallbackRewardId: '',
-  config: '{"type": "system"}',
+  config: { type: 'system' },
   conditions: '',
   shareConfig: '',
   expirationConfig: null,
@@ -166,7 +166,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       displayOrder: reward.displayOrder,
       isActive: reward.isActive ?? true,
       fallbackRewardId: reward.fallbackRewardId || '',
-      config: reward.config ? JSON.stringify(reward.config, null, 2) : '{"type": "system"}',
+      config: reward.config || { type: 'system' },
       conditions: reward.conditions ? JSON.stringify(reward.conditions, null, 2) : '',
       shareConfig: reward.shareConfig ? JSON.stringify(reward.shareConfig, null, 2) : '',
       expirationConfig: reward.expirationConfig || null,
@@ -206,7 +206,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
       displayOrder: formData.displayOrder,
       isActive: formData.isActive,
       fallbackRewardId: formData.fallbackRewardId || undefined,
-      config: parseJsonField(formData.config) || { type: 'system' },
+      config: formData.config,
       conditions: parseJsonField(formData.conditions),
       shareConfig: parseJsonField(formData.shareConfig),
       expirationConfig: formData.expirationConfig,
@@ -345,10 +345,12 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                     displayOrder: formData.displayOrder,
                     isActive: formData.isActive,
                     metadata: formData.metadata,
+                    fallbackRewardId: formData.fallbackRewardId,
                   }}
                   onChange={(data) => setFormData({ ...formData, ...data })}
                   isCreate={isCreate}
                   selectedReward={selectedReward}
+                  allRewards={rewards}
                 />
               </TabsContent>
 
@@ -365,7 +367,13 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                   handlerType={formData.handlerType}
                   config={formData.config}
                   onChange={(cfg) => setFormData({ ...formData, config: cfg })}
-                  onHandlerTypeChange={(type) => setFormData({ ...formData, handlerType: type })}
+                  onHandlerTypeChange={(type) =>
+                    setFormData({
+                      ...formData,
+                      handlerType: type,
+                      config: { type } as RewardConfig,
+                    })
+                  }
                 />
               </TabsContent>
 
@@ -389,24 +397,9 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                   config={formData.config}
                   conditions={formData.conditions}
                   shareConfig={formData.shareConfig}
-                  expirationConfig={
-                    formData.expirationConfig
-                      ? JSON.stringify(formData.expirationConfig, null, 2)
-                      : ''
-                  }
+                  expirationConfig={formData.expirationConfig}
                   onChange={(field, value) => {
-                    if (field === 'expirationConfig') {
-                      try {
-                        setFormData({
-                          ...formData,
-                          expirationConfig: value ? JSON.parse(value) : null,
-                        })
-                      } catch {
-                        // Invalid JSON, ignore
-                      }
-                    } else {
-                      setFormData({ ...formData, [field]: value })
-                    }
+                    setFormData({ ...formData, [field]: value })
                   }}
                 />
               </TabsContent>

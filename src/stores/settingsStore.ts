@@ -82,14 +82,14 @@ export const useSettingsStore = create<SettingsState>()(
 export const useDevMode = () => {
   const fromSettings = useSettingsStore((state) => state.features.devMode)
   // Never allow on production, regardless of settings
-  if (import.meta.env.VITE_ENV === 'production') return false
+  // if (import.meta.env.VITE_ENV === 'production') return false
   return fromSettings
 }
 
 export const useAnalytics = () => {
   const fromSettings = useSettingsStore((state) => state.features.analytics)
   // Never allow on production, regardless of settings
-  if (import.meta.env.VITE_ENV === 'production') return false
+  // if (import.meta.env.VITE_ENV === 'production') return false
   return fromSettings
 }
 

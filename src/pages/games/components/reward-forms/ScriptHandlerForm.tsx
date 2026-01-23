@@ -1,9 +1,10 @@
 import { MonacoScriptEditor } from '@/components/common/lazy-monaco-script-editor'
 import { Label } from '@/components/ui/label'
+import type { ScriptRewardConfig } from '@/schemas/reward.schema'
 
 interface ScriptHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: ScriptRewardConfig
+  onChange: (config: ScriptRewardConfig) => void
 }
 
 const EXAMPLE_SCRIPT = `// Available: $context, $services, $helpers, $constants
@@ -38,36 +39,11 @@ return {
 };`
 
 export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) {
-  const getScript = () => {
-    try {
-      const cfg = JSON.parse(config)
-      return cfg.code || ''
-    } catch {
-      return ''
-    }
+  const updateCode = (code: string) => {
+    onChange({ ...config, code })
   }
 
-  const updateScript = (code: string) => {
-    try {
-      const cfg = JSON.parse(config)
-      cfg.code = code
-      onChange(JSON.stringify(cfg, null, 2))
-    } catch {
-      // Initialize if invalid JSON
-      onChange(
-        JSON.stringify(
-          {
-            type: 'script',
-            code,
-          },
-          null,
-          2
-        )
-      )
-    }
-  }
-
-  const currentScript = getScript()
+  const currentScript = config.code || ''
 
   return (
     <div className="space-y-4">
@@ -76,7 +52,7 @@ export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) 
         {!currentScript && (
           <button
             type="button"
-            onClick={() => updateScript(EXAMPLE_SCRIPT)}
+            onClick={() => updateCode(EXAMPLE_SCRIPT)}
             className="text-xs text-primary hover:underline"
           >
             Insert example
@@ -88,7 +64,7 @@ export function ScriptHandlerForm({ config, onChange }: ScriptHandlerFormProps) 
         <Label htmlFor="script">
           JavaScript Code <span className="text-destructive">*</span>
         </Label>
-        <MonacoScriptEditor value={currentScript} onChange={updateScript} height="400px" />
+        <MonacoScriptEditor value={currentScript} onChange={updateCode} height="400px" />
         <p className="text-xs text-muted-foreground">
           Global variables: <code className="px-1 bg-muted rounded">$context</code>,{' '}
           <code className="px-1 bg-muted rounded">$services</code>,{' '}

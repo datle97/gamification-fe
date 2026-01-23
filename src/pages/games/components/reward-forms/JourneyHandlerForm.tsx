@@ -1,45 +1,60 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import type { JourneyRewardConfig } from '@/schemas/reward.schema'
+import { useMemo, useState } from 'react'
 
 interface JourneyHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: JourneyRewardConfig
+  onChange: (config: JourneyRewardConfig) => void
 }
 
 export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps) {
-  const getConfigValue = (key: string) => {
+  // Local state for extra JSON editing (to handle invalid JSON during typing)
+  const [extraText, setExtraText] = useState(() =>
+    config.extra ? JSON.stringify(config.extra, null, 2) : ''
+  )
+
+  const updateConfig = <K extends keyof JourneyRewardConfig>(
+    key: K,
+    value: JourneyRewardConfig[K] | undefined
+  ) => {
+    const newConfig = { ...config }
+    if (value === undefined || value === '') {
+      delete newConfig[key]
+    } else {
+      newConfig[key] = value
+    }
+    onChange(newConfig)
+  }
+
+  const handleExtraChange = (value: string) => {
+    setExtraText(value)
     try {
-      const cfg = JSON.parse(config)
-      return cfg[key] || ''
+      const extraObj = value.trim() ? JSON.parse(value) : undefined
+      updateConfig('extra', extraObj)
     } catch {
-      return ''
+      // Invalid JSON, keep local state but don't update config
     }
   }
 
-  const updateConfig = (key: string, value: string | number) => {
-    try {
-      const cfg = JSON.parse(config)
-      cfg[key] = value
-      onChange(JSON.stringify(cfg, null, 2))
-    } catch {
-      // Initialize if invalid JSON
-      if (key === 'journeyId') {
-        onChange(
-          JSON.stringify(
-            {
-              type: 'journey',
-              journeyId: typeof value === 'number' ? value : 0,
-              portalId: 0,
-              propId: '',
-              campaignType: '',
-            },
-            null,
-            2
-          )
-        )
+  // Sync extra text when config.extra changes externally
+  const extraValue = useMemo(() => {
+    const configExtra = config.extra ? JSON.stringify(config.extra, null, 2) : ''
+    // Only update if different to avoid cursor jumping
+    if (configExtra !== extraText) {
+      try {
+        const parsed = extraText.trim() ? JSON.parse(extraText) : undefined
+        if (JSON.stringify(parsed) !== JSON.stringify(config.extra)) {
+          return configExtra
+        }
+      } catch {
+        // If current text is invalid JSON, use config value
+        return configExtra
       }
     }
-  }
+    return extraText
+  }, [config.extra, extraText])
 
   return (
     <div className="space-y-4">
@@ -53,7 +68,7 @@ export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps
             id="journey_id"
             type="number"
             placeholder="e.g., 123"
-            value={getConfigValue('journeyId')}
+            value={config.journeyId || ''}
             onChange={(e) => updateConfig('journeyId', parseInt(e.target.value) || 0)}
           />
         </div>
@@ -65,7 +80,7 @@ export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps
             id="portal_id"
             type="number"
             placeholder="e.g., 1"
-            value={getConfigValue('portalId')}
+            value={config.portalId || ''}
             onChange={(e) => updateConfig('portalId', parseInt(e.target.value) || 0)}
           />
         </div>
@@ -78,7 +93,7 @@ export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps
           <Input
             id="prop_id"
             placeholder="e.g., pnj-reward"
-            value={getConfigValue('propId')}
+            value={config.propId || ''}
             onChange={(e) => updateConfig('propId', e.target.value)}
           />
         </div>
@@ -87,10 +102,26 @@ export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps
           <Input
             id="campaign_type"
             placeholder="e.g., fortune-shake"
-            value={getConfigValue('campaignType')}
+            value={config.campaignType || ''}
             onChange={(e) => updateConfig('campaignType', e.target.value)}
           />
         </div>
+      </div>
+
+      {/* Extra data */}
+      <div className="space-y-2 pt-4 border-t">
+        <Label htmlFor="extra_data">Extra Data (JSON)</Label>
+        <Textarea
+          id="extra_data"
+          placeholder='{"utm_source": "facebook", "campaign_id": "123"}'
+          className="font-mono text-sm"
+          rows={4}
+          value={extraValue}
+          onChange={(e) => handleExtraChange(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          JSON object with custom key-value pairs to include in the Journey API request
+        </p>
       </div>
     </div>
   )

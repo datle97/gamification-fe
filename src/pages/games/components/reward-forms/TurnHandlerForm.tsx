@@ -1,29 +1,24 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { TurnRewardConfig } from '@/schemas/reward.schema'
 
 interface TurnHandlerFormProps {
-  config: string
-  onChange: (config: string) => void
+  config: TurnRewardConfig
+  onChange: (config: TurnRewardConfig) => void
 }
 
 export function TurnHandlerForm({ config, onChange }: TurnHandlerFormProps) {
-  const getAmount = () => {
-    try {
-      const cfg = JSON.parse(config)
-      return cfg.amount || ''
-    } catch {
-      return ''
+  const updateConfig = <K extends keyof TurnRewardConfig>(
+    key: K,
+    value: TurnRewardConfig[K] | undefined
+  ) => {
+    const newConfig = { ...config }
+    if (value === undefined || value === 0) {
+      delete newConfig[key]
+    } else {
+      newConfig[key] = value
     }
-  }
-
-  const handleAmountChange = (value: string) => {
-    try {
-      const cfg = JSON.parse(config)
-      cfg.amount = parseInt(value) || 1
-      onChange(JSON.stringify(cfg, null, 2))
-    } catch {
-      onChange(JSON.stringify({ type: 'turn', amount: parseInt(value) || 1 }, null, 2))
-    }
+    onChange(newConfig)
   }
 
   return (
@@ -38,8 +33,8 @@ export function TurnHandlerForm({ config, onChange }: TurnHandlerFormProps) {
           type="number"
           min={1}
           placeholder="Number of turns to grant"
-          value={getAmount()}
-          onChange={(e) => handleAmountChange(e.target.value)}
+          value={config.amount || ''}
+          onChange={(e) => updateConfig('amount', parseInt(e.target.value) || 1)}
         />
         <p className="text-xs text-muted-foreground">Number of game turns to grant to the user</p>
       </div>

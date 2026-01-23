@@ -35,6 +35,7 @@ interface FormData {
   displayOrder: number
   isActive: boolean
   metadata: string
+  fallbackRewardId: string
 }
 
 interface BasicTabProps {
@@ -42,9 +43,17 @@ interface BasicTabProps {
   onChange: (data: Partial<FormData>) => void
   isCreate: boolean
   selectedReward?: Reward | null
+  /** List of all rewards in this game (for fallback selection) */
+  allRewards?: Reward[]
 }
 
-export function BasicTab({ formData, onChange, isCreate, selectedReward }: BasicTabProps) {
+export function BasicTab({
+  formData,
+  onChange,
+  isCreate,
+  selectedReward,
+  allRewards = [],
+}: BasicTabProps) {
   // Memoize metadata onChange to prevent JsonEditor re-renders
   const handleMetadataChange = useCallback(
     (value: string) => onChange({ metadata: value }),
@@ -182,6 +191,38 @@ export function BasicTab({ formData, onChange, isCreate, selectedReward }: Basic
               Active
             </Label>
           </div>
+        </div>
+      </div>
+
+      {/* Fallback */}
+      <div className="space-y-4 pt-4 border-t">
+        <h4 className="text-sm font-semibold">Fallback</h4>
+        <div className="space-y-2">
+          <Label>Fallback Reward</Label>
+          <Select
+            value={formData.fallbackRewardId || '_none'}
+            onValueChange={(value) =>
+              onChange({ fallbackRewardId: value === '_none' ? '' : value })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="No fallback" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">No fallback</SelectItem>
+              {allRewards
+                .filter((r) => r.rewardId !== selectedReward?.rewardId)
+                .map((reward) => (
+                  <SelectItem key={reward.rewardId} value={reward.rewardId}>
+                    {reward.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            When this reward fails (e.g., out of voucher), the system will try to allocate the
+            fallback reward instead
+          </p>
         </div>
       </div>
 

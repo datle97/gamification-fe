@@ -1,12 +1,17 @@
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import type { ExpirationConfig, RewardConfig } from '@/schemas/reward.schema'
+import { useState } from 'react'
 
 interface AdvancedTabProps {
-  config: string
+  config: RewardConfig
   conditions: string
   shareConfig: string
-  expirationConfig: string
-  onChange: (field: string, value: string) => void
+  expirationConfig: ExpirationConfig | null
+  onChange: (
+    field: 'config' | 'conditions' | 'shareConfig' | 'expirationConfig',
+    value: RewardConfig | ExpirationConfig | null | string
+  ) => void
 }
 
 export function AdvancedTab({
@@ -16,6 +21,32 @@ export function AdvancedTab({
   expirationConfig,
   onChange,
 }: AdvancedTabProps) {
+  // Local state for JSON text (to handle invalid JSON during typing)
+  const [configText, setConfigText] = useState(() => JSON.stringify(config, null, 2))
+  const [expirationText, setExpirationText] = useState(() =>
+    expirationConfig ? JSON.stringify(expirationConfig, null, 2) : ''
+  )
+
+  const handleConfigChange = (value: string) => {
+    setConfigText(value)
+    try {
+      const parsed = value.trim() ? JSON.parse(value) : { type: 'system' }
+      onChange('config', parsed)
+    } catch {
+      // Invalid JSON, keep local state but don't update parent
+    }
+  }
+
+  const handleExpirationChange = (value: string) => {
+    setExpirationText(value)
+    try {
+      const parsed = value.trim() ? JSON.parse(value) : null
+      onChange('expirationConfig', parsed)
+    } catch {
+      // Invalid JSON, keep local state but don't update parent
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -23,8 +54,8 @@ export function AdvancedTab({
         <Textarea
           id="config"
           placeholder='{"type": "system"}'
-          value={config}
-          onChange={(e) => onChange('config', e.target.value)}
+          value={configText}
+          onChange={(e) => handleConfigChange(e.target.value)}
           className="min-h-32 font-mono text-xs"
         />
       </div>
@@ -52,9 +83,9 @@ export function AdvancedTab({
         <Label htmlFor="expirationConfig">Expiration Config (JSON)</Label>
         <Textarea
           id="expirationConfig"
-          placeholder='{"mode": "ttl", "ttlDays": 30}'
-          value={expirationConfig}
-          onChange={(e) => onChange('expirationConfig', e.target.value)}
+          placeholder='{"mode": "ttl", "value": 30, "unit": "day"}'
+          value={expirationText}
+          onChange={(e) => handleExpirationChange(e.target.value)}
           className="min-h-20 font-mono text-xs"
         />
       </div>
