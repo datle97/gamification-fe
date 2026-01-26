@@ -2,7 +2,7 @@ import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DataTable } from '@/components/ui/data-table'
+import { ServerDataTable } from '@/components/ui/data-table'
 import { Input } from '@/components/ui/input'
 import { useGameStats, useGameUsers } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -177,7 +177,8 @@ export function GameUsersTab({ gameId }: GameUsersTabProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
+          <ServerDataTable
+            tableId={`game-users-${gameId}`}
             columns={columns}
             data={usersData?.data || []}
             loading={usersLoading}

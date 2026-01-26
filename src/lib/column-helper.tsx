@@ -142,6 +142,9 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       id,
       header,
+      // Accessor for global filter to search primary + secondary text
+      accessorFn: (row) =>
+        [options.primary(row), options.secondary(row)].filter(Boolean).join(' '),
       cell: ({ row }) => (
         <StackedCell
           primary={options.primary(row.original)}
@@ -163,6 +166,9 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       id,
       header,
+      // Accessor for global filter to search name + subtitle
+      accessorFn: (row) =>
+        [options.name(row), options.subtitle?.(row)].filter(Boolean).join(' '),
       cell: ({ row }) => (
         <AvatarCell
           name={options.name(row.original)}
@@ -282,6 +288,9 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         id,
         header,
+        // Accessor for global filter to search primary + secondary text
+        accessorFn: (row) =>
+          [options.primary(row), options.secondary(row)].filter(Boolean).join(' '),
         cell: ({ row }) => (
           <EditableStackedCell
             primary={options.primary(row.original) || ''}

@@ -295,6 +295,9 @@ export function GameLeaderboardTab({ game }: GameLeaderboardTabProps) {
                 columns={columns}
                 data={leaderboard.entries}
                 emptyMessage="No players have participated in this period yet"
+                enableSorting
+                enableSearch
+                searchPlaceholder="Search players..."
               />
             </CardContent>
           </Card>

@@ -284,31 +284,33 @@ export function GamesPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Games</CardTitle>
-              <CardDescription>
-                Manage game templates with status and schedule settings
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-              <Button onClick={handleOpenCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Game
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Games</CardTitle>
+          <CardDescription>Manage game templates with status and schedule settings</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
+            tableId="games-list"
             columns={columns}
             data={games}
             loading={isLoading}
             emptyMessage="No games yet. Create your first game template."
+            enableSorting
+            enableSearch
+            searchPlaceholder="Search games..."
+            actions={[
+              {
+                label: 'Import',
+                icon: Upload,
+                onClick: () => setImportDialogOpen(true),
+                variant: 'outline',
+              },
+              {
+                label: 'New Game',
+                icon: Plus,
+                onClick: handleOpenCreate,
+                variant: 'default',
+              },
+            ]}
           />
         </CardContent>
       </Card>

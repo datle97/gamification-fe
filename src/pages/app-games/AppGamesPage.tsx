@@ -127,16 +127,8 @@ export function AppGamesPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>App Games</CardTitle>
-              <CardDescription>Link games to apps.</CardDescription>
-            </div>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Link Game
-            </Button>
-          </div>
+          <CardTitle>App Games</CardTitle>
+          <CardDescription>Link games to apps.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -145,6 +137,17 @@ export function AppGamesPage() {
             loading={isLoading}
             emptyMessage="No app-game links yet. Link a game to an app to create a campaign."
             onRowClick={handleRowClick}
+            enableSorting
+            enableSearch
+            actions={[
+              {
+                label: 'Link Game',
+                icon: Plus,
+                onClick: handleOpenCreate,
+                variant: 'default',
+              },
+            ]}
+            searchPlaceholder="Search links..."
           />
         </CardContent>
       </Card>

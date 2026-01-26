@@ -271,34 +271,36 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Rewards</CardTitle>
-              <CardDescription>Manage rewards for this game</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setProbabilityDialogOpen(true)}
-                disabled={rewards.length === 0}
-              >
-                <Sliders className="h-4 w-4 mr-2" />
-                Manage Probabilities
-              </Button>
-              <Button onClick={handleOpenCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Reward
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Rewards</CardTitle>
+          <CardDescription>Manage rewards for this game</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
+            tableId={`game-rewards-${gameId}`}
             columns={columns}
             data={rewards}
             loading={isLoading}
             emptyMessage="No rewards yet. Create your first reward for this game."
             onRowClick={handleRowClick}
+            enableSorting
+            enableSearch
+            enableColumnVisibility
+            searchPlaceholder="Search rewards..."
+            actions={[
+              {
+                label: 'Manage Probabilities',
+                icon: Sliders,
+                onClick: () => setProbabilityDialogOpen(true),
+                disabled: rewards.length === 0,
+                variant: 'outline',
+              },
+              {
+                label: 'New Reward',
+                icon: Plus,
+                onClick: handleOpenCreate,
+                variant: 'default',
+              },
+            ]}
           />
         </CardContent>
       </Card>
@@ -308,9 +310,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         onOpenChange={(open) => !open && handleClose()}
         isDirty={isDirty}
       >
-        <UnsavedChangesDialogContent
-          className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0"
-        >
+        <UnsavedChangesDialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0">
           <DialogHeader className="px-6 pt-6">
             <DialogTitle>
               {isCreate ? 'Create Reward' : `Edit: ${selectedReward?.name}`}

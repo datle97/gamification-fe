@@ -176,23 +176,27 @@ export function AppsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Apps</CardTitle>
-              <CardDescription>Manage apps that can have games linked to them</CardDescription>
-            </div>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              New App
-            </Button>
-          </div>
+          <CardTitle>Apps</CardTitle>
+          <CardDescription>Manage apps that can have games linked to them</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
+            tableId="apps-list"
             columns={columns}
             data={apps}
             loading={isLoading}
             emptyMessage="No apps yet. Create your first app."
+            enableSorting
+            enableSearch
+            searchPlaceholder="Search apps..."
+            actions={[
+              {
+                label: 'New App',
+                icon: Plus,
+                onClick: handleOpenCreate,
+                variant: 'default',
+              },
+            ]}
           />
         </CardContent>
       </Card>

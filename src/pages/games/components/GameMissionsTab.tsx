@@ -337,24 +337,29 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Missions</CardTitle>
-            <CardDescription>Manage missions for this game</CardDescription>
-          </div>
-          <Button onClick={handleOpenCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Mission
-          </Button>
-        </div>
+        <CardTitle>Missions</CardTitle>
+        <CardDescription>Manage missions for this game</CardDescription>
       </CardHeader>
       <CardContent>
         <DataTable
+          tableId={`game-missions-${gameId}`}
           columns={columns}
           data={missions}
           loading={isLoading}
           emptyMessage="No missions yet. Create your first mission for this game."
           onRowClick={handleRowClick}
+          enableSorting
+          enableColumnVisibility
+          actions={[
+            {
+              label: 'New Mission',
+              icon: Plus,
+              onClick: handleOpenCreate,
+              variant: 'default',
+            },
+          ]}
+          enableSearch
+          searchPlaceholder="Search missions..."
         />
       </CardContent>
 
