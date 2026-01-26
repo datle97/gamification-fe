@@ -9,6 +9,16 @@ import {
   UnsavedChangesDialog,
   UnsavedChangesDialogContent,
 } from '@/components/common/unsaved-changes-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -102,6 +112,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const [dialogInitialData, setDialogInitialData] = useState<FormData>(initialFormData)
   const [activeTab, setActiveTab] = useState('basic')
   const [probabilityDialogOpen, setProbabilityDialogOpen] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Track unsaved changes
   const { isDirty } = useUnsavedChanges({
@@ -244,6 +255,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const handleDelete = async () => {
     if (!selectedReward) return
     await deleteReward.mutateAsync({ gameId, id: selectedReward.rewardId })
+    setShowDeleteDialog(false)
     handleClose()
   }
 
@@ -428,7 +440,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
             {!isCreate && (
               <Button
                 variant="destructive"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={isPending}
                 className="mr-auto"
               >
@@ -455,6 +467,28 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         rewards={rewards}
         onApply={handleProbabilityApply}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reward?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the reward "{selectedReward?.name}". This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteReward.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

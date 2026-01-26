@@ -9,6 +9,16 @@ import {
   UnsavedChangesSheet,
   UnsavedChangesSheetContent,
 } from '@/components/common/unsaved-changes-sheet'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -183,6 +193,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Track unsaved changes
   const { isDirty } = useUnsavedChanges({
@@ -328,6 +339,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
   const handleDelete = async () => {
     if (!selectedMission) return
     await deleteMission.mutateAsync({ gameId, id: selectedMission.missionId })
+    setShowDeleteDialog(false)
     handleClose()
   }
 
@@ -704,7 +716,7 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
             {!isCreate && (
               <Button
                 variant="destructive"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={isPending}
                 className="mr-auto"
               >
@@ -721,6 +733,28 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
           </SheetFooter>
         </UnsavedChangesSheetContent>
       </UnsavedChangesSheet>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Mission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the mission "{selectedMission?.name}". This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMission.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

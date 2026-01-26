@@ -15,6 +15,8 @@ import {
   ArrowUp,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Columns2,
   Loader2,
   Search,
@@ -252,28 +254,46 @@ function DataTableBase<TData>({
 
       {/* Pagination */}
       {pageCount > 1 && (
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-end gap-4 px-2">
           <div className="text-sm text-muted-foreground">
             Page {currentPage} of {pageCount}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => table.firstPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              className="h-8 w-8"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              Next
               <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => table.lastPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronsRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -377,11 +397,13 @@ export function DataTable<TData, TValue>({
     ...(enableSorting ? { getSortedRowModel: getSortedRowModel() } : {}),
     ...(enableSearch ? { getFilteredRowModel: getFilteredRowModel() } : {}),
     enableMultiSort: true,
+    initialState: {
+      pagination: { pageIndex: 0, pageSize: effectivePageSize },
+    },
     state: {
       sorting,
       columnVisibility,
       globalFilter,
-      pagination: { pageIndex: 0, pageSize: effectivePageSize },
     },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
