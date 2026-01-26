@@ -45,6 +45,7 @@ import type { PreviewImportResult } from '@/services/games.service'
 import dayjs from 'dayjs'
 import { AlertCircle, CheckCircle2, Loader2, Plus, Upload } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
 const columnHelper = createColumnHelper<Game>()
@@ -112,6 +113,7 @@ function ActionBadge({
 }
 
 export function GamesPage() {
+  const navigate = useNavigate()
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
   const updateGame = useUpdateGame()
@@ -263,8 +265,9 @@ export function GamesPage() {
 
   const handleSave = async () => {
     if (!formData.code || !formData.name) return
-    await createGame.mutateAsync(formData as CreateGameInput)
+    const createdGame = await createGame.mutateAsync(formData as CreateGameInput)
     handleClose()
+    navigate(`/games/${createdGame.gameId}`)
   }
 
   if (error) {

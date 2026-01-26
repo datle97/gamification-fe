@@ -25,15 +25,19 @@ const columnHelper = createColumnHelper<App>()
 interface FormData {
   appId: string
   name: string
+  description: string
   portalId: number
   config: string
+  metadata: string
 }
 
 const initialFormData: FormData = {
   appId: '',
   name: '',
+  description: '',
   portalId: 0,
   config: '{}',
+  metadata: '{}',
 }
 
 type SheetMode = 'create' | 'edit'
@@ -68,8 +72,10 @@ export function AppsPage() {
     const editFormData: FormData = {
       appId: app.appId,
       name: app.name,
+      description: app.description ?? '',
       portalId: app.portalId,
       config: JSON.stringify(app.config ?? {}, null, 2),
+      metadata: JSON.stringify(app.metadata ?? {}, null, 2),
     }
     setFormData(editFormData)
     setSheetInitialData(editFormData)
@@ -116,8 +122,14 @@ export function AppsPage() {
     if (!formData.appId || !formData.name) return
 
     let config: Record<string, unknown> = {}
+    let metadata: Record<string, unknown> = {}
     try {
       config = JSON.parse(formData.config)
+    } catch {
+      // Invalid JSON, keep empty object
+    }
+    try {
+      metadata = JSON.parse(formData.metadata)
     } catch {
       // Invalid JSON, keep empty object
     }
@@ -126,16 +138,20 @@ export function AppsPage() {
       await createApp.mutateAsync({
         appId: formData.appId,
         name: formData.name,
+        description: formData.description,
         portalId: formData.portalId,
         config,
+        metadata,
       } as CreateAppInput)
     } else {
       await updateApp.mutateAsync({
         id: formData.appId,
         data: {
           name: formData.name,
+          description: formData.description,
           portalId: formData.portalId,
           config,
+          metadata,
         },
       })
     }
@@ -220,6 +236,16 @@ export function AppsPage() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="App description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="min-h-20"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="portalId">Portal ID</Label>
               <Input
                 id="portalId"
@@ -238,6 +264,16 @@ export function AppsPage() {
                 placeholder="{}"
                 value={formData.config}
                 onChange={(e) => setFormData({ ...formData, config: e.target.value })}
+                className="font-mono text-sm min-h-32"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="metadata">Metadata (JSON)</Label>
+              <Textarea
+                id="metadata"
+                placeholder="{}"
+                value={formData.metadata}
+                onChange={(e) => setFormData({ ...formData, metadata: e.target.value })}
                 className="font-mono text-sm min-h-32"
               />
             </div>
