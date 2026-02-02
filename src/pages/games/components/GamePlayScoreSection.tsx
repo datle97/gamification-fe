@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { parseIntOrDefault } from '@/lib/number-utils'
 import { useState } from 'react'
 
 interface GamePlayScoreSectionProps {
@@ -13,7 +14,7 @@ export function GamePlayScoreSection({ playScore, onChange }: GamePlayScoreSecti
 
   const handleChange = (value: string) => {
     setScore(value)
-    onChange(parseInt(value) || 1)
+    onChange(parseIntOrDefault(value, 1))
   }
 
   return (

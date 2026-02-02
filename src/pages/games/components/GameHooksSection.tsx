@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { parseIntOrDefault } from '@/lib/number-utils'
 import { Plus, Trash2 } from 'lucide-react'
 
 interface AttributeUpdate {
@@ -83,7 +84,7 @@ export function GameHooksSection({ hooks, onChange }: GameHooksSectionProps) {
               ? attributeUpdates.map((u) => ({
                   field: u.field,
                   op: u.op,
-                  value: u.op === 'increment' ? parseInt(u.value) || 1 : u.value,
+                  value: u.op === 'increment' ? parseIntOrDefault(u.value, 1) : u.value,
                 }))
               : [{ field: '', op: 'increment', value: 1 }],
         },
@@ -125,12 +126,12 @@ export function GameHooksSection({ hooks, onChange }: GameHooksSectionProps) {
               ? {
                   field: updates[0].field,
                   op: updates[0].op,
-                  value: updates[0].op === 'increment' ? parseInt(updates[0].value) || 1 : updates[0].value,
+                  value: updates[0].op === 'increment' ? parseIntOrDefault(updates[0].value, 1) : updates[0].value,
                 }
               : updates.map((u) => ({
                   field: u.field,
                   op: u.op,
-                  value: u.op === 'increment' ? parseInt(u.value) || 1 : u.value,
+                  value: u.op === 'increment' ? parseIntOrDefault(u.value, 1) : u.value,
                 })),
       },
     })

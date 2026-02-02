@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { parseIntOrUndefined } from '@/lib/number-utils'
 import { periodTypeLabels, type GameConfig, type PeriodType } from '@/schemas/game.schema'
 import { useState } from 'react'
 
@@ -28,8 +29,8 @@ export function GameLeaderboardSection({ leaderboard, onChange }: GameLeaderboar
     if (enabled) {
       onChange({
         periodType,
-        limit: limit ? parseInt(limit) : undefined,
-        uniqueTopN: uniqueTopN ? parseInt(uniqueTopN) : undefined,
+        limit: parseIntOrUndefined(limit),
+        uniqueTopN: parseIntOrUndefined(uniqueTopN),
       })
     } else {
       onChange(undefined)
@@ -40,8 +41,8 @@ export function GameLeaderboardSection({ leaderboard, onChange }: GameLeaderboar
     setPeriodType(value)
     onChange({
       periodType: value,
-      limit: limit ? parseInt(limit) : undefined,
-      uniqueTopN: uniqueTopN ? parseInt(uniqueTopN) : undefined,
+      limit: parseIntOrUndefined(limit),
+      uniqueTopN: parseIntOrUndefined(uniqueTopN),
     })
   }
 
@@ -49,8 +50,8 @@ export function GameLeaderboardSection({ leaderboard, onChange }: GameLeaderboar
     setLimit(value)
     onChange({
       periodType,
-      limit: value ? parseInt(value) : undefined,
-      uniqueTopN: uniqueTopN ? parseInt(uniqueTopN) : undefined,
+      limit: parseIntOrUndefined(value),
+      uniqueTopN: parseIntOrUndefined(uniqueTopN),
     })
   }
 
@@ -58,8 +59,8 @@ export function GameLeaderboardSection({ leaderboard, onChange }: GameLeaderboar
     setUniqueTopN(value)
     onChange({
       periodType,
-      limit: limit ? parseInt(limit) : undefined,
-      uniqueTopN: value ? parseInt(value) : undefined,
+      limit: parseIntOrUndefined(limit),
+      uniqueTopN: parseIntOrUndefined(value),
     })
   }
 
