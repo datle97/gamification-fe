@@ -30,6 +30,7 @@ import {
   useGrantTurns,
   useResetAllMissionsProgress,
   useResetMissionProgress,
+  useRewardsByGame,
   useRevokeUserReward,
   useUpdateUserAttributes,
   useUserActivities,
@@ -91,41 +92,115 @@ import {
 
 type TabValue = 'overview' | 'activity' | 'rewards' | 'missions'
 
+// Helper function to format reward list (show first few + count)
+function formatRewardList(
+  rewardIds: string[],
+  gameRewards: Array<{ rewardId: string; name: string }> | undefined,
+  maxShow: number = 2
+): string {
+  if (!rewardIds.length) return ''
+
+  const names = rewardIds
+    .map((id) => {
+      const reward = gameRewards?.find((r) => r.rewardId === id)
+      return reward?.name || id.slice(-8)
+    })
+    .slice(0, maxShow)
+
+  const remaining = rewardIds.length - maxShow
+  if (remaining > 0) {
+    return `${names.join(', ')} +${remaining} more`
+  }
+  return names.join(', ')
+}
+
 // Format condition check to human-readable text
-function formatConditionCheck(check: {
-  name: string
-  passed: boolean
-  detail?: Record<string, unknown>
-}): string {
+function formatConditionCheck(
+  check: {
+    name: string
+    passed: boolean
+    detail?: Record<string, unknown>
+  },
+  gameRewards?: Array<{ rewardId: string; name: string }>
+): { message: string; tooltip?: string } {
   const { name, passed, detail } = check
 
   switch (name) {
     case 'requiresRewards': {
       const required = detail?.required as
-        | { rewardIds?: string[]; count?: number; mode?: string }
+        | { rewardIds?: string[]; count?: number; mode?: string; excludeRewards?: string[] }
         | undefined
       const owned = (detail?.owned as string[]) || []
-      if (!required?.rewardIds?.length)
-        return passed ? 'Has required rewards' : 'Missing required rewards'
-      const mode = required.mode || 'all'
-      const count = required.count || required.rewardIds.length
-      if (mode === 'all') {
-        return passed
-          ? `Has all ${required.rewardIds.length} required rewards`
-          : `Need all ${required.rewardIds.length} rewards, has ${owned.length}`
+      const excluded = required?.excludeRewards || []
+
+      const hasRequired = required?.rewardIds?.length
+      const hasExcluded = excluded.length > 0
+
+      // Build tooltip with reward names
+      let tooltip = ''
+      if (hasRequired || hasExcluded) {
+        const parts: string[] = []
+        if (hasRequired) {
+          const rewardList = formatRewardList(required.rewardIds!, gameRewards, 10)
+          parts.push(`Required: ${rewardList}`)
+        }
+        if (hasExcluded) {
+          const excludedList = formatRewardList(excluded, gameRewards, 10)
+          parts.push(`Excluded: ${excludedList}`)
+        }
+        tooltip = parts.join('\n')
       }
-      return passed
-        ? `Has ${owned.length}/${count} required rewards`
-        : `Need ${count} rewards, has ${owned.length}`
+
+      // Build message with counts
+      let message = ''
+
+      // Required rewards part
+      if (hasRequired) {
+        const mode = required.mode || 'all'
+        const count = required.count || required.rewardIds!.length
+
+        if (mode === 'all') {
+          message = passed
+            ? `Has all ${required.rewardIds!.length} required rewards`
+            : `Requires ${required.rewardIds!.length} rewards`
+        } else {
+          message = passed
+            ? `Has ${owned.length}/${count} required rewards`
+            : `Requires ${count} rewards`
+        }
+      }
+
+      // Excluded rewards part - use "and" to connect
+      if (hasExcluded) {
+        if (hasRequired) {
+          // Has both required and excluded
+          message += ` and excludes ${excluded.length} rewards`
+        } else {
+          // Only has excluded
+          message = passed
+            ? `Excludes ${excluded.length} rewards`
+            : `Has ${excluded.length} excluded rewards`
+        }
+      }
+
+      // Fallback if no required and no excluded
+      if (!hasRequired && !hasExcluded) {
+        message = passed ? 'Has required rewards' : 'Missing required rewards'
+      }
+
+      return { message, tooltip: tooltip || undefined }
     }
 
     case 'uniqueness': {
       const maxPerUser = detail?.maxPerUser as number | undefined
       const ownedCount = (detail?.ownedCount as number) || 0
-      if (maxPerUser === undefined || maxPerUser === null) return 'No limit'
-      return passed
+      if (maxPerUser === undefined || maxPerUser === null) {
+        return { message: 'No limit' }
+      }
+      const message = passed
         ? `Limit ${maxPerUser}/user (has ${ownedCount})`
         : `Limit ${maxPerUser}/user, already has ${ownedCount}`
+      return { message }
     }
 
     case 'userAttributes': {
@@ -133,12 +208,15 @@ function formatConditionCheck(check: {
         | { field?: string; op?: string; value?: unknown }
         | undefined
       const actual = detail?.actual as Record<string, unknown> | undefined
-      if (!required?.field) return passed ? 'Attributes OK' : 'Attributes not met'
+      if (!required?.field) {
+        return { message: passed ? 'Attributes OK' : 'Attributes not met' }
+      }
       const actualValue = actual?.[required.field]
       const opText = formatOperator(required.op)
-      return passed
+      const message = passed
         ? `${required.field} = ${actualValue ?? 0} (${opText} ${required.value})`
         : `Need ${required.field} ${opText} ${required.value}, has ${actualValue ?? 0}`
+      return { message }
     }
 
     case 'clientInput': {
@@ -146,43 +224,52 @@ function formatConditionCheck(check: {
         | { field?: string; op?: string; value?: unknown }
         | undefined
       const actual = detail?.actual as Record<string, unknown> | undefined
-      if (!required?.field) return passed ? 'Input OK' : 'Input not provided'
+      if (!required?.field) {
+        return { message: passed ? 'Input OK' : 'Input not provided' }
+      }
       const actualValue = actual?.[required.field]
       const opText = formatOperator(required.op)
-      return passed
+      const message = passed
         ? `${required.field} = ${actualValue}`
         : `Need ${required.field} ${opText} ${required.value}${actualValue !== undefined ? `, got ${actualValue}` : ''}`
+      return { message }
     }
 
     case 'timeWindow': {
       const tw = detail as
         | { startDate?: string; endDate?: string; hours?: [number, number] }
         | undefined
-      if (!tw) return passed ? 'Within time window' : 'Outside time window'
+      if (!tw) {
+        return { message: passed ? 'Within time window' : 'Outside time window' }
+      }
       if (tw.hours) {
-        return passed
+        const message = passed
           ? `Active ${tw.hours[0]}:00-${tw.hours[1]}:00`
           : `Only active ${tw.hours[0]}:00-${tw.hours[1]}:00`
+        return { message }
       }
-      return passed ? 'Within time window' : 'Outside time window'
+      return { message: passed ? 'Within time window' : 'Outside time window' }
     }
 
     case 'userSegment': {
-      return passed ? 'In target segment' : 'Not in target segment'
+      return { message: passed ? 'In target segment' : 'Not in target segment' }
     }
 
     case 'leaderboardScore': {
       const required = detail?.required as { op?: string; value?: number } | undefined
       const actual = detail?.actual as number | undefined
-      if (!required) return passed ? 'Score OK' : 'Score not met'
+      if (!required) {
+        return { message: passed ? 'Score OK' : 'Score not met' }
+      }
       const opText = formatOperator(required.op)
-      return passed
+      const message = passed
         ? `Score = ${actual ?? 0} (${opText} ${required.value})`
         : `Need score ${opText} ${required.value}, has ${actual ?? 0}`
+      return { message }
     }
 
     default:
-      return name
+      return { message: name }
   }
 }
 
@@ -639,6 +726,7 @@ export function UserDetailPage() {
   const { data: rewards } = useUserRewards(gameId!, userId!)
   const { data: missions } = useUserMissions(gameId!, userId!)
   const { data: activitiesData } = useUserActivities(gameId!, userId!, 1, 200)
+  const { data: gameRewards } = useRewardsByGame(gameId!)
 
   // Admin actions
   const checkEligibility = useCheckEligibility(gameId!, userId!)
@@ -1437,9 +1525,24 @@ export function UserDetailPage() {
                                         {isAttributeCheck && (
                                           <UserCog className="h-3 w-3 text-chart-2 shrink-0" />
                                         )}
-                                        <span className="truncate">
-                                          {formatConditionCheck(check)}
-                                        </span>
+                                        {(() => {
+                                          const result = formatConditionCheck(check, gameRewards)
+                                          if (result.tooltip) {
+                                            return (
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span className="truncate cursor-help border-b border-dotted border-current">
+                                                    {result.message}
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-xs whitespace-pre-line">
+                                                  {result.tooltip}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            )
+                                          }
+                                          return <span className="truncate">{result.message}</span>
+                                        })()}
                                       </div>
                                     )
                                   })}
