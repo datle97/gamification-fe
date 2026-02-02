@@ -86,10 +86,38 @@ export const attributeUpdateSchema = z.object({
   value: z.any().optional(),
 })
 
+export const cdpEventConfigSchema = z.object({
+  ea: z.string(),
+  ec: z.string(),
+  portal_id: z.number(),
+  prop_id: z.number(),
+})
+
 export const hooksConfigSchema = z.object({
   onPlaySuccess: z
     .object({
       updateAttributes: z.union([attributeUpdateSchema, z.array(attributeUpdateSchema)]).optional(),
+    })
+    .optional(),
+  onMissionComplete: z
+    .object({
+      sendCdpEvent: cdpEventConfigSchema.optional(),
+    })
+    .optional(),
+})
+
+// Restrictions config
+export const restrictionsConfigSchema = z.object({
+  blacklist: z
+    .object({
+      phones: z.array(z.string()).optional(),
+      message: z.string().optional(),
+    })
+    .optional(),
+  whitelist: z
+    .object({
+      phones: z.array(z.string()).optional(),
+      message: z.string().optional(),
     })
     .optional(),
 })
@@ -100,6 +128,7 @@ export const gameConfigSchema = z.object({
   playScore: z.number().optional(),
   rewardSelections: z.array(rewardSelectionConfigSchema).optional(),
   hooks: hooksConfigSchema.optional(),
+  restrictions: restrictionsConfigSchema.optional(),
 })
 
 export type GameConfig = z.infer<typeof gameConfigSchema>
