@@ -172,14 +172,13 @@ function formatConditionCheck(
 
       // Excluded rewards part - use "and" to connect
       if (hasExcluded) {
+        const rewardText = excluded.length === 1 ? 'reward' : 'rewards'
         if (hasRequired) {
           // Has both required and excluded
-          message += ` and excludes ${excluded.length} rewards`
+          message += ` and excludes ${excluded.length} ${rewardText}`
         } else {
           // Only has excluded
-          message = passed
-            ? `Excludes ${excluded.length} rewards`
-            : `Has ${excluded.length} excluded rewards`
+          message = `Excludes ${excluded.length} ${rewardText}`
         }
       }
 
