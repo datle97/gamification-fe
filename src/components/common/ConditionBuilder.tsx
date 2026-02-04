@@ -73,7 +73,12 @@ export function ConditionBuilder({
     }
 
     // Array of conditions
-    return { mode: 'AND', conditions: cond }
+    if (Array.isArray(cond)) {
+      return { mode: 'AND', conditions: cond }
+    }
+
+    // Unknown format - treat as empty
+    return { mode: 'AND', conditions: [] }
   }
 
   // Denormalize from ConditionGroup to backend format

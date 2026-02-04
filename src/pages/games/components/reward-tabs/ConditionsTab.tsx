@@ -62,7 +62,15 @@ function ConditionSection({
 }: ConditionSectionProps) {
   return (
     <div className="border rounded-lg">
-      <div className="flex items-center justify-between p-4">
+      <div
+        className={`flex items-center justify-between p-4${enabled ? ' cursor-pointer' : ''}`}
+        onClick={(e) => {
+          if (!enabled) return
+          const target = e.target as HTMLElement
+          if (target.closest('button[role="checkbox"]') || target.closest('label')) return
+          onToggleExpanded()
+        }}
+      >
         <div className="flex items-center gap-2">
           <Checkbox
             id={id}
@@ -74,13 +82,9 @@ function ConditionSection({
           </Label>
         </div>
         {enabled && (
-          <button
-            type="button"
-            className="hover:bg-muted/50 rounded transition-colors p-1"
-            onClick={onToggleExpanded}
-          >
+          <div className="p-1">
             {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
+          </div>
         )}
       </div>
       {enabled && expanded && <div className="p-4 pt-0 space-y-4">{children}</div>}
@@ -640,7 +644,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
         expanded={expandedSections.userAttributes}
         onToggleEnabled={(checked) => {
           if (checked) {
-            updateConditions({ requiresUserAttributes: { and: [] } as unknown as Conditions })
+            updateConditions({ requiresUserAttributes: { mode: 'AND', conditions: [] } })
             setExpandedSections((prev) => ({ ...prev, userAttributes: true }))
           } else {
             updateConditions({ requiresUserAttributes: undefined })
@@ -665,7 +669,7 @@ export function ConditionsTab({ conditions, onChange, gameId }: ConditionsTabPro
         expanded={expandedSections.clientInput}
         onToggleEnabled={(checked) => {
           if (checked) {
-            updateConditions({ requiresClientInput: { and: [] } as unknown as Conditions })
+            updateConditions({ requiresClientInput: { mode: 'AND', conditions: [] } })
             setExpandedSections((prev) => ({ ...prev, clientInput: true }))
           } else {
             updateConditions({ requiresClientInput: undefined })
