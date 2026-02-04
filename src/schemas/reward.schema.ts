@@ -248,6 +248,14 @@ export interface NumericCondition {
   value: number
 }
 
+export type QuotaPeriod = 'day' | 'week' | 'month'
+
+export interface PeriodQuotaConfig {
+  max: number
+  period: QuotaPeriod
+  groupBy?: string
+}
+
 export interface RewardConditions {
   requiresRewards?: RequiresRewardsCondition | RequiresRewardsCondition[]
   timeWindow?: TimeWindowCondition
@@ -256,6 +264,7 @@ export interface RewardConditions {
   requiresLeaderboardScore?: NumericCondition
   requiresUserAttributes?: Conditions
   requiresClientInput?: Conditions
+  quotaPerPeriod?: PeriodQuotaConfig
   mode?: 'AND' | 'OR'
 }
 

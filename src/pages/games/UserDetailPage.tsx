@@ -267,6 +267,22 @@ function formatConditionCheck(
       return { message }
     }
 
+    case 'quotaPerPeriod': {
+      const required = detail?.required as
+        | { max?: number; period?: string; groupBy?: string }
+        | undefined
+      if (!required) {
+        return { message: passed ? 'Within quota' : 'Quota exceeded' }
+      }
+      const periodLabel =
+        required.period === 'day' ? 'day' : required.period === 'week' ? 'week' : 'month'
+      const groupSuffix = required.groupBy ? ` (by ${required.groupBy})` : ''
+      const message = passed
+        ? `Within ${required.max}/${periodLabel} limit${groupSuffix}`
+        : `Exceeded ${required.max}/${periodLabel} limit${groupSuffix}`
+      return { message }
+    }
+
     default:
       return { message: name }
   }
