@@ -92,28 +92,6 @@ import {
 
 type TabValue = 'overview' | 'activity' | 'rewards' | 'missions'
 
-// Helper function to format reward list (show first few + count)
-function formatRewardList(
-  rewardIds: string[],
-  gameRewards: Array<{ rewardId: string; name: string }> | undefined,
-  maxShow: number = 2
-): string {
-  if (!rewardIds.length) return ''
-
-  const names = rewardIds
-    .map((id) => {
-      const reward = gameRewards?.find((r) => r.rewardId === id)
-      return reward?.name || id.slice(-8)
-    })
-    .slice(0, maxShow)
-
-  const remaining = rewardIds.length - maxShow
-  if (remaining > 0) {
-    return `${names.join(', ')} +${remaining} more`
-  }
-  return names.join(', ')
-}
-
 // Format condition check to human-readable text
 function formatConditionCheck(
   check: {
@@ -134,58 +112,87 @@ function formatConditionCheck(
       const excluded = required?.excludeRewards || []
 
       const hasRequired = required?.rewardIds?.length
+      // Count how many required rewards the user actually owns (intersection)
+      const ownedSet = new Set(owned)
+      const matchedCount = hasRequired
+        ? required.rewardIds!.filter((id) => ownedSet.has(id)).length
+        : 0
       const hasExcluded = excluded.length > 0
 
-      // Build tooltip with reward names
+      // Build tooltip with reward names, mode info, and owned status
       let tooltip = ''
       if (hasRequired || hasExcluded) {
-        const parts: string[] = []
+        const tooltipParts: string[] = []
         if (hasRequired) {
-          const rewardList = formatRewardList(required.rewardIds!, gameRewards, 10)
-          parts.push(`Required: ${rewardList}`)
+          const mode = required.mode || 'all'
+          const need = required.count || required.rewardIds!.length
+          const total = required.rewardIds!.length
+          const modeLabel = mode === 'all'
+            ? `Required (all ${total}):`
+            : `Required (${need} of ${total}):`
+          const rewardLines = required.rewardIds!.slice(0, 10).map((id) => {
+            const reward = gameRewards?.find((r) => r.rewardId === id)
+            const rewardName = reward?.name || id.slice(-8)
+            const icon = ownedSet.has(id) ? '\u2713' : '\u2717'
+            return `  ${icon} ${rewardName}`
+          })
+          if (required.rewardIds!.length > 10) {
+            rewardLines.push(`  +${required.rewardIds!.length - 10} more`)
+          }
+          tooltipParts.push(`${modeLabel}\n${rewardLines.join('\n')}`)
         }
         if (hasExcluded) {
-          const excludedList = formatRewardList(excluded, gameRewards, 10)
-          parts.push(`Excluded: ${excludedList}`)
+          const excludedLines = excluded.slice(0, 10).map((id) => {
+            const reward = gameRewards?.find((r) => r.rewardId === id)
+            const rewardName = reward?.name || id.slice(-8)
+            const icon = ownedSet.has(id) ? '\u2717' : '\u2713'
+            return `  ${icon} ${rewardName}`
+          })
+          if (excluded.length > 10) {
+            excludedLines.push(`  +${excluded.length - 10} more`)
+          }
+          tooltipParts.push(`Excluded:\n${excludedLines.join('\n')}`)
         }
-        tooltip = parts.join('\n')
+        tooltip = tooltipParts.join('\n\n')
       }
 
-      // Build message with counts
-      let message = ''
+      // Build message
+      const parts: string[] = []
 
       // Required rewards part
       if (hasRequired) {
         const mode = required.mode || 'all'
-        const count = required.count || required.rewardIds!.length
+        const total = required.rewardIds!.length
+        const need = required.count || total
 
         if (mode === 'all') {
-          message = passed
-            ? `Has all ${required.rewardIds!.length} required rewards`
-            : `Requires ${required.rewardIds!.length} rewards`
+          parts.push(
+            passed
+              ? `Has all ${total} required`
+              : `Need all ${total}, has ${matchedCount}`
+          )
         } else {
-          message = passed
-            ? `Has ${owned.length}/${count} required rewards`
-            : `Requires ${count} rewards`
+          parts.push(
+            passed
+              ? `Has ${matchedCount} of ${total} (need ${need})`
+              : `Need ${need} of ${total}, has ${matchedCount}`
+          )
         }
       }
 
-      // Excluded rewards part - use "and" to connect
+      // Excluded rewards part
       if (hasExcluded) {
-        const rewardText = excluded.length === 1 ? 'reward' : 'rewards'
-        if (hasRequired) {
-          // Has both required and excluded
-          message += ` and excludes ${excluded.length} ${rewardText}`
-        } else {
-          // Only has excluded
-          message = `Excludes ${excluded.length} ${rewardText}`
-        }
+        parts.push(
+          passed
+            ? `No excluded rewards owned`
+            : `Owns ${excluded.length} excluded`
+        )
       }
 
-      // Fallback if no required and no excluded
-      if (!hasRequired && !hasExcluded) {
-        message = passed ? 'Has required rewards' : 'Missing required rewards'
-      }
+      // Fallback
+      const message = parts.length > 0
+        ? parts.join(' · ')
+        : passed ? 'Has required rewards' : 'Missing required rewards'
 
       return { message, tooltip: tooltip || undefined }
     }
@@ -1550,7 +1557,7 @@ export function UserDetailPage() {
                                                     {result.message}
                                                   </span>
                                                 </TooltipTrigger>
-                                                <TooltipContent className="max-w-xs whitespace-pre-line">
+                                                <TooltipContent className="max-w-sm whitespace-pre-line">
                                                   {result.tooltip}
                                                 </TooltipContent>
                                               </Tooltip>
