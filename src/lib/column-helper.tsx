@@ -17,6 +17,7 @@ import {
 } from '@/components/common/editable-cells'
 import { Badge } from '@/components/ui/badge'
 import type { ColumnDef } from '@tanstack/react-table'
+import type { FilterEnumOption, FilterType } from '@/lib/column-filters'
 
 type UpdateFn<T, V> = (row: T, value: V) => Promise<void>
 type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
@@ -38,6 +39,20 @@ interface EditableSelectOptions<T extends string> {
   variants?: Partial<Record<T, BadgeVariant>>
 }
 
+function filterMeta(filterType: FilterType, filterOptions?: FilterEnumOption[]) {
+  return {
+    meta: { filterType, ...(filterOptions ? { filterOptions } : {}) },
+    filterFn: 'columnFilter' as const,
+  } as const
+}
+
+function enumOptionsFromLabels<T extends string>(labels: Record<T, string>): FilterEnumOption[] {
+  return Object.entries(labels).map(([value, label]) => ({
+    value,
+    label: label as string,
+  }))
+}
+
 export function createColumnHelper<TData>() {
   return {
     // Display columns
@@ -52,6 +67,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
+      ...filterMeta('string'),
       cell: ({ row }) => {
         const rawValue = row.original[key] as string | number | null | undefined
         let value: string | number | null | undefined
@@ -75,6 +91,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
+      ...filterMeta('date'),
       cell: ({ row }) => (
         <DateCell
           value={row.original[key] as string}
@@ -91,7 +108,9 @@ export function createColumnHelper<TData>() {
       options?: { showTime?: boolean }
     ): ColumnDef<TData> => ({
       id: `${startKey}_${endKey}`,
+      accessorKey: startKey,
       header,
+      ...filterMeta('date'),
       cell: ({ row }) => (
         <DateRangeCell
           startAt={row.original[startKey] as string}
@@ -108,6 +127,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
+      ...filterMeta('string'),
       cell: ({ row }) => <LinkCell href={row.original[key] as string} label={options?.label} />,
     }),
 
@@ -121,6 +141,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
+      ...filterMeta('enum', enumOptionsFromLabels(options.labels)),
       cell: ({ row }) => (
         <BadgeCell
           value={row.original[key] as TValue}
@@ -142,6 +163,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       id,
       header,
+      ...filterMeta('string'),
       // Accessor for global filter to search primary + secondary text
       accessorFn: (row) =>
         [options.primary(row), options.secondary(row)].filter(Boolean).join(' '),
@@ -166,6 +188,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       id,
       header,
+      ...filterMeta('string'),
       // Accessor for global filter to search name + subtitle
       accessorFn: (row) =>
         [options.name(row), options.subtitle?.(row)].filter(Boolean).join(' '),
@@ -191,6 +214,7 @@ export function createColumnHelper<TData>() {
     ): ColumnDef<TData> => ({
       accessorKey: key,
       header,
+      ...filterMeta('boolean'),
       cell: ({ row }) => {
         const value = row.original[key] as boolean
         const label = value ? (options?.trueLabel ?? 'Active') : (options?.falseLabel ?? 'Inactive')
@@ -211,6 +235,7 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         accessorKey: key,
         header,
+        ...filterMeta('string'),
         cell: ({ row }) => (
           <EditableTextCell
             value={row.original[key] as string}
@@ -228,6 +253,7 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         accessorKey: key,
         header,
+        ...filterMeta('number'),
         cell: ({ row }) => (
           <EditableNumberCell
             value={row.original[key] as number | null}
@@ -247,6 +273,7 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         accessorKey: key,
         header,
+        ...filterMeta('boolean'),
         cell: ({ row }) => (
           <EditableToggleCell
             value={(row.original[key] as boolean) ?? options?.defaultValue ?? true}
@@ -263,6 +290,7 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         accessorKey: key,
         header,
+        ...filterMeta('enum', enumOptionsFromLabels(options.labels)),
         cell: ({ row }) => (
           <EditableSelectCell
             value={row.original[key] as TValue}
@@ -288,6 +316,7 @@ export function createColumnHelper<TData>() {
       ): ColumnDef<TData> => ({
         id,
         header,
+        ...filterMeta('string'),
         // Accessor for global filter to search primary + secondary text
         accessorFn: (row) =>
           [options.primary(row), options.secondary(row)].filter(Boolean).join(' '),
@@ -308,7 +337,9 @@ export function createColumnHelper<TData>() {
         options?: { showTime?: boolean }
       ): ColumnDef<TData> => ({
         id: `${startKey}_${endKey}`,
+        accessorKey: startKey,
         header,
+        ...filterMeta('date'),
         cell: ({ row }) => (
           <EditableDateRangeCell
             startAt={row.original[startKey] as string}

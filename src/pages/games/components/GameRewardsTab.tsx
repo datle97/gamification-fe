@@ -309,6 +309,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
             enableColumnVisibility
             searchPlaceholder="Search rewards..."
             enableRowSelection
+            enableColumnFilters
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => row.rewardId}

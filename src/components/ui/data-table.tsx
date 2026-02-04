@@ -23,8 +23,12 @@ import {
   Search,
   type LucideIcon,
 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 
+import {
+  ActiveFilterChips,
+  ColumnFilterPopover,
+} from '@/components/common/column-filter-popover'
 import { Checkbox } from '@/components/ui/checkbox'
 
 import { Button } from '@/components/ui/button'
@@ -43,11 +47,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  columnFilterFn,
+  columnFiltersToTanstack,
+  tanstackToColumnFilters,
+  type ColumnFilterValue,
+  type ColumnFiltersMap,
+} from '@/lib/column-filters'
 import { cn } from '@/lib/utils'
 import { useCompactTables, useTablePageSize } from '@/stores/settingsStore'
 import {
+  useSetTableColumnFilters,
   useSetTableColumnVisibility,
   useSetTableSorting,
+  useTableColumnFilters,
   useTableColumnVisibility,
   useTableSorting,
 } from '@/stores/tableStateStore'
@@ -86,6 +99,14 @@ interface DataTableBaseProps<TData> {
   enableRowSelection?: boolean
   /** Selection toolbar content - rendered when rows are selected */
   selectionActions?: (selectedCount: number) => ReactNode
+  /** Enable column-level filters */
+  enableColumnFilters?: boolean
+  /** Current column filters state */
+  columnFilters?: ColumnFiltersMap
+  /** Callback when a column filter changes */
+  onColumnFilterChange?: (columnId: string, value: ColumnFilterValue | null) => void
+  /** Callback to clear all column filters */
+  onClearAllColumnFilters?: () => void
 }
 
 // Helper to check if an item is a DataTableAction
@@ -108,14 +129,19 @@ function DataTableBase<TData>({
   actions,
   enableRowSelection = false,
   selectionActions,
+  enableColumnFilters = false,
+  columnFilters,
+  onColumnFilterChange,
+  onClearAllColumnFilters,
 }: DataTableBaseProps<TData>) {
   const compactTables = useCompactTables()
   const pageCount = table.getPageCount()
   const currentPage = table.getState().pagination.pageIndex + 1
-  const hasToolbar = enableSearch || enableColumnVisibility || actions
+  const hasToolbar = enableSearch || enableColumnVisibility || actions || enableColumnFilters
   const selectedCount = enableRowSelection
     ? Object.keys(table.getState().rowSelection ?? {}).length
     : 0
+  const activeFilterCount = columnFilters ? Object.keys(columnFilters).length : 0
 
   return (
     <div className="space-y-4">
@@ -150,6 +176,16 @@ function DataTableBase<TData>({
                 className="pl-9 w-64"
               />
             </div>
+          )}
+
+          {/* Active filter chips */}
+          {enableColumnFilters && columnFilters && activeFilterCount > 0 && onColumnFilterChange && onClearAllColumnFilters && (
+            <ActiveFilterChips
+              table={table}
+              columnFilters={columnFilters}
+              onRemove={(columnId) => onColumnFilterChange(columnId, null)}
+              onClearAll={onClearAllColumnFilters}
+            />
           )}
 
           <div className="flex-1" />
@@ -215,26 +251,57 @@ function DataTableBase<TData>({
                 {headerGroup.headers.map((header) => {
                   const canSort = enableSorting && header.column.getCanSort()
                   const sorted = header.column.getIsSorted()
+                  const hasFilter =
+                    enableColumnFilters &&
+                    onColumnFilterChange &&
+                    columnFilters &&
+                    !!header.column.columnDef.meta?.filterType
 
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn(
-                        compactTables && 'h-8 py-1 text-xs',
-                        canSort && 'cursor-pointer select-none hover:bg-muted/50'
-                      )}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                      className={cn(compactTables && 'h-8 py-1 text-xs')}
                     >
                       {header.isPlaceholder ? null : (
-                        <div className="flex items-center gap-1">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {sorted && (
-                            <span className="ml-1">
-                              {sorted === 'asc' ? (
-                                <ArrowUp className="h-4 w-4" />
-                              ) : (
-                                <ArrowDown className="h-4 w-4" />
+                        <div className="group/header flex items-center gap-1">
+                          <div
+                            className={cn(
+                              'flex items-center gap-1',
+                              canSort && 'cursor-pointer select-none hover:text-foreground'
+                            )}
+                            onClick={
+                              canSort ? header.column.getToggleSortingHandler() : undefined
+                            }
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                            {sorted && (
+                              <span className="ml-0.5">
+                                {sorted === 'asc' ? (
+                                  <ArrowUp className="h-3.5 w-3.5" />
+                                ) : (
+                                  <ArrowDown className="h-3.5 w-3.5" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Column filter popover — visible on hover, always visible when active */}
+                          {hasFilter && (
+                            <span
+                              className={cn(
+                                'relative transition-opacity',
+                                !columnFilters[header.column.id] &&
+                                  'opacity-0 group-hover/header:opacity-100'
                               )}
+                            >
+                              <ColumnFilterPopover
+                                column={header.column}
+                                columnFilters={columnFilters}
+                                onFilterChange={onColumnFilterChange}
+                              />
                             </span>
                           )}
                         </div>
@@ -366,11 +433,14 @@ interface DataTableProps<TData, TValue> {
   getRowId?: (row: TData) => string
   /** Selection toolbar content - rendered when rows are selected */
   selectionActions?: (selectedCount: number) => ReactNode
+  /** Enable column-level filters */
+  enableColumnFilters?: boolean
 }
 
 // Stable default values to prevent infinite re-renders
 const EMPTY_SORTING: SortingState = []
 const EMPTY_VISIBILITY: VisibilityState = {}
+const EMPTY_COLUMN_FILTERS: ColumnFiltersMap = {}
 
 export function DataTable<TData, TValue>({
   columns,
@@ -382,6 +452,7 @@ export function DataTable<TData, TValue>({
   enableSorting = false,
   enableColumnVisibility = false,
   enableSearch = false,
+  enableColumnFilters = false,
   searchPlaceholder,
   initialColumnVisibility = EMPTY_VISIBILITY,
   actions,
@@ -398,8 +469,10 @@ export function DataTable<TData, TValue>({
   // Persisted state from store (when tableId is provided)
   const persistedSorting = useTableSorting(tableId)
   const persistedColumnVisibility = useTableColumnVisibility(tableId)
+  const persistedColumnFilters = useTableColumnFilters(tableId)
   const setPersistedSorting = useSetTableSorting()
   const setPersistedColumnVisibility = useSetTableColumnVisibility()
+  const setPersistedColumnFilters = useSetTableColumnFilters()
 
   // Local state (fallback when tableId is not provided)
   const [localSorting, setLocalSorting] = useState<SortingState>(EMPTY_SORTING)
@@ -407,6 +480,8 @@ export function DataTable<TData, TValue>({
     useState<VisibilityState>(initialColumnVisibility)
   const [globalFilter, setGlobalFilter] = useState('')
   const [localRowSelection, setLocalRowSelection] = useState<RowSelectionState>({})
+  const [localColumnFilters, setLocalColumnFilters] =
+    useState<ColumnFiltersMap>(EMPTY_COLUMN_FILTERS)
 
   // Use persisted state if tableId is provided, otherwise use local state
   const sorting = tableId ? (persistedSorting ?? EMPTY_SORTING) : localSorting
@@ -414,6 +489,9 @@ export function DataTable<TData, TValue>({
     ? (persistedColumnVisibility ?? initialColumnVisibility)
     : localColumnVisibility
   const rowSelection = controlledRowSelection ?? localRowSelection
+  const columnFiltersMap = tableId
+    ? (persistedColumnFilters ?? EMPTY_COLUMN_FILTERS)
+    : localColumnFilters
 
   const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
     const newSorting = typeof updater === 'function' ? updater(sorting) : updater
@@ -446,6 +524,32 @@ export function DataTable<TData, TValue>({
     }
   }
 
+  // Column filter change handler
+  const handleColumnFilterChange = useCallback(
+    (columnId: string, value: ColumnFilterValue | null) => {
+      const next = { ...columnFiltersMap }
+      if (value === null) {
+        delete next[columnId]
+      } else {
+        next[columnId] = value
+      }
+      if (tableId) {
+        setPersistedColumnFilters(tableId, next)
+      } else {
+        setLocalColumnFilters(next)
+      }
+    },
+    [columnFiltersMap, tableId, setPersistedColumnFilters]
+  )
+
+  const handleClearAllColumnFilters = useCallback(() => {
+    if (tableId) {
+      setPersistedColumnFilters(tableId, {})
+    } else {
+      setLocalColumnFilters(EMPTY_COLUMN_FILTERS)
+    }
+  }, [tableId, setPersistedColumnFilters])
+
   // Prepend checkbox column when row selection is enabled
   const allColumns = useMemo(() => {
     if (!enableRowSelection) return columns
@@ -472,16 +576,27 @@ export function DataTable<TData, TValue>({
     return [selectColumn, ...columns]
   }, [columns, enableRowSelection])
 
+  // Convert our filter map to TanStack's format
+  const tanstackColumnFilters = useMemo(
+    () => (enableColumnFilters ? columnFiltersToTanstack(columnFiltersMap) : []),
+    [enableColumnFilters, columnFiltersMap]
+  )
+
+  const needsFilteredModel = enableSearch || enableColumnFilters
+
   const table = useReactTable({
     data,
     columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     ...(enableSorting ? { getSortedRowModel: getSortedRowModel() } : {}),
-    ...(enableSearch ? { getFilteredRowModel: getFilteredRowModel() } : {}),
+    ...(needsFilteredModel ? { getFilteredRowModel: getFilteredRowModel() } : {}),
     enableMultiSort: true,
     enableRowSelection,
     ...(getRowId ? { getRowId } : {}),
+    filterFns: {
+      columnFilter: columnFilterFn,
+    },
     initialState: {
       pagination: { pageIndex: 0, pageSize: effectivePageSize },
     },
@@ -489,11 +604,27 @@ export function DataTable<TData, TValue>({
       sorting,
       columnVisibility,
       globalFilter,
+      ...(enableColumnFilters ? { columnFilters: tanstackColumnFilters } : {}),
       ...(enableRowSelection ? { rowSelection } : {}),
     },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onGlobalFilterChange: setGlobalFilter,
+    ...(enableColumnFilters
+      ? {
+          onColumnFiltersChange: (updater) => {
+            const currentTanstack = tanstackColumnFilters
+            const newTanstack =
+              typeof updater === 'function' ? updater(currentTanstack) : updater
+            const newMap = tanstackToColumnFilters(newTanstack)
+            if (tableId) {
+              setPersistedColumnFilters(tableId, newMap)
+            } else {
+              setLocalColumnFilters(newMap)
+            }
+          },
+        }
+      : {}),
     ...(enableRowSelection ? { onRowSelectionChange: handleRowSelectionChange } : {}),
   })
 
@@ -513,6 +644,10 @@ export function DataTable<TData, TValue>({
       actions={actions}
       enableRowSelection={enableRowSelection}
       selectionActions={selectionActions}
+      enableColumnFilters={enableColumnFilters}
+      columnFilters={columnFiltersMap}
+      onColumnFilterChange={handleColumnFilterChange}
+      onClearAllColumnFilters={handleClearAllColumnFilters}
     />
   )
 }
@@ -555,6 +690,12 @@ interface ServerDataTableProps<TData, TValue> {
   actions?: (DataTableAction | ReactNode)[]
   /** Unique ID for persisting table state (sorting, column visibility) */
   tableId?: string
+  /** Enable column-level filters (controlled via columnFilters + onColumnFilterChange) */
+  enableColumnFilters?: boolean
+  /** Controlled column filters state */
+  columnFilters?: ColumnFiltersMap
+  /** Callback when column filters change */
+  onColumnFilterChange?: (filters: ColumnFiltersMap) => void
 }
 
 export function ServerDataTable<TData, TValue>({
@@ -574,6 +715,9 @@ export function ServerDataTable<TData, TValue>({
   initialColumnVisibility = EMPTY_VISIBILITY,
   actions,
   tableId,
+  enableColumnFilters = false,
+  columnFilters: controlledColumnFilters,
+  onColumnFilterChange: onControlledColumnFilterChange,
 }: ServerDataTableProps<TData, TValue>) {
   // Persisted state from store (when tableId is provided)
   const persistedSorting = useTableSorting(tableId)
@@ -592,6 +736,26 @@ export function ServerDataTable<TData, TValue>({
     ? (persistedColumnVisibility ?? initialColumnVisibility)
     : localColumnVisibility
 
+  const columnFiltersMap = controlledColumnFilters ?? EMPTY_COLUMN_FILTERS
+
+  const handleColumnFilterChange = useCallback(
+    (columnId: string, value: ColumnFilterValue | null) => {
+      if (!onControlledColumnFilterChange) return
+      const next = { ...columnFiltersMap }
+      if (value === null) {
+        delete next[columnId]
+      } else {
+        next[columnId] = value
+      }
+      onControlledColumnFilterChange(next)
+    },
+    [columnFiltersMap, onControlledColumnFilterChange]
+  )
+
+  const handleClearAllColumnFilters = useCallback(() => {
+    onControlledColumnFilterChange?.({})
+  }, [onControlledColumnFilterChange])
+
   const table = useReactTable({
     data,
     columns,
@@ -600,6 +764,9 @@ export function ServerDataTable<TData, TValue>({
     manualSorting: enableSorting,
     enableMultiSort: true,
     pageCount: pagination.totalPages,
+    filterFns: {
+      columnFilter: columnFilterFn,
+    },
     state: {
       sorting,
       columnVisibility,
@@ -660,6 +827,10 @@ export function ServerDataTable<TData, TValue>({
       searchValue={searchValue}
       onSearchChange={onSearchChange}
       actions={actions}
+      enableColumnFilters={enableColumnFilters}
+      columnFilters={columnFiltersMap}
+      onColumnFilterChange={handleColumnFilterChange}
+      onClearAllColumnFilters={handleClearAllColumnFilters}
     />
   )
 }

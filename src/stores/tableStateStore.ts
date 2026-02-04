@@ -1,3 +1,4 @@
+import type { ColumnFiltersMap } from '@/lib/column-filters'
 import type { SortingState, VisibilityState } from '@tanstack/react-table'
 import { create, type StateCreator } from 'zustand'
 import { createJSONStorage, persist, type PersistOptions } from 'zustand/middleware'
@@ -5,6 +6,7 @@ import { createJSONStorage, persist, type PersistOptions } from 'zustand/middlew
 interface TableState {
   sorting: SortingState
   columnVisibility: VisibilityState
+  columnFilters: ColumnFiltersMap
 }
 
 interface TableStateStore {
@@ -13,6 +15,7 @@ interface TableStateStore {
   // Actions
   setSorting: (tableId: string, sorting: SortingState) => void
   setColumnVisibility: (tableId: string, visibility: VisibilityState) => void
+  setColumnFilters: (tableId: string, filters: ColumnFiltersMap) => void
   getTableState: (tableId: string) => TableState | undefined
   clearTableState: (tableId: string) => void
 }
@@ -38,6 +41,7 @@ const storeCreator: StateCreator<TableStateStore> = (set, get) => ({
           ...state.tables[tableId],
           sorting,
           columnVisibility: state.tables[tableId]?.columnVisibility ?? {},
+          columnFilters: state.tables[tableId]?.columnFilters ?? {},
         },
       },
     })),
@@ -50,6 +54,20 @@ const storeCreator: StateCreator<TableStateStore> = (set, get) => ({
           ...state.tables[tableId],
           sorting: state.tables[tableId]?.sorting ?? [],
           columnVisibility: visibility,
+          columnFilters: state.tables[tableId]?.columnFilters ?? {},
+        },
+      },
+    })),
+
+  setColumnFilters: (tableId, filters) =>
+    set((state) => ({
+      tables: {
+        ...state.tables,
+        [tableId]: {
+          ...state.tables[tableId],
+          sorting: state.tables[tableId]?.sorting ?? [],
+          columnVisibility: state.tables[tableId]?.columnVisibility ?? {},
+          columnFilters: filters,
         },
       },
     })),
@@ -74,7 +92,13 @@ export const useTableSorting = (tableId: string | undefined) =>
 export const useTableColumnVisibility = (tableId: string | undefined) =>
   useTableStateStore((state) => (tableId ? state.tables[tableId]?.columnVisibility : undefined))
 
+export const useTableColumnFilters = (tableId: string | undefined) =>
+  useTableStateStore((state) => (tableId ? state.tables[tableId]?.columnFilters : undefined))
+
 export const useSetTableSorting = () => useTableStateStore((state) => state.setSorting)
 
 export const useSetTableColumnVisibility = () =>
   useTableStateStore((state) => state.setColumnVisibility)
+
+export const useSetTableColumnFilters = () =>
+  useTableStateStore((state) => state.setColumnFilters)
