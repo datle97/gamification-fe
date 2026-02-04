@@ -6,6 +6,7 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type RowSelectionState,
   type SortingState,
   type Table as TanstackTable,
   type VisibilityState,
@@ -22,7 +23,9 @@ import {
   Search,
   type LucideIcon,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+
+import { Checkbox } from '@/components/ui/checkbox'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -79,6 +82,10 @@ interface DataTableBaseProps<TData> {
   onSearchChange?: (value: string) => void
   /** Actions to render in the toolbar - array of button configs or custom ReactNodes */
   actions?: (DataTableAction | ReactNode)[]
+  /** Enable row selection with checkboxes */
+  enableRowSelection?: boolean
+  /** Selection toolbar content - rendered when rows are selected */
+  selectionActions?: (selectedCount: number) => ReactNode
 }
 
 // Helper to check if an item is a DataTableAction
@@ -99,14 +106,36 @@ function DataTableBase<TData>({
   searchValue = '',
   onSearchChange,
   actions,
+  enableRowSelection = false,
+  selectionActions,
 }: DataTableBaseProps<TData>) {
   const compactTables = useCompactTables()
   const pageCount = table.getPageCount()
   const currentPage = table.getState().pagination.pageIndex + 1
   const hasToolbar = enableSearch || enableColumnVisibility || actions
+  const selectedCount = enableRowSelection
+    ? Object.keys(table.getState().rowSelection ?? {}).length
+    : 0
 
   return (
     <div className="space-y-4">
+      {/* Selection toolbar */}
+      {enableRowSelection && selectedCount > 0 && selectionActions && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 border border-primary/20 rounded-lg">
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex-1" />
+          {selectionActions(selectedCount)}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => table.resetRowSelection()}
+            className="text-xs"
+          >
+            Clear selection
+          </Button>
+        </div>
+      )}
+
       {/* Toolbar */}
       {hasToolbar && (
         <div className="flex items-center justify-between gap-2">
@@ -327,6 +356,16 @@ interface DataTableProps<TData, TValue> {
   initialColumnVisibility?: VisibilityState
   /** Actions to render in the toolbar (e.g., create button) */
   actions?: (DataTableAction | ReactNode)[]
+  /** Enable row selection with checkboxes */
+  enableRowSelection?: boolean
+  /** Controlled row selection state */
+  rowSelection?: RowSelectionState
+  /** Callback when row selection changes */
+  onRowSelectionChange?: (state: RowSelectionState) => void
+  /** Custom row ID accessor (defaults to row index) */
+  getRowId?: (row: TData) => string
+  /** Selection toolbar content - rendered when rows are selected */
+  selectionActions?: (selectedCount: number) => ReactNode
 }
 
 // Stable default values to prevent infinite re-renders
@@ -347,6 +386,11 @@ export function DataTable<TData, TValue>({
   initialColumnVisibility = EMPTY_VISIBILITY,
   actions,
   tableId,
+  enableRowSelection = false,
+  rowSelection: controlledRowSelection,
+  onRowSelectionChange,
+  getRowId,
+  selectionActions,
 }: DataTableProps<TData, TValue>) {
   const defaultPageSize = useTablePageSize()
   const effectivePageSize = pageSize ?? defaultPageSize
@@ -362,12 +406,14 @@ export function DataTable<TData, TValue>({
   const [localColumnVisibility, setLocalColumnVisibility] =
     useState<VisibilityState>(initialColumnVisibility)
   const [globalFilter, setGlobalFilter] = useState('')
+  const [localRowSelection, setLocalRowSelection] = useState<RowSelectionState>({})
 
   // Use persisted state if tableId is provided, otherwise use local state
   const sorting = tableId ? (persistedSorting ?? EMPTY_SORTING) : localSorting
   const columnVisibility = tableId
     ? (persistedColumnVisibility ?? initialColumnVisibility)
     : localColumnVisibility
+  const rowSelection = controlledRowSelection ?? localRowSelection
 
   const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
     const newSorting = typeof updater === 'function' ? updater(sorting) : updater
@@ -389,14 +435,53 @@ export function DataTable<TData, TValue>({
     }
   }
 
+  const handleRowSelectionChange = (
+    updater: RowSelectionState | ((old: RowSelectionState) => RowSelectionState)
+  ) => {
+    const newSelection = typeof updater === 'function' ? updater(rowSelection) : updater
+    if (onRowSelectionChange) {
+      onRowSelectionChange(newSelection)
+    } else {
+      setLocalRowSelection(newSelection)
+    }
+  }
+
+  // Prepend checkbox column when row selection is enabled
+  const allColumns = useMemo(() => {
+    if (!enableRowSelection) return columns
+    const selectColumn: ColumnDef<TData, TValue> = {
+      id: '_select',
+      header: ({ table: t }) => (
+        <Checkbox
+          checked={t.getIsAllPageRowsSelected()}
+          onCheckedChange={(checked) => t.toggleAllPageRowsSelected(!!checked)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    }
+    return [selectColumn, ...columns]
+  }, [columns, enableRowSelection])
+
   const table = useReactTable({
     data,
-    columns,
+    columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     ...(enableSorting ? { getSortedRowModel: getSortedRowModel() } : {}),
     ...(enableSearch ? { getFilteredRowModel: getFilteredRowModel() } : {}),
     enableMultiSort: true,
+    enableRowSelection,
+    ...(getRowId ? { getRowId } : {}),
     initialState: {
       pagination: { pageIndex: 0, pageSize: effectivePageSize },
     },
@@ -404,16 +489,18 @@ export function DataTable<TData, TValue>({
       sorting,
       columnVisibility,
       globalFilter,
+      ...(enableRowSelection ? { rowSelection } : {}),
     },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onGlobalFilterChange: setGlobalFilter,
+    ...(enableRowSelection ? { onRowSelectionChange: handleRowSelectionChange } : {}),
   })
 
   return (
     <DataTableBase
       table={table}
-      columns={columns as ColumnDef<TData, unknown>[]}
+      columns={allColumns as ColumnDef<TData, unknown>[]}
       loading={loading}
       emptyMessage={emptyMessage}
       onRowClick={onRowClick}
@@ -424,6 +511,8 @@ export function DataTable<TData, TValue>({
       searchValue={globalFilter}
       onSearchChange={setGlobalFilter}
       actions={actions}
+      enableRowSelection={enableRowSelection}
+      selectionActions={selectionActions}
     />
   )
 }

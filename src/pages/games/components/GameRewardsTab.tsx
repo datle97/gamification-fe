@@ -41,9 +41,11 @@ import {
   type Reward,
   type RewardCategory,
 } from '@/schemas/reward.schema'
+import type { RowSelectionState } from '@tanstack/react-table'
 import { useAnalytics } from '@/stores/settingsStore'
-import { Loader2, Plus, Sliders } from 'lucide-react'
+import { Loader2, Pencil, Plus, Power, PowerOff, Sliders } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { BulkEditRewardsDialog } from './BulkEditRewardsDialog'
 import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
 import { AdvancedTab } from './reward-tabs/AdvancedTab'
 import { BasicTab } from './reward-tabs/BasicTab'
@@ -113,6 +115,14 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
   const [activeTab, setActiveTab] = useState('basic')
   const [probabilityDialogOpen, setProbabilityDialogOpen] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const [bulkEditOpen, setBulkEditOpen] = useState(false)
+
+  // Compute selected rewards from row selection state
+  const selectedRewards = useMemo(
+    () => rewards.filter((r) => rowSelection[r.rewardId]),
+    [rewards, rowSelection]
+  )
 
   // Track unsaved changes
   const { isDirty } = useUnsavedChanges({
@@ -298,6 +308,58 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
             enableSearch
             enableColumnVisibility
             searchPlaceholder="Search rewards..."
+            enableRowSelection
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+            getRowId={(row) => row.rewardId}
+            selectionActions={() => (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    await batchUpdateRewards.mutateAsync({
+                      gameId,
+                      updates: selectedRewards.map((r) => ({
+                        rewardId: r.rewardId,
+                        data: { isActive: true },
+                      })),
+                    })
+                    setRowSelection({})
+                  }}
+                  disabled={batchUpdateRewards.isPending}
+                >
+                  <Power className="h-4 w-4 mr-1.5" />
+                  Activate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    await batchUpdateRewards.mutateAsync({
+                      gameId,
+                      updates: selectedRewards.map((r) => ({
+                        rewardId: r.rewardId,
+                        data: { isActive: false },
+                      })),
+                    })
+                    setRowSelection({})
+                  }}
+                  disabled={batchUpdateRewards.isPending}
+                >
+                  <PowerOff className="h-4 w-4 mr-1.5" />
+                  Deactivate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBulkEditOpen(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-1.5" />
+                  Bulk Edit
+                </Button>
+              </>
+            )}
             actions={[
               {
                 label: 'Manage Probabilities',
@@ -460,6 +522,17 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
           </DialogFooter>
         </UnsavedChangesDialogContent>
       </UnsavedChangesDialog>
+
+      <BulkEditRewardsDialog
+        open={bulkEditOpen}
+        onOpenChange={setBulkEditOpen}
+        selectedRewards={selectedRewards}
+        gameId={gameId}
+        onApply={async (updates) => {
+          await batchUpdateRewards.mutateAsync({ gameId, updates })
+          setRowSelection({})
+        }}
+      />
 
       <ProbabilityManagerDialog
         open={probabilityDialogOpen}
