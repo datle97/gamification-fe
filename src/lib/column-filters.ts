@@ -30,11 +30,11 @@ export type NumberOperator =
   | 'is_empty'
   | 'is_not_empty'
 
-export type DateOperator = 'is' | 'is_before' | 'is_after' | 'is_between'
+export type DateOperator = 'is' | 'is_before' | 'is_after' | 'is_between' | 'is_empty' | 'is_not_empty'
 
-export type EnumOperator = 'is' | 'is_not' | 'is_any_of'
+export type EnumOperator = 'is' | 'is_not' | 'is_empty' | 'is_not_empty'
 
-export type BooleanOperator = 'is_true' | 'is_false'
+export type BooleanOperator = 'is_true' | 'is_false' | 'is_empty' | 'is_not_empty'
 
 export type FilterOperator =
   | StringOperator
@@ -65,7 +65,6 @@ export const operatorLabels: Record<FilterOperator, string> = {
   is_before: 'is before',
   is_after: 'is after',
   is_between: 'is between',
-  is_any_of: 'is any of',
   is_true: 'is true',
   is_false: 'is false',
 }
@@ -89,9 +88,9 @@ export const operatorsByType: Record<FilterType, FilterOperator[]> = {
     'is_not_empty',
   ],
   number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
-  date: ['is', 'is_before', 'is_after', 'is_between'],
-  enum: ['is', 'is_not', 'is_any_of'],
-  boolean: ['is_true', 'is_false'],
+  date: ['is', 'is_before', 'is_after', 'is_between', 'is_empty', 'is_not_empty'],
+  enum: ['is', 'is_not', 'is_empty', 'is_not_empty'],
+  boolean: ['is_true', 'is_false', 'is_empty', 'is_not_empty'],
 }
 
 // ============================================================================
@@ -147,10 +146,14 @@ export const columnFilterFn: FilterFn<unknown> = (row, columnId, filterValue: Co
   if (operator === 'is_true') return cellValue === true
   if (operator === 'is_false') return cellValue === false
 
+  // Multi-select is / is_not (used by both string and enum)
+  if ((operator === 'is' || operator === 'is_not') && Array.isArray(value)) {
+    const match = value.length === 0 || value.includes(String(cellValue))
+    return operator === 'is' ? match : !match
+  }
+
   // String operators
   const stringOps: FilterOperator[] = [
-    'is',
-    'is_not',
     'contains',
     'does_not_contain',
     'starts_with',
@@ -161,10 +164,6 @@ export const columnFilterFn: FilterFn<unknown> = (row, columnId, filterValue: Co
     const filterStr = String(value ?? '').toLowerCase()
 
     switch (operator) {
-      case 'is':
-        return cellStr === filterStr
-      case 'is_not':
-        return cellStr !== filterStr
       case 'contains':
         return cellStr.includes(filterStr)
       case 'does_not_contain':
@@ -220,11 +219,6 @@ export const columnFilterFn: FilterFn<unknown> = (row, columnId, filterValue: Co
         )
       }
     }
-  }
-
-  // Enum: is_any_of
-  if (operator === 'is_any_of' && Array.isArray(value)) {
-    return value.includes(String(cellValue))
   }
 
   return true

@@ -84,6 +84,26 @@ export function createColumnHelper<TData>() {
       },
     }),
 
+    number: <TKey extends keyof TData & string>(
+      key: TKey,
+      header: string,
+      options?: {
+        variant?: TextVariant
+        format?: (value: number | null | undefined) => string
+      }
+    ): ColumnDef<TData> => ({
+      accessorKey: key,
+      header,
+      ...filterMeta('number'),
+      cell: ({ row }) => {
+        const rawValue = row.original[key] as number | null | undefined
+        const displayValue = options?.format && rawValue != null ? options.format(rawValue) : rawValue
+        return (
+          <TextCell value={displayValue} className={textVariantStyles[options?.variant ?? 'tabular']} />
+        )
+      },
+    }),
+
     date: <TKey extends keyof TData & string>(
       key: TKey,
       header: string,

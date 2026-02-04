@@ -1,6 +1,7 @@
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -178,16 +179,6 @@ function DataTableBase<TData>({
             </div>
           )}
 
-          {/* Active filter chips */}
-          {enableColumnFilters && columnFilters && activeFilterCount > 0 && onColumnFilterChange && onClearAllColumnFilters && (
-            <ActiveFilterChips
-              table={table}
-              columnFilters={columnFilters}
-              onRemove={(columnId) => onColumnFilterChange(columnId, null)}
-              onClearAll={onClearAllColumnFilters}
-            />
-          )}
-
           <div className="flex-1" />
 
           {/* Column Visibility */}
@@ -241,6 +232,16 @@ function DataTableBase<TData>({
             )
           )}
         </div>
+      )}
+
+      {/* Active filter chips — separate row below toolbar */}
+      {enableColumnFilters && columnFilters && activeFilterCount > 0 && onColumnFilterChange && onClearAllColumnFilters && (
+        <ActiveFilterChips
+          table={table}
+          columnFilters={columnFilters}
+          onFilterChange={onColumnFilterChange}
+          onClearAll={onClearAllColumnFilters}
+        />
       )}
 
       <div className="rounded-md border">
@@ -591,6 +592,7 @@ export function DataTable<TData, TValue>({
     getPaginationRowModel: getPaginationRowModel(),
     ...(enableSorting ? { getSortedRowModel: getSortedRowModel() } : {}),
     ...(needsFilteredModel ? { getFilteredRowModel: getFilteredRowModel() } : {}),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     enableMultiSort: true,
     enableRowSelection,
     ...(getRowId ? { getRowId } : {}),

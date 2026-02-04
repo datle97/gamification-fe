@@ -155,7 +155,7 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         (row, value) => handleInlineUpdate(row, 'probability', value),
         { min: 0, max: 100 }
       ),
-      columnHelper.text('quotaUsed', 'Used', { variant: 'tabular' }),
+      columnHelper.number('quotaUsed', 'Used'),
       columnHelper.editable.number(
         'quota',
         'Quota',
