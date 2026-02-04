@@ -35,12 +35,6 @@ const pageTitles: Record<string, string> = {
   '/settings': 'Settings',
 }
 
-// Truncate long strings for display
-function truncateStr(str: string, maxLength = 20): string {
-  if (str.length <= maxLength) return str
-  return `${str.slice(0, maxLength - 3)}...`
-}
-
 // Check if string looks like a UUID or long hash
 function isLongId(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str) || str.length > 32
@@ -166,11 +160,11 @@ function useBreadcrumbs(pathname: string): BreadcrumbData[] {
           title = entityResolver.getDisplayName(entityData) || null
           fullTitle = entityResolver.getFullName(entityData)
 
-          // Truncate if too long
-          if (title && title.length > 20) {
-            fullTitle = fullTitle || title
-            title = truncateStr(title)
-          }
+          // // Truncate if too long
+          // if (title && title.length > 20) {
+          //   fullTitle = fullTitle || title
+          //   title = truncateStr(title)
+          // }
         } else {
           // Regular segment - capitalize
           title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ')
