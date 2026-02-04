@@ -15,8 +15,9 @@ import {
   EditableTextCell,
   EditableToggleCell,
 } from '@/components/common/editable-cells'
+import { RowActions, type RowActionItems } from '@/components/common/row-actions'
 import { Badge } from '@/components/ui/badge'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { CellContext, ColumnDef } from '@tanstack/react-table'
 import type { FilterEnumOption, FilterType } from '@/lib/column-filters'
 
 type UpdateFn<T, V> = (row: T, value: V) => Promise<void>
@@ -380,6 +381,18 @@ export function createColumnHelper<TData>() {
       accessorKey: key,
       header,
       cell,
+    }),
+
+    // Action menu column (⋮)
+    actions: (
+      getItems: (ctx: CellContext<TData, unknown>) => RowActionItems
+    ): ColumnDef<TData> => ({
+      id: '_actions',
+      header: '',
+      size: 48,
+      enableSorting: false,
+      enableHiding: false,
+      cell: (ctx) => <RowActions items={getItems(ctx)} />,
     }),
   }
 }

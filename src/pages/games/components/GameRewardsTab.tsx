@@ -43,7 +43,7 @@ import {
 } from '@/schemas/reward.schema'
 import type { RowSelectionState } from '@tanstack/react-table'
 import { useAnalytics } from '@/stores/settingsStore'
-import { Loader2, Pencil, Plus, Power, PowerOff, Sliders } from 'lucide-react'
+import { Copy, Loader2, Pencil, Plus, Power, PowerOff, Sliders, SquarePen, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { BulkEditRewardsDialog } from './BulkEditRewardsDialog'
 import { ProbabilityManagerDialog } from './ProbabilityManagerDialog'
@@ -141,39 +141,85 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
     [gameId, updateReward]
   )
 
-  const columns = useMemo(
-    () => [
-      columnHelper.text('name', 'Name', { variant: 'primary' }),
-      columnHelper.badge('rewardType', 'Category', { labels: rewardCategoryLabels }),
-      columnHelper.badge('handlerType', 'Handler', {
-        labels: handlerTypeLabels,
-        variants: { api: 'outline', script: 'outline' },
-      }),
-      columnHelper.editable.number(
-        'probability',
-        'Probability',
-        (row, value) => handleInlineUpdate(row, 'probability', value),
-        { min: 0, max: 100 }
-      ),
-      columnHelper.number('quotaUsed', 'Used'),
-      columnHelper.editable.number(
-        'quota',
-        'Quota',
-        (row, value) => handleInlineUpdate(row, 'quota', value),
-        { min: 0 }
-      ),
-      columnHelper.editable.number(
-        'displayOrder',
-        'Order',
-        (row, value) => handleInlineUpdate(row, 'displayOrder', value),
-        { min: 0 }
-      ),
-      columnHelper.editable.toggle('isActive', 'Active', (row, value) =>
-        handleInlineUpdate(row, 'isActive', value)
-      ),
-    ],
-    [handleInlineUpdate]
+  const handleDuplicate = useCallback(
+    (reward: Reward) => {
+      const duplicateFormData: FormData = {
+        name: `Copy of ${reward.name}`,
+        description: reward.description || '',
+        imageUrl: reward.imageUrl || '',
+        rewardType: reward.rewardType || '',
+        handlerType: reward.handlerType,
+        probability: reward.probability,
+        quota: reward.quota ?? null,
+        displayOrder: reward.displayOrder,
+        isActive: false,
+        fallbackRewardId: reward.fallbackRewardId || '',
+        config: reward.config || { type: 'system' },
+        conditions: reward.conditions ? JSON.stringify(reward.conditions, null, 2) : '',
+        shareConfig: reward.shareConfig ? JSON.stringify(reward.shareConfig, null, 2) : '',
+        expirationConfig: reward.expirationConfig || null,
+        metadata: reward.metadata ? JSON.stringify(reward.metadata, null, 2) : '',
+      }
+      setDialogMode('create')
+      setSelectedReward(null)
+      setFormData(duplicateFormData)
+      setDialogInitialData(duplicateFormData)
+      setActiveTab('basic')
+    },
+    []
   )
+
+  const handleDeleteFromMenu = useCallback(
+    (reward: Reward) => {
+      setSelectedReward(reward)
+      setShowDeleteDialog(true)
+    },
+    []
+  )
+
+  const columns = [
+    columnHelper.text('name', 'Name', { variant: 'primary' }),
+    columnHelper.badge('rewardType', 'Category', { labels: rewardCategoryLabels }),
+    columnHelper.badge('handlerType', 'Handler', {
+      labels: handlerTypeLabels,
+      variants: { api: 'outline', script: 'outline' },
+    }),
+    columnHelper.editable.number(
+      'probability',
+      'Probability',
+      (row, value) => handleInlineUpdate(row, 'probability', value),
+      { min: 0, max: 100 }
+    ),
+    columnHelper.number('quotaUsed', 'Used'),
+    columnHelper.editable.number(
+      'quota',
+      'Quota',
+      (row, value) => handleInlineUpdate(row, 'quota', value),
+      { min: 0 }
+    ),
+    columnHelper.editable.number(
+      'displayOrder',
+      'Order',
+      (row, value) => handleInlineUpdate(row, 'displayOrder', value),
+      { min: 0 }
+    ),
+    columnHelper.status('isActive', 'Status'),
+    columnHelper.actions(({ row }) => {
+      const reward = row.original
+      return [
+        { label: 'Edit', icon: SquarePen, onClick: () => handleRowClick(reward) },
+        { label: 'Duplicate', icon: Copy, onClick: () => handleDuplicate(reward) },
+        'separator',
+        {
+          label: reward.isActive ? 'Deactivate' : 'Activate',
+          icon: reward.isActive ? PowerOff : Power,
+          onClick: () => handleInlineUpdate(reward, 'isActive', !reward.isActive),
+        },
+        'separator',
+        { label: 'Delete', icon: Trash2, onClick: () => handleDeleteFromMenu(reward), variant: 'destructive' },
+      ]
+    }),
+  ]
 
   const handleOpenCreate = () => {
     setDialogMode('create')
@@ -500,16 +546,6 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
           </Tabs>
 
           <DialogFooter className="px-6 pb-6 flex-row gap-2">
-            {!isCreate && (
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isPending}
-                className="mr-auto"
-              >
-                Delete
-              </Button>
-            )}
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>

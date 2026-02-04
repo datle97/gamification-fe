@@ -57,8 +57,8 @@ import {
 } from '@/schemas/mission.schema'
 import type { ExpirationConfig } from '@/schemas/reward.schema'
 import dayjs from 'dayjs'
-import { Loader2, Plus } from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { Copy, Loader2, Plus, Power, PowerOff, SquarePen, Trash2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
 
 const missionTypes: MissionType[] = ['single', 'count', 'streak', 'cumulative']
 const missionPeriods: MissionPeriod[] = [
@@ -212,24 +212,66 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
     [gameId, updateMission]
   )
 
-  const columns = useMemo(
-    () => [
-      columnHelper.text('name', 'Name', { variant: 'primary' }),
-      columnHelper.badge('triggerEvent', 'Trigger', {
-        labels: triggerEventLabels,
-      }),
-      columnHelper.badge('missionType', 'Type', {
-        labels: missionTypeLabels,
-      }),
-      columnHelper.text('rewardValue', 'Reward', {
-        render: (row) => `${row.rewardValue} ${row.rewardType}`,
-      }),
-      columnHelper.editable.toggle('isActive', 'Active', (row, value) =>
-        handleInlineUpdate(row, 'isActive', value)
-      ),
-    ],
-    [handleInlineUpdate]
-  )
+  const handleDuplicate = useCallback((mission: Mission) => {
+    const duplicateFormData: FormData = {
+      code: '',
+      name: `Copy of ${mission.name}`,
+      description: mission.description || '',
+      imageUrl: mission.imageUrl || '',
+      triggerEvent: mission.triggerEvent,
+      missionType: mission.missionType,
+      missionPeriod: mission.missionPeriod,
+      targetValue: mission.targetValue,
+      maxCompletions: mission.maxCompletions ?? null,
+      rewardType: mission.rewardType,
+      rewardValue: mission.rewardValue,
+      displayOrder: mission.displayOrder,
+      startDate: mission.startDate || null,
+      endDate: mission.endDate || null,
+      isActive: false,
+      allowFeTrigger: mission.allowFeTrigger ?? true,
+      conditions: mission.conditions ? JSON.stringify(mission.conditions, null, 2) : '',
+      rewardExpirationConfig: mission.rewardExpirationConfig || null,
+    }
+    setSheetMode('create')
+    setSelectedMission(null)
+    setFormData(duplicateFormData)
+    setSheetInitialData(duplicateFormData)
+  }, [])
+
+  const handleDeleteFromMenu = useCallback((mission: Mission) => {
+    setSelectedMission(mission)
+    setShowDeleteDialog(true)
+  }, [])
+
+  const columns = [
+    columnHelper.text('name', 'Name', { variant: 'primary' }),
+    columnHelper.badge('triggerEvent', 'Trigger', {
+      labels: triggerEventLabels,
+    }),
+    columnHelper.badge('missionType', 'Type', {
+      labels: missionTypeLabels,
+    }),
+    columnHelper.text('rewardValue', 'Reward', {
+      render: (row) => `${row.rewardValue} ${row.rewardType}`,
+    }),
+    columnHelper.status('isActive', 'Status'),
+    columnHelper.actions(({ row }) => {
+      const mission = row.original
+      return [
+        { label: 'Edit', icon: SquarePen, onClick: () => handleRowClick(mission) },
+        { label: 'Duplicate', icon: Copy, onClick: () => handleDuplicate(mission) },
+        'separator',
+        {
+          label: mission.isActive ? 'Deactivate' : 'Activate',
+          icon: mission.isActive ? PowerOff : Power,
+          onClick: () => handleInlineUpdate(mission, 'isActive', !mission.isActive),
+        },
+        'separator',
+        { label: 'Delete', icon: Trash2, onClick: () => handleDeleteFromMenu(mission), variant: 'destructive' },
+      ]
+    }),
+  ]
 
   const handleOpenCreate = () => {
     setSheetMode('create')
@@ -713,16 +755,6 @@ export function GameMissionsTab({ gameId }: GameMissionsTabProps) {
             )}
           </div>
           <SheetFooter className="flex-row gap-2">
-            {!isCreate && (
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isPending}
-                className="mr-auto"
-              >
-                Delete
-              </Button>
-            )}
             <SheetClose asChild>
               <Button variant="outline">Cancel</Button>
             </SheetClose>
