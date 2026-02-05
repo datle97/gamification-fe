@@ -1,5 +1,6 @@
 import { ExpirationEditor } from '@/components/common/ExpirationEditor'
 import {
+  DialogBody,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -231,9 +232,7 @@ export function BulkEditRewardsDialog({
 
   return (
     <UnsavedChangesDialog open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
-      <UnsavedChangesDialogContent
-        className={'max-w-6xl! w-[95vw] max-h-[85vh] flex flex-col top-[5%] translate-y-0'}
-      >
+      <UnsavedChangesDialogContent>
         <DialogHeader>
           <DialogTitle>Bulk Edit {selectedRewards.length} Rewards</DialogTitle>
           <DialogDescription>
@@ -241,7 +240,7 @@ export function BulkEditRewardsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <DialogBody className="space-y-4">
           {/* Selected rewards summary */}
           <div className="p-3 bg-muted/30 rounded-lg">
             <p className="text-xs font-medium text-muted-foreground mb-2">Selected rewards:</p>
@@ -300,9 +299,9 @@ export function BulkEditRewardsDialog({
               </ul>
             </div>
           )}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t">
+        <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>

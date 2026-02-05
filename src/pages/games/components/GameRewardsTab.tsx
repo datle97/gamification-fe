@@ -1,6 +1,7 @@
 import { AnalyticsDisabledCard } from '@/components/common/AnalyticsDisabledCard'
 import { ExpirationEditor } from '@/components/common/ExpirationEditor'
 import {
+  DialogBody,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -431,8 +432,8 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
         onOpenChange={(open) => !open && handleClose()}
         isDirty={isDirty}
       >
-        <UnsavedChangesDialogContent className="max-w-6xl! w-[95vw] max-h-[90vh] flex flex-col p-0 top-[5%] translate-y-0">
-          <DialogHeader className="px-6 pt-6">
+        <UnsavedChangesDialogContent>
+          <DialogHeader>
             <DialogTitle>
               {isCreate ? 'Create Reward' : `Edit: ${selectedReward?.name}`}
             </DialogTitle>
@@ -443,11 +444,12 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex-1 flex flex-col overflow-hidden"
-          >
+          <DialogBody className="px-0">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="flex-1 flex flex-col overflow-hidden"
+            >
             <div className="px-6">
               <TabsList className="grid grid-cols-6 w-full h-auto">
                 <TabsTrigger value="basic" className="data-[state=active]:border-b-2">
@@ -543,9 +545,10 @@ export function GameRewardsTab({ gameId }: GameRewardsTabProps) {
                 />
               </TabsContent>
             </div>
-          </Tabs>
+            </Tabs>
+          </DialogBody>
 
-          <DialogFooter className="px-6 pb-6 flex-row gap-2">
+          <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>

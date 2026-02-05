@@ -1,4 +1,5 @@
 import {
+  DialogBody,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -189,9 +190,7 @@ export function ProbabilityManagerDialog({
 
   return (
     <UnsavedChangesDialog open={open} onOpenChange={onOpenChange} isDirty={isDirty}>
-      <UnsavedChangesDialogContent
-        className="max-w-7xl! max-h-[85vh] flex flex-col top-[5%] translate-y-0"
-      >
+      <UnsavedChangesDialogContent className="max-w-7xl!">
         <DialogHeader>
           <DialogTitle>Manage Probabilities</DialogTitle>
           <DialogDescription>
@@ -201,7 +200,7 @@ export function ProbabilityManagerDialog({
         </DialogHeader>
 
         {/* 2-Column Layout */}
-        <div className="flex-1 flex gap-6 min-h-0 px-6">
+        <DialogBody className="flex-row gap-6">
           {/* Left Column - Rewards List */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Search */}
@@ -368,9 +367,9 @@ export function ProbabilityManagerDialog({
               </Button>
             </div>
           </div>
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t">
+        <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Cancel</Button>
           </DialogClose>
