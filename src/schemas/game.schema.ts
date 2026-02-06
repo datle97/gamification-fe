@@ -15,8 +15,12 @@ export const periodTypeEnum = z.enum([
   'daily',
   'weekly',
   'weekly_mon',
-  'weekly_sun',
+  'weekly_tue',
+  'weekly_wed',
+  'weekly_thu',
   'weekly_fri',
+  'weekly_sat',
+  'weekly_sun',
   'monthly',
   'all_time',
 ])
@@ -55,10 +59,14 @@ export const gameStatusVariants: Record<
 
 export const periodTypeLabels: Record<PeriodType, string> = {
   daily: 'Daily',
-  weekly: 'Weekly (Monday start)',
-  weekly_mon: 'Weekly (Monday start)',
-  weekly_sun: 'Weekly (Sunday start)',
-  weekly_fri: 'Weekly (Friday start)',
+  weekly: 'Weekly (Mon - Sun)',
+  weekly_mon: 'Weekly (Mon - Sun)',
+  weekly_tue: 'Weekly (Tue - Mon)',
+  weekly_wed: 'Weekly (Wed - Tue)',
+  weekly_thu: 'Weekly (Thu - Wed)',
+  weekly_fri: 'Weekly (Fri - Thu)',
+  weekly_sat: 'Weekly (Sat - Fri)',
+  weekly_sun: 'Weekly (Sun - Sat)',
   monthly: 'Monthly',
   all_time: 'All-Time',
 }

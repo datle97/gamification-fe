@@ -95,8 +95,12 @@ export function GameLeaderboardSection({ leaderboard, onChange }: GameLeaderboar
               <SelectContent>
                 <SelectItem value="daily">{periodTypeLabels.daily}</SelectItem>
                 <SelectItem value="weekly_mon">{periodTypeLabels.weekly_mon}</SelectItem>
-                <SelectItem value="weekly_sun">{periodTypeLabels.weekly_sun}</SelectItem>
+                <SelectItem value="weekly_tue">{periodTypeLabels.weekly_tue}</SelectItem>
+                <SelectItem value="weekly_wed">{periodTypeLabels.weekly_wed}</SelectItem>
+                <SelectItem value="weekly_thu">{periodTypeLabels.weekly_thu}</SelectItem>
                 <SelectItem value="weekly_fri">{periodTypeLabels.weekly_fri}</SelectItem>
+                <SelectItem value="weekly_sat">{periodTypeLabels.weekly_sat}</SelectItem>
+                <SelectItem value="weekly_sun">{periodTypeLabels.weekly_sun}</SelectItem>
                 <SelectItem value="monthly">{periodTypeLabels.monthly}</SelectItem>
                 <SelectItem value="all_time">{periodTypeLabels.all_time}</SelectItem>
               </SelectContent>
