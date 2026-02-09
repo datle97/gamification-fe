@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const sdkClientSchema = z.object({
+export const apiClientSchema = z.object({
   clientId: z.string(),
   name: z.string().min(1, 'Name is required'),
   appId: z.string(),
@@ -10,28 +10,28 @@ export const sdkClientSchema = z.object({
   isActive: z.boolean().default(true),
 })
 
-export const createSdkClientSchema = sdkClientSchema.pick({
+export const createApiClientSchema = apiClientSchema.pick({
   name: true,
   appId: true,
   description: true,
   metadata: true,
 })
 
-export const updateSdkClientSchema = z.object({
+export const updateApiClientSchema = z.object({
   name: z.string().max(255).optional(),
   description: z.string().max(500).optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   isActive: z.boolean().optional(),
 })
 
-export type SdkClient = z.infer<typeof sdkClientSchema> & {
+export type ApiClient = z.infer<typeof apiClientSchema> & {
   createdAt: string
   updatedAt: string
 }
 
-export type CreateSdkClientInput = z.infer<typeof createSdkClientSchema>
-export type UpdateSdkClientInput = z.infer<typeof updateSdkClientSchema>
+export type CreateApiClientInput = z.infer<typeof createApiClientSchema>
+export type UpdateApiClientInput = z.infer<typeof updateApiClientSchema>
 
-export interface SdkClientWithApiKey extends SdkClient {
+export interface ApiClientWithApiKey extends ApiClient {
   apiKey: string
 }

@@ -34,8 +34,8 @@ const SettingsPage = lazy(() =>
 const PortalsPage = lazy(() =>
   import('@/pages/portals/PortalsPage').then((m) => ({ default: m.PortalsPage }))
 )
-const SdkClientsPage = lazy(() =>
-  import('@/pages/sdk-clients/SdkClientsPage').then((m) => ({ default: m.SdkClientsPage }))
+const ApiClientsPage = lazy(() =>
+  import('@/pages/api-clients/ApiClientsPage').then((m) => ({ default: m.ApiClientsPage }))
 )
 
 function App() {
@@ -63,7 +63,7 @@ function App() {
                 <Route path="/apps" element={<AppsPage />} />
                 <Route path="/apps/:appId" element={<AppDetailPage />} />
                 <Route path="/portals" element={<PortalsPage />} />
-                <Route path="/sdk-clients" element={<SdkClientsPage />} />
+                <Route path="/api-clients" element={<ApiClientsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>

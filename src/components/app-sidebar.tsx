@@ -18,7 +18,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Games', href: '/games', icon: Gamepad2 },
   { name: 'Apps', href: '/apps', icon: LayoutGrid },
-  { name: 'SDK Clients', href: '/sdk-clients', icon: Key },
+  { name: 'API Clients', href: '/api-clients', icon: Key },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

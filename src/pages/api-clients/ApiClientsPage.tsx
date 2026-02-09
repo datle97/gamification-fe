@@ -33,20 +33,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  useCreateSdkClient,
-  useDeleteSdkClient,
-  useRotateSdkClientApiKey,
-  useSdkClients,
-  useUpdateSdkClient,
-} from '@/hooks/queries/useSdkClients'
+  useCreateApiClient,
+  useDeleteApiClient,
+  useRotateApiClientApiKey,
+  useApiClients,
+  useUpdateApiClient,
+} from '@/hooks/queries/useApiClients'
 import { useApps } from '@/hooks/queries'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
-import type { CreateSdkClientInput, SdkClient } from '@/schemas/sdkClient.schema'
+import type { CreateApiClientInput, ApiClient } from '@/schemas/apiClient.schema'
 import { AlertTriangle, Check, Copy, Key, Loader2, Plus, Power, PowerOff, RefreshCw, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
-const columnHelper = createColumnHelper<SdkClient>()
+const columnHelper = createColumnHelper<ApiClient>()
 
 interface FormData {
   clientId: string
@@ -66,13 +66,13 @@ const initialFormData: FormData = {
 
 type SheetMode = 'create' | 'edit'
 
-export function SdkClientsPage() {
-  const { data: clients = [], isLoading, error } = useSdkClients()
+export function ApiClientsPage() {
+  const { data: clients = [], isLoading, error } = useApiClients()
   const { data: apps = [] } = useApps()
-  const createClient = useCreateSdkClient()
-  const updateClient = useUpdateSdkClient()
-  const deleteClient = useDeleteSdkClient()
-  const rotateKey = useRotateSdkClientApiKey()
+  const createClient = useCreateApiClient()
+  const updateClient = useUpdateApiClient()
+  const deleteClient = useDeleteApiClient()
+  const rotateKey = useRotateApiClientApiKey()
 
   const appNameMap = useMemo(
     () => new Map(apps.map((a) => [a.appId, a.name])),
@@ -91,11 +91,11 @@ export function SdkClientsPage() {
 
   // Delete confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [clientToDelete, setClientToDelete] = useState<SdkClient | null>(null)
+  const [clientToDelete, setClientToDelete] = useState<ApiClient | null>(null)
 
   // Rotate key confirmation state
   const [rotateConfirmOpen, setRotateConfirmOpen] = useState(false)
-  const [clientToRotate, setClientToRotate] = useState<SdkClient | null>(null)
+  const [clientToRotate, setClientToRotate] = useState<ApiClient | null>(null)
 
   const { isDirty } = useUnsavedChanges({
     data: formData,
@@ -103,7 +103,7 @@ export function SdkClientsPage() {
   })
 
   const handleUpdate = useCallback(
-    async (row: SdkClient, field: keyof SdkClient, value: string | number | boolean | null) => {
+    async (row: ApiClient, field: keyof ApiClient, value: string | number | boolean | null) => {
       await updateClient.mutateAsync({
         id: row.clientId,
         data: { [field]: value },
@@ -112,7 +112,7 @@ export function SdkClientsPage() {
     [updateClient]
   )
 
-  const handleOpenEdit = useCallback((client: SdkClient) => {
+  const handleOpenEdit = useCallback((client: ApiClient) => {
     const editFormData: FormData = {
       clientId: client.clientId,
       name: client.name,
@@ -126,7 +126,7 @@ export function SdkClientsPage() {
     setSheetOpen(true)
   }, [])
 
-  const handleOpenDelete = useCallback((client: SdkClient) => {
+  const handleOpenDelete = useCallback((client: ApiClient) => {
     setClientToDelete(client)
     setDeleteConfirmOpen(true)
   }, [])
@@ -138,7 +138,7 @@ export function SdkClientsPage() {
     setClientToDelete(null)
   }
 
-  const handleOpenRotate = useCallback((client: SdkClient) => {
+  const handleOpenRotate = useCallback((client: ApiClient) => {
     setClientToRotate(client)
     setRotateConfirmOpen(true)
   }, [])
@@ -216,7 +216,7 @@ export function SdkClientsPage() {
         appId: formData.appId,
         description: formData.description,
         metadata,
-      } as CreateSdkClientInput)
+      } as CreateApiClientInput)
 
       handleClose()
       setDisplayedApiKey(result.apiKey)
@@ -253,7 +253,7 @@ export function SdkClientsPage() {
     return (
       <Card>
         <CardContent className="p-8 text-center text-destructive">
-          Failed to load SDK clients: {error.message}
+          Failed to load API clients: {error.message}
         </CardContent>
       </Card>
     )
@@ -263,18 +263,18 @@ export function SdkClientsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>SDK Clients</CardTitle>
+          <CardTitle>API Clients</CardTitle>
           <CardDescription>
-            Manage external clients that integrate with your gamification platform via SDK
+            Manage external clients that integrate with your gamification platform via API
           </CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
-            tableId="sdk-clients-list"
+            tableId="api-clients-list"
             columns={columns}
             data={clients}
             loading={isLoading}
-            emptyMessage="No SDK clients yet. Create your first client."
+            emptyMessage="No API clients yet. Create your first client."
             enableSorting
             enableSearch
             searchPlaceholder="Search clients..."
@@ -298,11 +298,11 @@ export function SdkClientsPage() {
       >
         <UnsavedChangesSheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{isEditing ? 'Edit SDK Client' : 'Create SDK Client'}</SheetTitle>
+            <SheetTitle>{isEditing ? 'Edit API Client' : 'Create API Client'}</SheetTitle>
             <SheetDescription>
               {isEditing
                 ? 'Update client configuration'
-                : 'Create a new SDK client for external integration'}
+                : 'Create a new API client for external integration'}
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
@@ -426,7 +426,7 @@ export function SdkClientsPage() {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete SDK Client</AlertDialogTitle>
+            <AlertDialogTitle>Delete API Client</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{clientToDelete?.name}</strong>? This action
               cannot be undone and will invalidate all existing API keys.
