@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const sdkClientSchema = z.object({
   clientId: z.string(),
   name: z.string().min(1, 'Name is required'),
-  portalId: z.coerce.number().int(),
+  appId: z.string(),
   apiKeyPrefix: z.string().optional(),
   description: z.string().max(500).optional(),
   metadata: z.record(z.string(), z.any()).optional(),
@@ -12,7 +12,7 @@ export const sdkClientSchema = z.object({
 
 export const createSdkClientSchema = sdkClientSchema.pick({
   name: true,
-  portalId: true,
+  appId: true,
   description: true,
   metadata: true,
 })

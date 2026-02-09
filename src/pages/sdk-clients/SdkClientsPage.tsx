@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PortalSelect } from '@/components/common/PortalSelect'
+import { AppSelect } from '@/components/common/AppSelect'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
@@ -39,6 +39,7 @@ import {
   useSdkClients,
   useUpdateSdkClient,
 } from '@/hooks/queries/useSdkClients'
+import { useApps } from '@/hooks/queries'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { CreateSdkClientInput, SdkClient } from '@/schemas/sdkClient.schema'
@@ -50,7 +51,7 @@ const columnHelper = createColumnHelper<SdkClient>()
 interface FormData {
   clientId: string
   name: string
-  portalId: number
+  appId: string
   description: string
   metadata: string
 }
@@ -58,7 +59,7 @@ interface FormData {
 const initialFormData: FormData = {
   clientId: '',
   name: '',
-  portalId: 0,
+  appId: '',
   description: '',
   metadata: '{}',
 }
@@ -67,10 +68,16 @@ type SheetMode = 'create' | 'edit'
 
 export function SdkClientsPage() {
   const { data: clients = [], isLoading, error } = useSdkClients()
+  const { data: apps = [] } = useApps()
   const createClient = useCreateSdkClient()
   const updateClient = useUpdateSdkClient()
   const deleteClient = useDeleteSdkClient()
   const rotateKey = useRotateSdkClientApiKey()
+
+  const appNameMap = useMemo(
+    () => new Map(apps.map((a) => [a.appId, a.name])),
+    [apps]
+  )
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetMode, setSheetMode] = useState<SheetMode>('create')
@@ -109,7 +116,7 @@ export function SdkClientsPage() {
     const editFormData: FormData = {
       clientId: client.clientId,
       name: client.name,
-      portalId: client.portalId,
+      appId: client.appId,
       description: client.description ?? '',
       metadata: JSON.stringify(client.metadata ?? {}, null, 2),
     }
@@ -152,8 +159,10 @@ export function SdkClientsPage() {
         secondary: (row) => row.apiKeyPrefix ? `${row.apiKeyPrefix}...` : row.clientId,
         onClick: handleOpenEdit,
       }),
-      columnHelper.custom('portalId', 'Portal ID', ({ row }) => (
-        <span className="text-muted-foreground">{row.original.portalId}</span>
+      columnHelper.custom('appId', 'App', ({ row }) => (
+        <span className="text-muted-foreground">
+          {appNameMap.get(row.original.appId) ?? row.original.appId}
+        </span>
       )),
       columnHelper.date('createdAt', 'Created'),
       columnHelper.status('isActive', 'Status'),
@@ -176,7 +185,7 @@ export function SdkClientsPage() {
         },
       ]),
     ],
-    [handleUpdate, handleOpenEdit, handleOpenDelete, handleOpenRotate]
+    [handleUpdate, handleOpenEdit, handleOpenDelete, handleOpenRotate, appNameMap]
   )
 
   const handleOpenCreate = () => {
@@ -204,7 +213,7 @@ export function SdkClientsPage() {
     if (sheetMode === 'create') {
       const result = await createClient.mutateAsync({
         name: formData.name,
-        portalId: formData.portalId,
+        appId: formData.appId,
         description: formData.description,
         metadata,
       } as CreateSdkClientInput)
@@ -333,10 +342,10 @@ export function SdkClientsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Portal</Label>
-              <PortalSelect
-                value={formData.portalId}
-                onChange={(portalId) => setFormData({ ...formData, portalId })}
+              <Label>App</Label>
+              <AppSelect
+                value={formData.appId}
+                onChange={(appId) => setFormData({ ...formData, appId })}
               />
             </div>
 
