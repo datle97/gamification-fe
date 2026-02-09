@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { Building2, Gamepad2, Key, LayoutDashboard, LayoutGrid, Link2, Settings } from 'lucide-react'
+import { Gamepad2, Key, LayoutDashboard, LayoutGrid, Link2, Settings } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
 
 const navigation = [
@@ -19,7 +19,7 @@ const navigation = [
   { name: 'Games', href: '/games', icon: Gamepad2 },
   { name: 'Apps', href: '/apps', icon: LayoutGrid },
   { name: 'App Games', href: '/app-games', icon: Link2 },
-  { name: 'Portals', href: '/portals', icon: Building2 },
+
   { name: 'SDK Clients', href: '/sdk-clients', icon: Key },
 ]
 

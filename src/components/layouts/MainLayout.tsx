@@ -32,7 +32,6 @@ const pageTitles: Record<string, string> = {
   '/apps/new': 'New App',
   '/app-games': 'App Games',
   '/app-games/new': 'Link Game',
-  '/portals': 'Portals',
   '/sdk-clients': 'SDK Clients',
   '/settings': 'Settings',
 }
