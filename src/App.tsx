@@ -25,8 +25,8 @@ const UserDetailPage = lazy(() =>
 const AppsPage = lazy(() =>
   import('@/pages/apps/AppsPage').then((m) => ({ default: m.AppsPage }))
 )
-const AppGamesPage = lazy(() =>
-  import('@/pages/app-games/AppGamesPage').then((m) => ({ default: m.AppGamesPage }))
+const AppDetailPage = lazy(() =>
+  import('@/pages/apps/AppDetailPage').then((m) => ({ default: m.AppDetailPage }))
 )
 const SettingsPage = lazy(() =>
   import('@/pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage }))
@@ -61,7 +61,7 @@ function App() {
                 <Route path="/games/:gameId" element={<GameDetailPage />} />
                 <Route path="/games/:gameId/users/:userId" element={<UserDetailPage />} />
                 <Route path="/apps" element={<AppsPage />} />
-                <Route path="/app-games" element={<AppGamesPage />} />
+                <Route path="/apps/:appId" element={<AppDetailPage />} />
                 <Route path="/portals" element={<PortalsPage />} />
                 <Route path="/sdk-clients" element={<SdkClientsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />

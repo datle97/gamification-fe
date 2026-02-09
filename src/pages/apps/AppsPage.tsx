@@ -7,7 +7,6 @@ import {
   UnsavedChangesSheet,
   UnsavedChangesSheetContent,
 } from '@/components/common/unsaved-changes-sheet'
-import { PortalSelect } from '@/components/common/PortalSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/ui/data-table'
@@ -20,6 +19,7 @@ import { createColumnHelper } from '@/lib/column-helper'
 import type { App, CreateAppInput } from '@/schemas/app.schema'
 import { Loader2, Plus } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router'
 
 const columnHelper = createColumnHelper<App>()
 
@@ -27,7 +27,6 @@ interface FormData {
   appId: string
   name: string
   description: string
-  portalId: number
   config: string
   metadata: string
 }
@@ -36,24 +35,20 @@ const initialFormData: FormData = {
   appId: '',
   name: '',
   description: '',
-  portalId: 0,
   config: '{}',
   metadata: '{}',
 }
-
-type SheetMode = 'create' | 'edit'
 
 export function AppsPage() {
   const { data: apps = [], isLoading, error } = useApps()
   const createApp = useCreateApp()
   const updateApp = useUpdateApp()
+  const navigate = useNavigate()
 
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [sheetMode, setSheetMode] = useState<SheetMode>('create')
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
 
-  // Track unsaved changes
   const { isDirty } = useUnsavedChanges({
     data: formData,
     initialData: sheetOpen ? sheetInitialData : undefined,
@@ -69,48 +64,24 @@ export function AppsPage() {
     [updateApp]
   )
 
-  const handleOpenEdit = useCallback((app: App) => {
-    const editFormData: FormData = {
-      appId: app.appId,
-      name: app.name,
-      description: app.description ?? '',
-      portalId: app.portalId,
-      config: JSON.stringify(app.config ?? {}, null, 2),
-      metadata: JSON.stringify(app.metadata ?? {}, null, 2),
-    }
-    setFormData(editFormData)
-    setSheetInitialData(editFormData)
-    setSheetMode('edit')
-    setSheetOpen(true)
-  }, [])
-
   const columns = useMemo(
     () => [
       columnHelper.stacked('app', 'App', {
         primary: (row) => row.name,
         secondary: (row) => row.appId,
-        onClick: handleOpenEdit,
+        onClick: (app) => navigate(`/apps/${app.appId}`),
       }),
-      columnHelper.editable.number(
-        'portalId',
-        'Portal ID',
-        (row, value) => handleUpdate(row, 'portalId', value),
-        {
-          min: 0,
-        }
-      ),
       columnHelper.date('createdAt', 'Created'),
       columnHelper.editable.toggle('isActive', 'Status', (row, value) =>
         handleUpdate(row, 'isActive', value)
       ),
     ],
-    [handleUpdate, handleOpenEdit]
+    [handleUpdate, navigate]
   )
 
   const handleOpenCreate = () => {
     setFormData(initialFormData)
     setSheetInitialData(initialFormData)
-    setSheetMode('create')
     setSheetOpen(true)
   }
 
@@ -135,33 +106,16 @@ export function AppsPage() {
       // Invalid JSON, keep empty object
     }
 
-    if (sheetMode === 'create') {
-      await createApp.mutateAsync({
-        appId: formData.appId,
-        name: formData.name,
-        description: formData.description,
-        portalId: formData.portalId,
-        config,
-        metadata,
-      } as CreateAppInput)
-    } else {
-      await updateApp.mutateAsync({
-        id: formData.appId,
-        data: {
-          name: formData.name,
-          description: formData.description,
-          portalId: formData.portalId,
-          config,
-          metadata,
-        },
-      })
-    }
+    await createApp.mutateAsync({
+      appId: formData.appId,
+      name: formData.name,
+      description: formData.description,
+      config,
+      metadata,
+    } as CreateAppInput)
 
     handleClose()
   }
-
-  const isEditing = sheetMode === 'edit'
-  const isSaving = createApp.isPending || updateApp.isPending
 
   if (error) {
     return (
@@ -209,10 +163,8 @@ export function AppsPage() {
       >
         <UnsavedChangesSheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{isEditing ? 'Edit App' : 'Create App'}</SheetTitle>
-            <SheetDescription>
-              {isEditing ? 'Update app details' : 'Create a new app to link games to'}
-            </SheetDescription>
+            <SheetTitle>Create App</SheetTitle>
+            <SheetDescription>Create a new app to link games to</SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
             <div className="space-y-2">
@@ -225,7 +177,6 @@ export function AppsPage() {
                 value={formData.appId}
                 onChange={(e) => setFormData({ ...formData, appId: e.target.value })}
                 className="font-mono"
-                disabled={isEditing}
               />
               <p className="text-xs text-muted-foreground">Unique identifier for the app</p>
             </div>
@@ -248,13 +199,6 @@ export function AppsPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="min-h-20"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Portal</Label>
-              <PortalSelect
-                value={formData.portalId}
-                onChange={(portalId) => setFormData({ ...formData, portalId })}
               />
             </div>
             <div className="space-y-2">
@@ -282,9 +226,9 @@ export function AppsPage() {
             <SheetClose asChild>
               <Button variant="outline">Cancel</Button>
             </SheetClose>
-            <Button onClick={handleSave} disabled={!formData.appId || !formData.name || isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Create App'}
+            <Button onClick={handleSave} disabled={!formData.appId || !formData.name || createApp.isPending}>
+              {createApp.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create App
             </Button>
           </SheetFooter>
         </UnsavedChangesSheetContent>

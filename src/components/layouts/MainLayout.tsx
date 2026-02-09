@@ -30,8 +30,6 @@ const pageTitles: Record<string, string> = {
   '/games/new': 'New Game',
   '/apps': 'Apps',
   '/apps/new': 'New App',
-  '/app-games': 'App Games',
-  '/app-games/new': 'Link Game',
   '/sdk-clients': 'SDK Clients',
   '/settings': 'Settings',
 }
@@ -50,6 +48,8 @@ const entityResolvers: Record<
     isLoading: (loading: { game: boolean; app: boolean; user: boolean }) => boolean
     // Optional: custom href for the parent "list" segment (e.g., "users" -> game?tab=users)
     parentHref?: (segments: string[], index: number) => string | undefined
+    // Optional: custom ID detection (for short IDs like appId)
+    isId?: (segment: string) => boolean
   }
 > = {
   games: {
@@ -61,6 +61,7 @@ const entityResolvers: Record<
     getDisplayName: ({ app }) => app?.name,
     getFullName: () => undefined,
     isLoading: ({ app }) => app,
+    isId: (segment) => !['new'].includes(segment),
   },
   users: {
     getDisplayName: ({ user }) => user?.user?.displayName || user?.user?.phone,
@@ -88,8 +89,12 @@ function parsePathIds(pathname: string): Record<string, string> {
     const segment = segments[i]
     const prevSegment = segments[i - 1]
 
-    if (prevSegment && isLongId(segment) && entityResolvers[prevSegment]) {
-      ids[prevSegment] = segment
+    if (prevSegment && entityResolvers[prevSegment]) {
+      const resolver = entityResolvers[prevSegment]
+      const matchesId = resolver.isId ? resolver.isId(segment) : isLongId(segment)
+      if (matchesId) {
+        ids[prevSegment] = segment
+      }
     }
   }
 
@@ -145,28 +150,27 @@ function useBreadcrumbs(pathname: string): BreadcrumbData[] {
       let fullTitle: string | undefined
 
       if (!title) {
-        if (isLongId(segment) && prevSegment && entityResolvers[prevSegment]) {
+        if (prevSegment && entityResolvers[prevSegment]) {
           const entityResolver = entityResolvers[prevSegment]
+          const matchesId = entityResolver.isId ? entityResolver.isId(segment) : isLongId(segment)
 
-          // Check if loading
-          if (entityResolver.isLoading(loadingState)) {
-            breadcrumbs.push({
-              label: null, // Loading state
-              href: isLast ? undefined : currentPath,
-            })
-            continue
+          if (matchesId) {
+            // Check if loading
+            if (entityResolver.isLoading(loadingState)) {
+              breadcrumbs.push({
+                label: null, // Loading state
+                href: isLast ? undefined : currentPath,
+              })
+              continue
+            }
+
+            // Get display name from entity data
+            title = entityResolver.getDisplayName(entityData) || null
+            fullTitle = entityResolver.getFullName(entityData)
           }
+        }
 
-          // Get display name from entity data
-          title = entityResolver.getDisplayName(entityData) || null
-          fullTitle = entityResolver.getFullName(entityData)
-
-          // // Truncate if too long
-          // if (title && title.length > 20) {
-          //   fullTitle = fullTitle || title
-          //   title = truncateStr(title)
-          // }
-        } else {
+        if (!title) {
           // Regular segment - capitalize
           title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ')
         }
