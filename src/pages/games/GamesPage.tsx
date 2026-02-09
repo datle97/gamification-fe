@@ -63,6 +63,7 @@ interface FormData {
   name: string
   type?: GameType
   description: string
+  iconUrl: string
   templateUrl: string
   status: GameStatus
   startAt: string | null
@@ -75,6 +76,7 @@ const initialFormData: FormData = {
   name: '',
   type: undefined,
   description: '',
+  iconUrl: '',
   templateUrl: '',
   status: 'draft',
   startAt: null,
@@ -423,6 +425,15 @@ export function GamesPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="iconUrl">Icon URL</Label>
+              <Input
+                id="iconUrl"
+                placeholder="https://..."
+                value={formData.iconUrl}
+                onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="templateUrl">Template URL</Label>
               <Input
                 id="templateUrl"
@@ -430,7 +441,6 @@ export function GamesPage() {
                 value={formData.templateUrl}
                 onChange={(e) => setFormData({ ...formData, templateUrl: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">URL to the game render template</p>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>

@@ -151,6 +151,7 @@ export const gameSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: gameTypeEnum.optional(),
   description: z.string().optional(),
+  iconUrl: z.string().url().optional().or(z.literal('')),
   templateUrl: z.string().url().optional().or(z.literal('')),
   status: gameStatusEnum.default('draft'),
   startAt: z.string().nullable().optional(),

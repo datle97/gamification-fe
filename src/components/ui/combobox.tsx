@@ -63,7 +63,7 @@ export function Combobox({
     !options.some((opt) => opt.value === inputValue || opt.label === inputValue)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -99,13 +99,13 @@ export function Combobox({
                     setInputValue('')
                   }}
                 >
+                  {renderOption ? renderOption(option) : <span>{option.label}</span>}
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4',
+                      'ml-auto h-4 w-4',
                       value === option.value ? 'opacity-100' : 'opacity-0'
                     )}
                   />
-                  {renderOption ? renderOption(option) : <span>{option.label}</span>}
                 </CommandItem>
               ))}
               {showCustomOption && (
@@ -118,10 +118,10 @@ export function Combobox({
                   }}
                   className="text-muted-foreground"
                 >
-                  <Check className="mr-2 h-4 w-4 opacity-0" />
                   <span>
                     Use "<span className="font-mono text-foreground">{inputValue}</span>"
                   </span>
+                  <Check className="ml-auto h-4 w-4 opacity-0" />
                 </CommandItem>
               )}
             </CommandGroup>

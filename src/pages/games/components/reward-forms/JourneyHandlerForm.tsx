@@ -1,3 +1,4 @@
+import { PortalSelect } from '@/components/common/PortalSelect'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -73,15 +74,12 @@ export function JourneyHandlerForm({ config, onChange }: JourneyHandlerFormProps
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="portal_id">
-            Portal ID <span className="text-destructive">*</span>
+          <Label>
+            Portal <span className="text-destructive">*</span>
           </Label>
-          <Input
-            id="portal_id"
-            type="number"
-            placeholder="e.g., 1"
-            value={config.portalId || ''}
-            onChange={(e) => updateConfig('portalId', parseInt(e.target.value) || 0)}
+          <PortalSelect
+            value={config.portalId || 0}
+            onChange={(portalId) => updateConfig('portalId', portalId)}
           />
         </div>
       </div>

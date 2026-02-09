@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PortalSelect } from '@/components/common/PortalSelect'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
@@ -155,6 +156,7 @@ export function SdkClientsPage() {
         <span className="text-muted-foreground">{row.original.portalId}</span>
       )),
       columnHelper.date('createdAt', 'Created'),
+      columnHelper.status('isActive', 'Status'),
       columnHelper.actions(({ row }) => [
         {
           label: row.original.isActive ? 'Deactivate' : 'Activate',
@@ -331,15 +333,10 @@ export function SdkClientsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="portalId">Portal ID</Label>
-              <Input
-                id="portalId"
-                type="number"
-                placeholder="0"
-                value={formData.portalId || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, portalId: parseInt(e.target.value) || 0 })
-                }
+              <Label>Portal</Label>
+              <PortalSelect
+                value={formData.portalId}
+                onChange={(portalId) => setFormData({ ...formData, portalId })}
               />
             </div>
 

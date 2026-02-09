@@ -38,6 +38,7 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
     name: game.name,
     type: game.type,
     description: game.description || '',
+    iconUrl: game.iconUrl || '',
     templateUrl: game.templateUrl || '',
     status: game.status || 'draft',
     startAt: game.startAt || null,
@@ -68,6 +69,7 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
         name: formData.name,
         type: formData.type,
         description: formData.description,
+        iconUrl: formData.iconUrl,
         templateUrl: formData.templateUrl,
         status: formData.status,
         startAt: formData.startAt,
@@ -82,6 +84,7 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
     formData.name !== game.name ||
     formData.type !== game.type ||
     formData.description !== (game.description || '') ||
+    formData.iconUrl !== (game.iconUrl || '') ||
     formData.templateUrl !== (game.templateUrl || '') ||
     formData.status !== (game.status || 'draft') ||
     formData.startAt !== (game.startAt || null) ||
@@ -171,15 +174,25 @@ export function GameInfoTab({ game }: GameInfoTabProps) {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="templateUrl">Template URL</Label>
-          <Input
-            id="templateUrl"
-            placeholder="https://..."
-            value={formData.templateUrl}
-            onChange={(e) => setFormData({ ...formData, templateUrl: e.target.value })}
-          />
-          <p className="text-xs text-muted-foreground">URL to the game render template</p>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="iconUrl">Icon URL</Label>
+            <Input
+              id="iconUrl"
+              placeholder="https://..."
+              value={formData.iconUrl}
+              onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="templateUrl">Template URL</Label>
+            <Input
+              id="templateUrl"
+              placeholder="https://..."
+              value={formData.templateUrl}
+              onChange={(e) => setFormData({ ...formData, templateUrl: e.target.value })}
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
