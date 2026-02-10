@@ -11,14 +11,13 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { Gamepad2, Key, LayoutDashboard, LayoutGrid, Settings } from 'lucide-react'
+import { Gamepad2, LayoutDashboard, LayoutGrid, Settings } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Games', href: '/games', icon: Gamepad2 },
   { name: 'Apps', href: '/apps', icon: LayoutGrid },
-  { name: 'API Clients', href: '/api-clients', icon: Key },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AppSelect } from '@/components/common/AppSelect'
 import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
@@ -39,7 +38,6 @@ import {
   useApiClients,
   useUpdateApiClient,
 } from '@/hooks/queries/useApiClients'
-import { useApps } from '@/hooks/queries'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { CreateApiClientInput, ApiClient } from '@/schemas/apiClient.schema'
@@ -51,7 +49,6 @@ const columnHelper = createColumnHelper<ApiClient>()
 interface FormData {
   clientId: string
   name: string
-  appId: string
   description: string
   metadata: string
 }
@@ -59,24 +56,26 @@ interface FormData {
 const initialFormData: FormData = {
   clientId: '',
   name: '',
-  appId: '',
   description: '',
   metadata: '{}',
 }
 
 type SheetMode = 'create' | 'edit'
 
-export function ApiClientsPage() {
-  const { data: clients = [], isLoading, error } = useApiClients()
-  const { data: apps = [] } = useApps()
+interface AppApiClientsTabProps {
+  appId: string
+}
+
+export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
+  const { data: allClients = [], isLoading } = useApiClients()
   const createClient = useCreateApiClient()
   const updateClient = useUpdateApiClient()
   const deleteClient = useDeleteApiClient()
   const rotateKey = useRotateApiClientApiKey()
 
-  const appNameMap = useMemo(
-    () => new Map(apps.map((a) => [a.appId, a.name])),
-    [apps]
+  const clients = useMemo(
+    () => allClients.filter((c) => c.appId === appId),
+    [allClients, appId]
   )
 
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -116,7 +115,6 @@ export function ApiClientsPage() {
     const editFormData: FormData = {
       clientId: client.clientId,
       name: client.name,
-      appId: client.appId,
       description: client.description ?? '',
       metadata: JSON.stringify(client.metadata ?? {}, null, 2),
     }
@@ -159,11 +157,6 @@ export function ApiClientsPage() {
         secondary: (row) => row.apiKeyPrefix ? `${row.apiKeyPrefix}...` : row.clientId,
         onClick: handleOpenEdit,
       }),
-      columnHelper.custom('appId', 'App', ({ row }) => (
-        <span className="text-muted-foreground">
-          {appNameMap.get(row.original.appId) ?? row.original.appId}
-        </span>
-      )),
       columnHelper.date('createdAt', 'Created'),
       columnHelper.status('isActive', 'Status'),
       columnHelper.actions(({ row }) => [
@@ -185,7 +178,7 @@ export function ApiClientsPage() {
         },
       ]),
     ],
-    [handleUpdate, handleOpenEdit, handleOpenDelete, handleOpenRotate, appNameMap]
+    [handleUpdate, handleOpenEdit, handleOpenDelete, handleOpenRotate]
   )
 
   const handleOpenCreate = () => {
@@ -213,7 +206,7 @@ export function ApiClientsPage() {
     if (sheetMode === 'create') {
       const result = await createClient.mutateAsync({
         name: formData.name,
-        appId: formData.appId,
+        appId,
         description: formData.description,
         metadata,
       } as CreateApiClientInput)
@@ -249,28 +242,18 @@ export function ApiClientsPage() {
   const isEditing = sheetMode === 'edit'
   const isSaving = createClient.isPending || updateClient.isPending
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center text-destructive">
-          Failed to load API clients: {error.message}
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <div className="space-y-6">
+    <>
       <Card>
         <CardHeader>
           <CardTitle>API Clients</CardTitle>
           <CardDescription>
-            Manage external clients that integrate with your gamification platform via API
+            Manage API clients for this app
           </CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
-            tableId="api-clients-list"
+            tableId={`api-clients-${appId}`}
             columns={columns}
             data={clients}
             loading={isLoading}
@@ -302,7 +285,7 @@ export function ApiClientsPage() {
             <SheetDescription>
               {isEditing
                 ? 'Update client configuration'
-                : 'Create a new API client for external integration'}
+                : 'Create a new API client for this app'}
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
@@ -338,14 +321,6 @@ export function ApiClientsPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="min-h-16"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>App</Label>
-              <AppSelect
-                value={formData.appId}
-                onChange={(appId) => setFormData({ ...formData, appId })}
               />
             </div>
 
@@ -464,6 +439,6 @@ export function ApiClientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   )
 }

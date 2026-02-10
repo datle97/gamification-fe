@@ -34,9 +34,6 @@ const SettingsPage = lazy(() =>
 const PortalsPage = lazy(() =>
   import('@/pages/portals/PortalsPage').then((m) => ({ default: m.PortalsPage }))
 )
-const ApiClientsPage = lazy(() =>
-  import('@/pages/api-clients/ApiClientsPage').then((m) => ({ default: m.ApiClientsPage }))
-)
 
 function App() {
   return (
@@ -63,7 +60,6 @@ function App() {
                 <Route path="/apps" element={<AppsPage />} />
                 <Route path="/apps/:appId" element={<AppDetailPage />} />
                 <Route path="/portals" element={<PortalsPage />} />
-                <Route path="/api-clients" element={<ApiClientsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
