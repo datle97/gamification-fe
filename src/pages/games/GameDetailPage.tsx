@@ -1,25 +1,9 @@
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCloneGame, useExportGame, useGame } from '@/hooks/queries'
-import { downloadGameExport } from '@/lib/game-export'
-import { cloneGameSchema, type CloneGameInput } from '@/schemas/game.schema'
+import { useGame } from '@/hooks/queries'
 import { useDevMode } from '@/stores/settingsStore'
-import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ArrowLeft,
-  Copy,
-  Download,
   FlaskConical,
   Gift,
   Info,
@@ -29,8 +13,6 @@ import {
   Trophy,
   Users,
 } from 'lucide-react'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { GameConfigTab } from './components/GameConfigTab'
 import { GameInfoTab } from './components/GameInfoTab'
@@ -46,23 +28,10 @@ export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [cloneDialogOpen, setCloneDialogOpen] = useState(false)
   const isDevMode = useDevMode()
 
   const currentTab = (searchParams.get('tab') as TabValue) || 'info'
   const { data: game, isLoading, error } = useGame(gameId!)
-  const cloneGame = useCloneGame()
-  const exportGame = useExportGame()
-
-  const cloneForm = useForm<CloneGameInput>({
-    resolver: zodResolver(cloneGameSchema),
-    defaultValues: {
-      newCode: '',
-      newName: '',
-      includeMissions: true,
-      includeRewards: true,
-    },
-  })
 
   const handleTabChange = (value: string) => {
     if (value === 'info') {
@@ -70,27 +39,6 @@ export function GameDetailPage() {
     } else {
       setSearchParams({ tab: value })
     }
-  }
-
-  const handleClone = async (data: CloneGameInput) => {
-    const newGame = await cloneGame.mutateAsync({ id: gameId!, data })
-    setCloneDialogOpen(false)
-    cloneForm.reset()
-    navigate(`/games/${newGame.gameId}`)
-  }
-
-  const openCloneDialog = () => {
-    if (game) {
-      cloneForm.setValue('newCode', `${game.code}-copy`)
-      cloneForm.setValue('newName', `${game.name} (Copy)`)
-    }
-    setCloneDialogOpen(true)
-  }
-
-  const handleExport = async () => {
-    if (!gameId) return
-    const gameExport = await exportGame.mutateAsync(gameId)
-    downloadGameExport(gameExport)
   }
 
   if (isLoading) {
@@ -118,29 +66,13 @@ export function GameDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/games')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">{game.name}</h1>
-            <p className="text-sm text-muted-foreground font-mono">{game.code}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={exportGame.isPending}>
-            {exportGame.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            Export
-          </Button>
-          <Button variant="outline" onClick={openCloneDialog}>
-            <Copy className="h-4 w-4 mr-2" />
-            Clone
-          </Button>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/games')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold">{game.name}</h1>
+          <p className="text-sm text-muted-foreground font-mono">{game.code}</p>
         </div>
       </div>
 
@@ -213,82 +145,6 @@ export function GameDetailPage() {
           </TabsContent>
         )}
       </Tabs>
-
-      {/* Clone Dialog */}
-      <Dialog open={cloneDialogOpen} onOpenChange={setCloneDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Clone Game</DialogTitle>
-            <DialogDescription>
-              Create a copy of this game with a new code and name.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={cloneForm.handleSubmit(handleClone)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newCode">New Code</Label>
-              <Input
-                id="newCode"
-                {...cloneForm.register('newCode')}
-                placeholder="e.g., my-game-copy"
-              />
-              {cloneForm.formState.errors.newCode && (
-                <p className="text-sm text-destructive">
-                  {cloneForm.formState.errors.newCode.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newName">New Name</Label>
-              <Input
-                id="newName"
-                {...cloneForm.register('newName')}
-                placeholder="e.g., My Game (Copy)"
-              />
-              {cloneForm.formState.errors.newName && (
-                <p className="text-sm text-destructive">
-                  {cloneForm.formState.errors.newName.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-3">
-              <Label>Include</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeMissions"
-                  checked={cloneForm.watch('includeMissions')}
-                  onCheckedChange={(checked) =>
-                    cloneForm.setValue('includeMissions', checked === true)
-                  }
-                />
-                <Label htmlFor="includeMissions" className="font-normal cursor-pointer">
-                  Missions
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeRewards"
-                  checked={cloneForm.watch('includeRewards')}
-                  onCheckedChange={(checked) =>
-                    cloneForm.setValue('includeRewards', checked === true)
-                  }
-                />
-                <Label htmlFor="includeRewards" className="font-normal cursor-pointer">
-                  Rewards (as inactive templates)
-                </Label>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCloneDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={cloneGame.isPending}>
-                {cloneGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Clone Game
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

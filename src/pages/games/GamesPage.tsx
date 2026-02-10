@@ -23,28 +23,52 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  useCloneGame,
   useCreateGame,
+  useDeleteGame,
+  useExportGame,
   useGames,
   useImportGame,
   usePreviewImport,
-  useUpdateGame,
 } from '@/hooks/queries'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
-import type { GameExport } from '@/lib/game-export'
+import { downloadGameExport, type GameExport } from '@/lib/game-export'
 import {
+  cloneGameSchema,
   gameStatusLabels,
   gameStatusVariants,
   gameTypeLabels,
+  type CloneGameInput,
   type CreateGameInput,
   type Game,
   type GameStatus,
   type GameType,
 } from '@/schemas/game.schema'
 import type { PreviewImportResult } from '@/services/games.service'
+import { zodResolver } from '@hookform/resolvers/zod'
 import dayjs from 'dayjs'
-import { AlertCircle, CheckCircle2, Loader2, Plus, Upload } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Copy, Download, Loader2, Plus, Trash2, Upload } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 
@@ -52,11 +76,6 @@ const columnHelper = createColumnHelper<Game>()
 
 const gameTypes: GameType[] = ['spin', 'scratch', 'quiz', 'puzzle', 'match', 'lottery']
 const gameStatuses: GameStatus[] = ['draft', 'active', 'paused', 'ended']
-
-const statusOptions = gameStatuses.map((status) => ({
-  value: status,
-  label: gameStatusLabels[status],
-}))
 
 interface FormData {
   code: string
@@ -118,13 +137,32 @@ export function GamesPage() {
   const navigate = useNavigate()
   const { data: games = [], isLoading, error } = useGames()
   const createGame = useCreateGame()
-  const updateGame = useUpdateGame()
+  const deleteGame = useDeleteGame()
+  const cloneGame = useCloneGame()
+  const exportGame = useExportGame()
   const importGame = useImportGame()
   const previewImport = usePreviewImport()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
+
+  // Delete confirmation state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [gameToDelete, setGameToDelete] = useState<Game | null>(null)
+
+  // Clone dialog state
+  const [cloneDialogOpen, setCloneDialogOpen] = useState(false)
+  const [cloneSourceId, setCloneSourceId] = useState('')
+  const cloneForm = useForm<CloneGameInput>({
+    resolver: zodResolver(cloneGameSchema),
+    defaultValues: {
+      newCode: '',
+      newName: '',
+      includeMissions: true,
+      includeRewards: true,
+    },
+  })
 
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -147,25 +185,46 @@ export function GamesPage() {
   // Track unsaved changes for import sheet (dirty if file is selected)
   const isImportDirty = importData !== null
 
-  const handleUpdateStatus = useCallback(
-    async (row: Game, status: GameStatus) => {
-      await updateGame.mutateAsync({
-        id: row.gameId,
-        data: { status },
-      })
+  const handleOpenDelete = useCallback((game: Game) => {
+    setGameToDelete(game)
+    setDeleteConfirmOpen(true)
+  }, [])
+
+  const handleConfirmDelete = async () => {
+    if (!gameToDelete) return
+    await deleteGame.mutateAsync(gameToDelete.gameId)
+    setDeleteConfirmOpen(false)
+    setGameToDelete(null)
+  }
+
+  const handleExport = useCallback(
+    async (game: Game) => {
+      const data = await exportGame.mutateAsync(game.gameId)
+      downloadGameExport(data)
+      toast.success(`Exported "${game.name}"`)
     },
-    [updateGame]
+    [exportGame]
   )
 
-  const handleUpdateSchedule = useCallback(
-    async (row: Game, startAt: string | null, endAt: string | null) => {
-      await updateGame.mutateAsync({
-        id: row.gameId,
-        data: { startAt, endAt },
-      })
-    },
-    [updateGame]
-  )
+  const handleOpenClone = useCallback((game: Game) => {
+    setCloneSourceId(game.gameId)
+    cloneForm.reset({
+      newCode: `${game.code}-copy`,
+      newName: `${game.name} (Copy)`,
+      includeMissions: true,
+      includeRewards: true,
+    })
+    setCloneDialogOpen(true)
+  }, [cloneForm])
+
+  const handleClone = async (data: CloneGameInput) => {
+    if (!cloneSourceId) return
+    const newGame = await cloneGame.mutateAsync({ id: cloneSourceId, data })
+    setCloneDialogOpen(false)
+    setCloneSourceId('')
+    cloneForm.reset()
+    navigate(`/games/${newGame.gameId}`)
+  }
 
   const columns = useMemo(
     () => [
@@ -175,15 +234,31 @@ export function GamesPage() {
         href: (row) => `/games/${row.gameId}`,
       }),
       columnHelper.badge('type', 'Type', { labels: gameTypeLabels }),
-      columnHelper.editable.dateRange('startAt', 'endAt', 'Schedule', handleUpdateSchedule),
-      columnHelper.link('templateUrl', 'Template'),
-      columnHelper.editable.select('status', 'Status', handleUpdateStatus, {
-        options: statusOptions,
+      columnHelper.dateRange('startAt', 'endAt', 'Schedule'),
+      columnHelper.badge('status', 'Status', {
         labels: gameStatusLabels,
         variants: gameStatusVariants,
       }),
+      columnHelper.actions(({ row }) => [
+        {
+          label: 'Clone',
+          icon: Copy,
+          onClick: () => handleOpenClone(row.original),
+        },
+        {
+          label: 'Export',
+          icon: Download,
+          onClick: () => handleExport(row.original),
+        },
+        {
+          label: 'Delete',
+          icon: Trash2,
+          onClick: () => handleOpenDelete(row.original),
+          variant: 'destructive',
+        },
+      ]),
     ],
-    [handleUpdateStatus, handleUpdateSchedule]
+    [handleOpenDelete, handleExport, handleOpenClone]
   )
 
   // Import handlers
@@ -675,6 +750,105 @@ export function GamesPage() {
           </SheetFooter>
         </UnsavedChangesSheetContent>
       </UnsavedChangesSheet>
+
+      {/* Clone Dialog */}
+      <Dialog open={cloneDialogOpen} onOpenChange={setCloneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clone Game</DialogTitle>
+            <DialogDescription>
+              Create a copy of this game with a new code and name.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={cloneForm.handleSubmit(handleClone)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newCode">New Code</Label>
+              <Input
+                id="newCode"
+                {...cloneForm.register('newCode')}
+                placeholder="e.g., my-game-copy"
+              />
+              {cloneForm.formState.errors.newCode && (
+                <p className="text-sm text-destructive">
+                  {cloneForm.formState.errors.newCode.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newName">New Name</Label>
+              <Input
+                id="newName"
+                {...cloneForm.register('newName')}
+                placeholder="e.g., My Game (Copy)"
+              />
+              {cloneForm.formState.errors.newName && (
+                <p className="text-sm text-destructive">
+                  {cloneForm.formState.errors.newName.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-3">
+              <Label>Include</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeMissions"
+                  checked={cloneForm.watch('includeMissions')}
+                  onCheckedChange={(checked) =>
+                    cloneForm.setValue('includeMissions', checked === true)
+                  }
+                />
+                <Label htmlFor="includeMissions" className="font-normal cursor-pointer">
+                  Missions
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeRewards"
+                  checked={cloneForm.watch('includeRewards')}
+                  onCheckedChange={(checked) =>
+                    cloneForm.setValue('includeRewards', checked === true)
+                  }
+                />
+                <Label htmlFor="includeRewards" className="font-normal cursor-pointer">
+                  Rewards (as inactive templates)
+                </Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCloneDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={cloneGame.isPending}>
+                {cloneGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Clone Game
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Game</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{gameToDelete?.name}</strong>? This action
+              cannot be undone and will remove all associated missions and rewards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteGame.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
