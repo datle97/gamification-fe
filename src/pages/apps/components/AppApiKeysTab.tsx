@@ -30,52 +30,47 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
-  useCreateApiClient,
-  useDeleteApiClient,
-  useRotateApiClientApiKey,
-  useApiClients,
-  useUpdateApiClient,
-} from '@/hooks/queries/useApiClients'
+  useApiKeys,
+  useCreateApiKey,
+  useDeleteApiKey,
+  useRotateApiKey,
+  useUpdateApiKey,
+} from '@/hooks/queries/useApiKeys'
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
-import type { CreateApiClientInput, ApiClient } from '@/schemas/apiClient.schema'
+import type { ApiKey } from '@/schemas/apiKey.schema'
 import { AlertTriangle, Check, Copy, Key, Loader2, Plus, Power, PowerOff, RefreshCw, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
-const columnHelper = createColumnHelper<ApiClient>()
+const columnHelper = createColumnHelper<ApiKey>()
 
 interface FormData {
-  clientId: string
+  keyId: string
   name: string
-  description: string
-  metadata: string
 }
 
 const initialFormData: FormData = {
-  clientId: '',
+  keyId: '',
   name: '',
-  description: '',
-  metadata: '{}',
 }
 
 type SheetMode = 'create' | 'edit'
 
-interface AppApiClientsTabProps {
+interface AppApiKeysTabProps {
   appId: string
 }
 
-export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
-  const { data: allClients = [], isLoading } = useApiClients()
-  const createClient = useCreateApiClient()
-  const updateClient = useUpdateApiClient()
-  const deleteClient = useDeleteApiClient()
-  const rotateKey = useRotateApiClientApiKey()
+export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
+  const { data: allKeys = [], isLoading } = useApiKeys()
+  const createKey = useCreateApiKey()
+  const updateKey = useUpdateApiKey()
+  const deleteKey = useDeleteApiKey()
+  const rotateKey = useRotateApiKey()
 
-  const clients = useMemo(
-    () => allClients.filter((c) => c.appId === appId),
-    [allClients, appId]
+  const keys = useMemo(
+    () => allKeys.filter((k) => k.appId === appId),
+    [allKeys, appId]
   )
 
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -90,11 +85,11 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
 
   // Delete confirmation state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [clientToDelete, setClientToDelete] = useState<ApiClient | null>(null)
+  const [keyToDelete, setKeyToDelete] = useState<ApiKey | null>(null)
 
   // Rotate key confirmation state
   const [rotateConfirmOpen, setRotateConfirmOpen] = useState(false)
-  const [clientToRotate, setClientToRotate] = useState<ApiClient | null>(null)
+  const [keyToRotate, setKeyToRotate] = useState<ApiKey | null>(null)
 
   const { isDirty } = useUnsavedChanges({
     data: formData,
@@ -102,21 +97,19 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
   })
 
   const handleUpdate = useCallback(
-    async (row: ApiClient, field: keyof ApiClient, value: string | number | boolean | null) => {
-      await updateClient.mutateAsync({
-        id: row.clientId,
+    async (row: ApiKey, field: keyof ApiKey, value: string | number | boolean | null) => {
+      await updateKey.mutateAsync({
+        id: row.keyId,
         data: { [field]: value },
       })
     },
-    [updateClient]
+    [updateKey]
   )
 
-  const handleOpenEdit = useCallback((client: ApiClient) => {
+  const handleOpenEdit = useCallback((key: ApiKey) => {
     const editFormData: FormData = {
-      clientId: client.clientId,
-      name: client.name,
-      description: client.description ?? '',
-      metadata: JSON.stringify(client.metadata ?? {}, null, 2),
+      keyId: key.keyId,
+      name: key.name ?? '',
     }
     setFormData(editFormData)
     setSheetInitialData(editFormData)
@@ -124,37 +117,37 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
     setSheetOpen(true)
   }, [])
 
-  const handleOpenDelete = useCallback((client: ApiClient) => {
-    setClientToDelete(client)
+  const handleOpenDelete = useCallback((key: ApiKey) => {
+    setKeyToDelete(key)
     setDeleteConfirmOpen(true)
   }, [])
 
   const handleConfirmDelete = async () => {
-    if (!clientToDelete) return
-    await deleteClient.mutateAsync(clientToDelete.clientId)
+    if (!keyToDelete) return
+    await deleteKey.mutateAsync(keyToDelete.keyId)
     setDeleteConfirmOpen(false)
-    setClientToDelete(null)
+    setKeyToDelete(null)
   }
 
-  const handleOpenRotate = useCallback((client: ApiClient) => {
-    setClientToRotate(client)
+  const handleOpenRotate = useCallback((key: ApiKey) => {
+    setKeyToRotate(key)
     setRotateConfirmOpen(true)
   }, [])
 
   const handleConfirmRotate = async () => {
-    if (!clientToRotate) return
-    const result = await rotateKey.mutateAsync(clientToRotate.clientId)
+    if (!keyToRotate) return
+    const result = await rotateKey.mutateAsync(keyToRotate.keyId)
     setRotateConfirmOpen(false)
-    setClientToRotate(null)
+    setKeyToRotate(null)
     setDisplayedApiKey(result.apiKey)
     setApiKeyModalOpen(true)
   }
 
   const columns = useMemo(
     () => [
-      columnHelper.stacked('client', 'Client', {
-        primary: (row) => row.name,
-        secondary: (row) => row.apiKeyPrefix ? `${row.apiKeyPrefix}...` : row.clientId,
+      columnHelper.stacked('key', 'API Key', {
+        primary: (row) => row.name || row.apiKeyPrefix || row.keyId,
+        secondary: (row) => row.apiKeyPrefix ? `${row.apiKeyPrefix}...` : row.keyId,
         onClick: handleOpenEdit,
       }),
       columnHelper.date('createdAt', 'Created'),
@@ -166,7 +159,7 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
           onClick: () => handleUpdate(row.original, 'isActive', !row.original.isActive),
         },
         {
-          label: 'Rotate API Key',
+          label: 'Rotate Key',
           icon: RefreshCw,
           onClick: () => handleOpenRotate(row.original),
         },
@@ -194,33 +187,20 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
   }
 
   const handleSave = async () => {
-    if (!formData.name) return
-
-    let metadata: Record<string, unknown> = {}
-    try {
-      metadata = JSON.parse(formData.metadata)
-    } catch {
-      // Invalid JSON, keep empty
-    }
-
     if (sheetMode === 'create') {
-      const result = await createClient.mutateAsync({
-        name: formData.name,
+      const result = await createKey.mutateAsync({
         appId,
-        description: formData.description,
-        metadata,
-      } as CreateApiClientInput)
+        name: formData.name || undefined,
+      })
 
       handleClose()
       setDisplayedApiKey(result.apiKey)
       setApiKeyModalOpen(true)
     } else {
-      await updateClient.mutateAsync({
-        id: formData.clientId,
+      await updateKey.mutateAsync({
+        id: formData.keyId,
         data: {
-          name: formData.name,
-          description: formData.description,
-          metadata,
+          name: formData.name || undefined,
         },
       })
       handleClose()
@@ -240,30 +220,30 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
   }
 
   const isEditing = sheetMode === 'edit'
-  const isSaving = createClient.isPending || updateClient.isPending
+  const isSaving = createKey.isPending || updateKey.isPending
 
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle>API Clients</CardTitle>
+          <CardTitle>API Keys</CardTitle>
           <CardDescription>
-            Manage API clients for this app
+            Manage API keys for this app
           </CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
-            tableId={`api-clients-${appId}`}
+            tableId={`api-keys-${appId}`}
             columns={columns}
-            data={clients}
+            data={keys}
             loading={isLoading}
-            emptyMessage="No API clients yet. Create your first client."
+            emptyMessage="No API keys yet. Create your first key."
             enableSorting
             enableSearch
-            searchPlaceholder="Search clients..."
+            searchPlaceholder="Search keys..."
             actions={[
               {
-                label: 'New Client',
+                label: 'New Key',
                 icon: Plus,
                 onClick: handleOpenCreate,
                 variant: 'default',
@@ -281,20 +261,20 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
       >
         <UnsavedChangesSheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>{isEditing ? 'Edit API Client' : 'Create API Client'}</SheetTitle>
+            <SheetTitle>{isEditing ? 'Edit API Key' : 'Create API Key'}</SheetTitle>
             <SheetDescription>
               {isEditing
-                ? 'Update client configuration'
-                : 'Create a new API client for this app'}
+                ? 'Update key configuration'
+                : 'Create a new API key for this app'}
             </SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-auto px-4">
             {isEditing && (
               <div className="space-y-2">
-                <Label htmlFor="clientId">Client ID</Label>
+                <Label htmlFor="keyId">Key ID</Label>
                 <Input
-                  id="clientId"
-                  value={formData.clientId}
+                  id="keyId"
+                  value={formData.keyId}
                   className="font-mono"
                   disabled
                 />
@@ -302,9 +282,7 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name">
-                Name <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 placeholder="Partner Mobile App"
@@ -312,36 +290,14 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Integration for partner's mobile application"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="min-h-16"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="metadata">Metadata (JSON)</Label>
-              <Textarea
-                id="metadata"
-                placeholder="{}"
-                value={formData.metadata}
-                onChange={(e) => setFormData({ ...formData, metadata: e.target.value })}
-                className="font-mono text-sm min-h-24"
-              />
-            </div>
           </div>
           <SheetFooter>
             <SheetClose asChild>
               <Button variant="outline">Cancel</Button>
             </SheetClose>
-            <Button onClick={handleSave} disabled={!formData.name || isSaving}>
+            <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Create Client'}
+              {isEditing ? 'Save Changes' : 'Create Key'}
             </Button>
           </SheetFooter>
         </UnsavedChangesSheetContent>
@@ -401,10 +357,10 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete API Client</AlertDialogTitle>
+            <AlertDialogTitle>Delete API Key</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{clientToDelete?.name}</strong>? This action
-              cannot be undone and will invalidate all existing API keys.
+              Are you sure you want to delete{keyToDelete?.name ? <> <strong>{keyToDelete.name}</strong></> : ' this key'}? This action
+              cannot be undone and will immediately invalidate the key.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -413,7 +369,7 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteClient.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {deleteKey.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -426,8 +382,8 @@ export function AppApiClientsTab({ appId }: AppApiClientsTabProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Rotate API Key</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to rotate the API key for <strong>{clientToRotate?.name}</strong>
-              ? The current key will be immediately invalidated.
+              Are you sure you want to rotate the API key{keyToRotate?.name ? <> for <strong>{keyToRotate.name}</strong></> : ''}?
+              The current key will be immediately invalidated.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -3,11 +3,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useApp } from '@/hooks/queries'
 import { ArrowLeft, Gamepad2, Info, Key, Loader2 } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
-import { AppApiClientsTab } from './components/AppApiClientsTab'
+import { AppApiKeysTab } from './components/AppApiKeysTab'
 import { AppGamesTab } from './components/AppGamesTab'
 import { AppInfoTab } from './components/AppInfoTab'
 
-type TabValue = 'info' | 'games' | 'api-clients'
+type TabValue = 'info' | 'games' | 'api-keys'
 
 export function AppDetailPage() {
   const { appId } = useParams<{ appId: string }>()
@@ -69,9 +69,9 @@ export function AppDetailPage() {
             <Gamepad2 className="h-4 w-4" />
             Games
           </TabsTrigger>
-          <TabsTrigger value="api-clients" className="gap-2">
+          <TabsTrigger value="api-keys" className="gap-2">
             <Key className="h-4 w-4" />
-            API Clients
+            API Keys
           </TabsTrigger>
         </TabsList>
 
@@ -83,8 +83,8 @@ export function AppDetailPage() {
           <AppGamesTab appId={app.appId} />
         </TabsContent>
 
-        <TabsContent value="api-clients" className="mt-6">
-          <AppApiClientsTab appId={app.appId} />
+        <TabsContent value="api-keys" className="mt-6">
+          <AppApiKeysTab appId={app.appId} />
         </TabsContent>
       </Tabs>
     </div>
