@@ -2,9 +2,9 @@ import { z } from 'zod'
 
 export const apiKeySchema = z.object({
   keyId: z.string(),
-  name: z.string().max(255).optional(),
+  name: z.string().min(1, 'Name is required').max(255),
   appId: z.string(),
-  apiKeyPrefix: z.string().optional(),
+  apiKeyHint: z.string().optional(),
   isActive: z.boolean().default(true),
 })
 

@@ -1,13 +1,4 @@
 import {
-  SheetClose,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  UnsavedChangesSheet,
-  UnsavedChangesSheetContent,
-} from '@/components/common/unsaved-changes-sheet'
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -37,25 +28,12 @@ import {
   useRotateApiKey,
   useUpdateApiKey,
 } from '@/hooks/queries/useApiKeys'
-import { useUnsavedChanges } from '@/hooks/useUnsavedChanges'
 import { createColumnHelper } from '@/lib/column-helper'
 import type { ApiKey } from '@/schemas/apiKey.schema'
 import { AlertTriangle, Check, Copy, Key, Loader2, Plus, Power, PowerOff, RefreshCw, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 
 const columnHelper = createColumnHelper<ApiKey>()
-
-interface FormData {
-  keyId: string
-  name: string
-}
-
-const initialFormData: FormData = {
-  keyId: '',
-  name: '',
-}
-
-type SheetMode = 'create' | 'edit'
 
 interface AppApiKeysTabProps {
   appId: string
@@ -73,10 +51,9 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
     [allKeys, appId]
   )
 
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [sheetMode, setSheetMode] = useState<SheetMode>('create')
-  const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [sheetInitialData, setSheetInitialData] = useState<FormData>(initialFormData)
+  // Create dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [nameInput, setNameInput] = useState('')
 
   // API Key modal state
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false)
@@ -91,11 +68,6 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
   const [rotateConfirmOpen, setRotateConfirmOpen] = useState(false)
   const [keyToRotate, setKeyToRotate] = useState<ApiKey | null>(null)
 
-  const { isDirty } = useUnsavedChanges({
-    data: formData,
-    initialData: sheetOpen ? sheetInitialData : undefined,
-  })
-
   const handleUpdate = useCallback(
     async (row: ApiKey, field: keyof ApiKey, value: string | number | boolean | null) => {
       await updateKey.mutateAsync({
@@ -105,17 +77,6 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
     },
     [updateKey]
   )
-
-  const handleOpenEdit = useCallback((key: ApiKey) => {
-    const editFormData: FormData = {
-      keyId: key.keyId,
-      name: key.name ?? '',
-    }
-    setFormData(editFormData)
-    setSheetInitialData(editFormData)
-    setSheetMode('edit')
-    setSheetOpen(true)
-  }, [])
 
   const handleOpenDelete = useCallback((key: ApiKey) => {
     setKeyToDelete(key)
@@ -146,9 +107,8 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
   const columns = useMemo(
     () => [
       columnHelper.stacked('key', 'API Key', {
-        primary: (row) => row.name || row.apiKeyPrefix || row.keyId,
-        secondary: (row) => row.apiKeyPrefix ? `${row.apiKeyPrefix}...` : row.keyId,
-        onClick: handleOpenEdit,
+        primary: (row) => row.name || row.apiKeyHint || row.keyId,
+        secondary: (row) => row.apiKeyHint ? `${row.apiKeyHint}` : row.keyId,
       }),
       columnHelper.date('createdAt', 'Created'),
       columnHelper.status('isActive', 'Status'),
@@ -171,40 +131,30 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
         },
       ]),
     ],
-    [handleUpdate, handleOpenEdit, handleOpenDelete, handleOpenRotate]
+    [handleUpdate, handleOpenDelete, handleOpenRotate]
   )
 
   const handleOpenCreate = () => {
-    setFormData(initialFormData)
-    setSheetInitialData(initialFormData)
-    setSheetMode('create')
-    setSheetOpen(true)
+    setNameInput('')
+    setCreateDialogOpen(true)
   }
 
-  const handleClose = () => {
-    setSheetOpen(false)
-    setFormData(initialFormData)
+  const handleCloseCreate = () => {
+    setCreateDialogOpen(false)
+    setNameInput('')
   }
 
-  const handleSave = async () => {
-    if (sheetMode === 'create') {
-      const result = await createKey.mutateAsync({
-        appId,
-        name: formData.name || undefined,
-      })
+  const handleCreate = async () => {
+    if (!nameInput) return
 
-      handleClose()
-      setDisplayedApiKey(result.apiKey)
-      setApiKeyModalOpen(true)
-    } else {
-      await updateKey.mutateAsync({
-        id: formData.keyId,
-        data: {
-          name: formData.name || undefined,
-        },
-      })
-      handleClose()
-    }
+    const result = await createKey.mutateAsync({
+      appId,
+      name: nameInput,
+    })
+
+    handleCloseCreate()
+    setDisplayedApiKey(result.apiKey)
+    setApiKeyModalOpen(true)
   }
 
   const handleCopyApiKey = () => {
@@ -218,9 +168,6 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
     setDisplayedApiKey('')
     setApiKeyCopied(false)
   }
-
-  const isEditing = sheetMode === 'edit'
-  const isSaving = createKey.isPending || updateKey.isPending
 
   return (
     <>
@@ -253,55 +200,38 @@ export function AppApiKeysTab({ appId }: AppApiKeysTabProps) {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Sheet */}
-      <UnsavedChangesSheet
-        open={sheetOpen}
-        onOpenChange={(open) => !open && handleClose()}
-        isDirty={isDirty}
-      >
-        <UnsavedChangesSheetContent className="sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>{isEditing ? 'Edit API Key' : 'Create API Key'}</SheetTitle>
-            <SheetDescription>
-              {isEditing
-                ? 'Update key configuration'
-                : 'Create a new API key for this app'}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 space-y-4 overflow-auto px-4">
-            {isEditing && (
-              <div className="space-y-2">
-                <Label htmlFor="keyId">Key ID</Label>
-                <Input
-                  id="keyId"
-                  value={formData.keyId}
-                  className="font-mono"
-                  disabled
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Partner Mobile App"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
+      {/* Create Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={(open) => !open && handleCloseCreate()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create API Key</DialogTitle>
+            <DialogDescription>
+              Create a new API key for this app
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="name">
+              Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              placeholder="Partner Mobile App"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && nameInput) handleCreate()
+              }}
+            />
           </div>
-          <SheetFooter>
-            <SheetClose asChild>
-              <Button variant="outline">Cancel</Button>
-            </SheetClose>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Create Key'}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseCreate}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={!nameInput || createKey.isPending}>
+              {createKey.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Create Key
             </Button>
-          </SheetFooter>
-        </UnsavedChangesSheetContent>
-      </UnsavedChangesSheet>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* API Key Modal */}
       <Dialog open={apiKeyModalOpen} onOpenChange={handleCloseApiKeyModal}>
