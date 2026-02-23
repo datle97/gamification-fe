@@ -28,6 +28,7 @@ import {
   useGame,
   useGameUserDetail,
   useGrantTurns,
+  useInfiniteUserActivities,
   useResetAllMissionsProgress,
   useResetMissionProgress,
   useRewardsByGame,
@@ -78,7 +79,7 @@ import {
   UserCog,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import {
   CartesianGrid,
@@ -494,6 +495,75 @@ type DateGroup = {
   groups: ActivityGroup[]
 }
 
+const typePriority: Record<ActivityType, number> = {
+  game_play: 1,
+  game_share: 2,
+  turn_spend: 3,
+  reward_earn: 4,
+  reward_share: 5,
+  reward_claim: 6,
+  reward_fail: 7,
+  score_earn: 8,
+  mission_complete: 9,
+  mission_progress: 10,
+  turn_earn: 11,
+  turn_expire: 12,
+  admin_grant: 13,
+  admin_revoke: 14,
+}
+
+function groupActivitiesByDate(activities?: UserActivity[]): DateGroup[] {
+  if (!activities?.length) return []
+
+  const now = dayjs()
+  const byRequestId = new Map<string, UserActivity[]>()
+
+  activities.forEach((activity) => {
+    const key = activity.metadata?.requestId || `single_${activity.id}`
+    if (!byRequestId.has(key)) {
+      byRequestId.set(key, [])
+    }
+    byRequestId.get(key)!.push(activity)
+  })
+
+  const groups: ActivityGroup[] = []
+  byRequestId.forEach((acts, requestId) => {
+    acts.sort((a, b) => typePriority[a.type] - typePriority[b.type])
+    groups.push({
+      requestId,
+      timestamp: acts[0].timestamp,
+      activities: acts,
+      primaryType: acts[0].type,
+    })
+  })
+
+  groups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  const byDate: DateGroup[] = []
+  groups.forEach((group) => {
+    const activityDate = dayjs(group.timestamp)
+    const dateKey = activityDate.format('YYYY-MM-DD')
+
+    let dateLabel: string
+    if (activityDate.isSame(now, 'day')) {
+      dateLabel = 'Today'
+    } else if (activityDate.isSame(now.subtract(1, 'day'), 'day')) {
+      dateLabel = 'Yesterday'
+    } else {
+      dateLabel = activityDate.format('MMM D')
+    }
+
+    const existing = byDate.find((g) => g.date === dateKey)
+    if (existing) {
+      existing.groups.push(group)
+    } else {
+      byDate.push({ date: dateKey, label: dateLabel, groups: [group] })
+    }
+  })
+
+  return byDate
+}
+
 // Reusable ActivityTimeline component
 function ActivityTimeline({
   dateGroups,
@@ -747,7 +817,15 @@ export function UserDetailPage() {
   const { data: turns } = useUserTurns(gameId!, userId!)
   const { data: rewards } = useUserRewards(gameId!, userId!)
   const { data: missions } = useUserMissions(gameId!, userId!)
+  // TODO: Replace with dedicated stats API endpoint to avoid fetching all activities for stats/charts
   const { data: activitiesData } = useUserActivities(gameId!, userId!, 1, 200)
+  const {
+    data: infiniteActivities,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isInfiniteLoading,
+  } = useInfiniteUserActivities(gameId!, userId!, 200)
   const { data: gameRewards } = useRewardsByGame(gameId!)
 
   // Admin actions
@@ -924,92 +1002,39 @@ export function UserDetailPage() {
       .slice(-14) // Last 14 days
   }, [activitiesData])
 
-  // Group activities by requestId, then by date
-  const groupedActivities = useMemo(() => {
-    if (!activitiesData?.activities) return []
+  // Group activities by requestId, then by date (for overview - uses stats data)
+  const groupedActivities = useMemo(
+    () => groupActivitiesByDate(activitiesData?.activities),
+    [activitiesData]
+  )
 
-    const now = dayjs()
+  // Infinite scroll activities for Activity tab
+  const allInfiniteActivities = useMemo(
+    () => infiniteActivities?.pages.flatMap((p) => p.activities),
+    [infiniteActivities]
+  )
+  const infiniteGroupedActivities = useMemo(
+    () => groupActivitiesByDate(allInfiniteActivities),
+    [allInfiniteActivities]
+  )
 
-    // Group activities by requestId from metadata (or use id as fallback for standalone activities)
-    const byRequestId = new Map<string, UserActivity[]>()
+  // Infinite scroll — callback ref pattern (no useEffect needed)
+  const observerRef = useRef<IntersectionObserver>(null)
+  const sentinelRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observerRef.current) observerRef.current.disconnect()
+      if (!node || !hasNextPage || isFetchingNextPage) return
 
-    activitiesData.activities.forEach((activity) => {
-      const key = activity.metadata?.requestId || `single_${activity.id}`
-      if (!byRequestId.has(key)) {
-        byRequestId.set(key, [])
-      }
-      byRequestId.get(key)!.push(activity)
-    })
-
-    // Convert to array of activity groups
-    const groups: {
-      requestId: string
-      timestamp: string
-      activities: UserActivity[]
-      primaryType: ActivityType
-    }[] = []
-
-    byRequestId.forEach((activities, requestId) => {
-      // Sort activities within group by type priority
-      const typePriority: Record<ActivityType, number> = {
-        game_play: 1,
-        game_share: 2,
-        turn_spend: 3,
-        reward_earn: 4,
-        reward_share: 5,
-        reward_claim: 6,
-        reward_fail: 7,
-        score_earn: 8,
-        mission_complete: 9,
-        mission_progress: 10,
-        turn_earn: 11,
-        turn_expire: 12,
-        admin_grant: 13,
-        admin_revoke: 14,
-      }
-      activities.sort((a, b) => typePriority[a.type] - typePriority[b.type])
-
-      groups.push({
-        requestId,
-        timestamp: activities[0].timestamp,
-        activities,
-        primaryType: activities[0].type,
-      })
-    })
-
-    // Sort groups by timestamp descending
-    groups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-
-    // Now group by date
-    const byDate: { date: string; label: string; groups: typeof groups }[] = []
-
-    groups.forEach((group) => {
-      const activityDate = dayjs(group.timestamp)
-      const dateKey = activityDate.format('YYYY-MM-DD')
-
-      let dateLabel: string
-      if (activityDate.isSame(now, 'day')) {
-        dateLabel = 'Today'
-      } else if (activityDate.isSame(now.subtract(1, 'day'), 'day')) {
-        dateLabel = 'Yesterday'
-      } else {
-        dateLabel = activityDate.format('MMM D')
-      }
-
-      const existingGroup = byDate.find((g) => g.date === dateKey)
-      if (existingGroup) {
-        existingGroup.groups.push(group)
-      } else {
-        byDate.push({
-          date: dateKey,
-          label: dateLabel,
-          groups: [group],
-        })
-      }
-    })
-
-    return byDate
-  }, [activitiesData])
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) fetchNextPage()
+        },
+        { rootMargin: '200px' }
+      )
+      observerRef.current.observe(node)
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage]
+  )
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
@@ -1408,7 +1433,21 @@ export function UserDetailPage() {
 
         {/* Activity Tab */}
         <TabsContent value="activity" className="mt-6 space-y-6">
-          <ActivityTimeline dateGroups={groupedActivities} />
+          {isInfiniteLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <ActivityTimeline dateGroups={infiniteGroupedActivities} />
+              {/* Scroll sentinel for infinite loading */}
+              <div ref={sentinelRef} className="flex justify-center py-4">
+                {isFetchingNextPage && (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                )}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* Rewards Tab */}

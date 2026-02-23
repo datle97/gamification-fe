@@ -7,7 +7,7 @@ import {
   type TestPlayInput,
 } from '@/services/game-users.service'
 import { useAnalytics } from '@/stores/settingsStore'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export const gameUsersKeys = {
   all: ['game-users'] as const,
@@ -134,6 +134,18 @@ export function useUserActivities(gameId: string, userId: string, page = 1, limi
   return useQuery({
     queryKey: [...gameUsersKeys.detail(gameId, userId), 'activities', page, limit] as const,
     queryFn: () => gameUsersService.getActivities(gameId, userId, page, limit),
+    enabled: !!gameId && !!userId,
+  })
+}
+
+export function useInfiniteUserActivities(gameId: string, userId: string, limit = 50) {
+  return useInfiniteQuery({
+    queryKey: [...gameUsersKeys.detail(gameId, userId), 'activities', 'infinite', limit] as const,
+    queryFn: ({ pageParam }) =>
+      gameUsersService.getActivities(gameId, userId, pageParam, limit),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+      lastPage.hasMore ? lastPageParam + 1 : undefined,
     enabled: !!gameId && !!userId,
   })
 }
