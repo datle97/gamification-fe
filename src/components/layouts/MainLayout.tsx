@@ -9,20 +9,16 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { useApp } from '@/hooks/queries/useApps'
 import { useGameUserDetail } from '@/hooks/queries/useGameUsers'
 import { useGame } from '@/hooks/queries/useGames'
-import { useTheme } from '@/hooks/useTheme'
-import { useAuthStore } from '@/stores/authStore'
 import type { App } from '@/schemas/app.schema'
 import type { Game } from '@/schemas/game.schema'
 import type { GameUser } from '@/services/game-users.service'
-import { LogOut, Moon, Sun } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
-import { Link, Outlet, useLocation, useNavigate } from 'react-router'
+import { Link, Outlet, useLocation } from 'react-router'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -188,15 +184,7 @@ function useBreadcrumbs(pathname: string): BreadcrumbData[] {
 
 export function MainLayout() {
   const location = useLocation()
-  const navigate = useNavigate()
   const breadcrumbs = useBreadcrumbs(location.pathname)
-  const { theme, toggleTheme } = useTheme()
-  const logout = useAuthStore((state) => state.logout)
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login', { replace: true })
-  }
 
   return (
     <SidebarProvider className="bg-sidebar">
@@ -243,16 +231,6 @@ export function MainLayout() {
               ))}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8">
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8">
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Logout</span>
-            </Button>
-          </div>
         </header>
         <main className="flex-1 overflow-auto p-6">
           <Outlet />

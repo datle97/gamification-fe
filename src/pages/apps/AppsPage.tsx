@@ -99,9 +99,7 @@ export function AppsPage() {
         onClick: (app) => navigate(`/apps/${app.appId}`),
       }),
       columnHelper.date('createdAt', 'Created'),
-      columnHelper.editable.toggle('isActive', 'Status', (row, value) =>
-        handleUpdate(row, 'isActive', value)
-      ),
+      columnHelper.status('isActive', 'Status'),
       columnHelper.actions(({ row }) => [
         {
           label: row.original.isActive ? 'Deactivate' : 'Activate',

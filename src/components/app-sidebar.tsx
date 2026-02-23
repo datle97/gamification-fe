@@ -1,3 +1,12 @@
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Sidebar,
   SidebarContent,
@@ -10,9 +19,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
-import { Gamepad2, LayoutDashboard, LayoutGrid, Settings } from 'lucide-react'
-import { NavLink, useLocation } from 'react-router'
+import { useAuthStore } from '@/stores/authStore'
+import { ChevronsUpDown, Gamepad2, LayoutDashboard, LayoutGrid, LogOut, Settings } from 'lucide-react'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,6 +33,14 @@ const navigation = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { isMobile } = useSidebar()
+  const logout = useAuthStore((state) => state.logout)
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -70,16 +89,55 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={location.pathname === '/settings'}
-              tooltip="Settings"
-            >
-              <NavLink to="/settings">
-                <Settings />
-                <span>Settings</span>
-              </NavLink>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                >
+                  <Avatar className="size-8">
+                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                      AD
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Admin</span>
+                    <span className="truncate text-xs text-muted-foreground">admin@gamification</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side={isMobile ? 'bottom' : 'top'}
+                align="start"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex items-center gap-2 text-left text-sm">
+                    <Avatar className="size-8">
+                      <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs">
+                        AD
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 leading-tight">
+                      <span className="truncate font-semibold">Admin</span>
+                      <span className="truncate text-xs text-muted-foreground">admin@gamification</span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 size-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 size-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
